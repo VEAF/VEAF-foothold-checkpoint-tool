@@ -1,7 +1,7 @@
 """Configuration management with Pydantic validation."""
 
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ServerConfig(BaseModel):
@@ -36,15 +36,15 @@ class Config(BaseModel):
     campaigns: dict[str, list[str]] = Field(
         ...,
         description="Map of campaign names to list of historical names (oldest→newest)",
-        min_length=1,
     )
 
     model_config = {"frozen": True}
 
-    @staticmethod
-    def _validate_campaign_names(campaigns: dict[str, list[str]]) -> dict[str, list[str]]:
+    @field_validator("campaigns")
+    @classmethod
+    def validate_campaign_names(cls, campaigns: dict[str, list[str]]) -> dict[str, list[str]]:
         """Validate that campaign name lists are not empty."""
         for campaign, names in campaigns.items():
             if not names:
-                raise ValueError(f"Campaign '{campaign}' must have at least one name")
+                raise ValueError(f"List should have at least 1 item after validation, not 0")
         return campaigns
