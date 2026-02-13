@@ -23,3 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tasks: 211 implementation tasks across 21 groups
 - Development guidelines and auto-memory documentation
 - Conversation history and design rationale documentation
+- Project setup (feature/project-setup)
+  - `pyproject.toml` with Poetry configuration and project metadata
+  - Runtime dependencies: typer, rich, pyyaml, pydantic
+  - Dev dependencies: pytest, pytest-cov, ruff, black, mypy, types-PyYAML
+  - Package structure (src layout): `src/foothold_checkpoint/` and `src/foothold_checkpoint/core/`
+  - Test directory structure: `tests/`
+  - Type hints marker: `py.typed`
+  - Example configuration: `config.yaml.example`
+  - Locked dependencies: `poetry.lock`
+- Documentation restructuring
+  - `README.md`: Generic project overview
+  - `USERS.md`: Complete user guide with installation, configuration, and usage
+  - `CONTRIBUTING.md`: Developer guide with TDD workflow, coding standards, and Git workflow
