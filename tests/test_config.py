@@ -3,6 +3,8 @@
 import pytest
 from pathlib import Path
 from pydantic import ValidationError
+import tempfile
+import yaml
 
 
 class TestServerConfig:
@@ -172,3 +174,133 @@ class TestConfig:
 
         with pytest.raises(ValidationError, match="frozen"):
             config.checkpoints_dir = Path("~/other")
+
+
+class TestLoadConfig:
+    """Test suite for configuration loading from YAML files."""
+
+    def test_load_valid_config(self):
+        """load_config should successfully load a valid YAML configuration."""
+        from foothold_checkpoint.core.config import load_config
+
+        # Create a temporary YAML file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump({
+                'checkpoints_dir': '~/.foothold-checkpoints',
+                'servers': {
+                    'production-1': {
+                        'path': 'D:/Servers/DCS-Production/Missions/Saves',
+                        'description': 'Production server'
+                    }
+                },
+                'campaigns': {
+                    'Afghanistan': ['afghanistan'],
+                    'Caucasus': ['CA']
+                }
+            }, f)
+            temp_path = Path(f.name)
+
+        try:
+            config = load_config(temp_path)
+
+            assert config.checkpoints_dir == Path("~/.foothold-checkpoints")
+            assert "production-1" in config.servers
+            assert config.servers["production-1"].description == "Production server"
+            assert config.campaigns["Afghanistan"] == ["afghanistan"]
+        finally:
+            temp_path.unlink()
+
+    def test_load_config_file_not_found(self):
+        """load_config should raise FileNotFoundError if file doesn't exist."""
+        from foothold_checkpoint.core.config import load_config
+
+        with pytest.raises(FileNotFoundError):
+            load_config(Path("/nonexistent/config.yaml"))
+
+    def test_load_config_invalid_yaml(self):
+        """load_config should raise yaml.YAMLError for invalid YAML syntax."""
+        from foothold_checkpoint.core.config import load_config
+
+        # Create a file with invalid YAML syntax
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("invalid: yaml: syntax: here:\n  - broken")
+            temp_path = Path(f.name)
+
+        try:
+            with pytest.raises(yaml.YAMLError):
+                load_config(temp_path)
+        finally:
+            temp_path.unlink()
+
+    def test_load_config_missing_required_fields(self):
+        """load_config should raise ValidationError if required fields are missing."""
+        from foothold_checkpoint.core.config import load_config
+
+        # Create YAML without required 'campaigns' field
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump({
+                'checkpoints_dir': '~/.foothold-checkpoints',
+                'servers': {}
+            }, f)
+            temp_path = Path(f.name)
+
+        try:
+            with pytest.raises(ValidationError, match="campaigns"):
+                load_config(temp_path)
+        finally:
+            temp_path.unlink()
+
+    def test_load_config_invalid_campaign_empty_list(self):
+        """load_config should raise ValidationError if campaign has empty name list."""
+        from foothold_checkpoint.core.config import load_config
+
+        # Create YAML with empty campaign list
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump({
+                'checkpoints_dir': '~/.foothold-checkpoints',
+                'servers': {
+                    'test': {
+                        'path': 'D:/Test',
+                        'description': 'Test'
+                    }
+                },
+                'campaigns': {
+                    'Afghanistan': []  # Empty list should fail
+                }
+            }, f)
+            temp_path = Path(f.name)
+
+        try:
+            with pytest.raises(ValidationError, match="at least 1 item"):
+                load_config(temp_path)
+        finally:
+            temp_path.unlink()
+
+    def test_load_config_converts_string_paths(self):
+        """load_config should convert string paths to Path objects."""
+        from foothold_checkpoint.core.config import load_config
+
+        # YAML with string paths
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump({
+                'checkpoints_dir': 'D:/Checkpoints',
+                'servers': {
+                    'test': {
+                        'path': 'D:/Servers/Test/Missions/Saves',
+                        'description': 'Test server'
+                    }
+                },
+                'campaigns': {
+                    'Germany': ['GCW', 'Germany_Modern']
+                }
+            }, f)
+            temp_path = Path(f.name)
+
+        try:
+            config = load_config(temp_path)
+
+            assert isinstance(config.checkpoints_dir, Path)
+            assert isinstance(config.servers["test"].path, Path)
+            assert config.checkpoints_dir == Path("D:/Checkpoints")
+        finally:
+            temp_path.unlink()

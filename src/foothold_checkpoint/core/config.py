@@ -1,6 +1,8 @@
 """Configuration management with Pydantic validation."""
 
 from pathlib import Path
+from typing import Any
+import yaml
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -48,3 +50,39 @@ class Config(BaseModel):
             if not names:
                 raise ValueError(f"List should have at least 1 item after validation, not 0")
         return campaigns
+
+
+def load_config(path: Path) -> Config:
+    """Load configuration from YAML file.
+
+    Args:
+        path: Path to the YAML configuration file
+
+    Returns:
+        Config: Validated configuration object
+
+    Raises:
+        FileNotFoundError: If the configuration file doesn't exist
+        yaml.YAMLError: If the YAML syntax is invalid
+        ValidationError: If the configuration doesn't match the schema
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {path}")
+
+    with open(path, 'r', encoding='utf-8') as f:
+        data: dict[str, Any] = yaml.safe_load(f)
+
+    # Parse servers section - convert dict to ServerConfig objects
+    servers_data = data.get('servers', {})
+    servers = {
+        name: ServerConfig(**server_config)
+        for name, server_config in servers_data.items()
+    }
+
+    # Create Config object with validated data
+    # Pydantic will validate required fields and raise ValidationError if missing
+    return Config(
+        checkpoints_dir=data.get('checkpoints_dir'),
+        servers=servers,
+        campaigns=data.get('campaigns')
+    )
