@@ -1,0 +1,51 @@
+# Foothold Checkpoint Tool - Configuration Example
+#
+# Copy this file to ~/.foothold-checkpoint/config.yaml and customize for your setup.
+# The tool will auto-create this file with these defaults on first run.
+
+# Directory where checkpoints are stored
+checkpoints_dir: ~/.foothold-checkpoints
+
+# DCS servers configuration
+servers:
+  production-1:
+    path: D:\Servers\DCS-Production-1\Missions\Saves
+    description: "Main production server"
+
+  production-2:
+    path: D:\Servers\DCS-Production-2\Missions\Saves
+    description: "Secondary production server"
+
+  test-server:
+    path: D:\Servers\DCS-Test\Missions\Saves
+    description: "Test and development server"
+
+# Campaign name mappings (historical evolution)
+# Format: campaign_id: [oldest_name, ..., newest_name]
+# The last name in the list is used when restoring checkpoints
+campaigns:
+  Afghanistan:
+    - afghanistan
+
+  Caucasus:
+    - CA
+
+  Germany_Modern:
+    - GCW_Modern
+    - Germany_Modern
+
+  Germany_ColdWar:
+    - GCW_ColdWar
+    - Germany_ColdWar
+
+  Sinai:
+    - SI
+
+  PersianGulf:
+    - persiangulf
+
+  PersianGulf_ColdWar:
+    - persiangulf_Coldwar
+
+  Syria:
+    - Syria_Extended
