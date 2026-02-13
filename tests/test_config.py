@@ -304,3 +304,83 @@ class TestLoadConfig:
             assert config.checkpoints_dir == Path("D:/Checkpoints")
         finally:
             temp_path.unlink()
+
+
+class TestCreateDefaultConfig:
+    """Test suite for creating default configuration files."""
+
+    def test_create_default_config_in_existing_directory(self):
+        """create_default_config should create a config file in an existing directory."""
+        from foothold_checkpoint.core.config import create_default_config
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+
+            create_default_config(config_path)
+
+            assert config_path.exists()
+            assert config_path.is_file()
+
+    def test_create_default_config_creates_parent_directory(self):
+        """create_default_config should create parent directories if they don't exist."""
+        from foothold_checkpoint.core.config import create_default_config
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "subdir" / "nested" / "config.yaml"
+
+            create_default_config(config_path)
+
+            assert config_path.exists()
+            assert config_path.parent.exists()
+
+    def test_create_default_config_does_not_overwrite(self):
+        """create_default_config should not overwrite an existing config file."""
+        from foothold_checkpoint.core.config import create_default_config
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+
+            # Create a file with custom content
+            config_path.write_text("existing: content", encoding='utf-8')
+            original_content = config_path.read_text(encoding='utf-8')
+
+            # Try to create default config (should not overwrite)
+            create_default_config(config_path)
+
+            # Content should remain unchanged
+            assert config_path.read_text(encoding='utf-8') == original_content
+
+    def test_create_default_config_creates_valid_yaml(self):
+        """create_default_config should create a valid YAML file."""
+        from foothold_checkpoint.core.config import create_default_config
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+
+            create_default_config(config_path)
+
+            # Should be valid YAML
+            with open(config_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+
+            assert isinstance(data, dict)
+            assert 'checkpoints_dir' in data
+            assert 'servers' in data
+            assert 'campaigns' in data
+
+    def test_create_default_config_loadable_by_load_config(self):
+        """Config created by create_default_config should be loadable by load_config."""
+        from foothold_checkpoint.core.config import create_default_config, load_config
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+
+            create_default_config(config_path)
+
+            # Should be loadable without errors
+            config = load_config(config_path)
+
+            # Should have valid structure
+            assert isinstance(config.checkpoints_dir, Path)
+            assert isinstance(config.servers, dict)
+            assert isinstance(config.campaigns, dict)
