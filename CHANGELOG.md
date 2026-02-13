@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Configuration Management (feature/config-management) - IN PROGRESS
+  - Pydantic models (ServerConfig, Config) with frozen/immutable design
+  - Test suite with TDD approach (12 tests)
 - OpenSpec change artifacts for foothold-checkpoint-tool
   - Proposal: Project vision and capabilities
   - Design: Technical architecture and decisions
