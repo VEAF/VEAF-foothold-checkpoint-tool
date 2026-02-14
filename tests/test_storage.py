@@ -1099,6 +1099,154 @@ class TestRestoreCheckpoint:
                         checkpoint_path=checkpoint_path, target_dir=target_dir_patched
                     )
 
+    def test_restore_checkpoint_renames_files_with_evolved_campaign_names(self):
+        """restore_checkpoint should rename files when campaign name has evolved."""
+        import zipfile
+        import json
+        import hashlib
+        from foothold_checkpoint.core.storage import restore_checkpoint
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create config with campaign name evolution
+            config = Config(
+                checkpoints_dir=Path(tmpdir) / "checkpoints",
+                servers={
+                    "test-server": ServerConfig(
+                        path=Path(tmpdir) / "server",
+                        description="Test server"
+                    )
+                },
+                campaigns={
+                    "Germany_Modern": ["gcw_modern", "germany_modern"]
+                }
+            )
+
+            # Create a checkpoint with old campaign name files
+            checkpoint_path = Path(tmpdir) / "checkpoint.zip"
+            with zipfile.ZipFile(checkpoint_path, "w") as zf:
+                # Add files with historical campaign name
+                old_lua_content = b"-- GCW Modern campaign"
+                old_csv_content = b"gcw,data"
+
+                zf.writestr("FootHold_GCW_Modern.lua", old_lua_content)
+                zf.writestr("FootHold_GCW_Modern_storage.csv", old_csv_content)
+
+                # Add metadata with checksums
+                metadata = {
+                    "campaign_name": "gcw_modern",
+                    "server_name": "test-server",
+                    "created_at": "2024-02-13T14:30:00Z",
+                    "files": {
+                        "FootHold_GCW_Modern.lua": f"sha256:{hashlib.sha256(old_lua_content).hexdigest()}",
+                        "FootHold_GCW_Modern_storage.csv": f"sha256:{hashlib.sha256(old_csv_content).hexdigest()}",
+                    }
+                }
+                zf.writestr("metadata.json", json.dumps(metadata))
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            # Restore with config (should rename files)
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                config=config
+            )
+
+            # Files should be renamed to current campaign name
+            assert (target_dir / "FootHold_germany_modern.lua").exists()
+            assert (target_dir / "FootHold_germany_modern_storage.csv").exists()
+
+            # Old names should NOT exist
+            assert not (target_dir / "FootHold_GCW_Modern.lua").exists()
+            assert not (target_dir / "FootHold_GCW_Modern_storage.csv").exists()
+
+            # Content should be preserved
+            assert (target_dir / "FootHold_germany_modern.lua").read_bytes() == old_lua_content
+            assert (target_dir / "FootHold_germany_modern_storage.csv").read_bytes() == old_csv_content
+
+            # Returned paths should use new names
+            assert any(f.name == "FootHold_germany_modern.lua" for f in restored_files)
+            assert any(f.name == "FootHold_germany_modern_storage.csv" for f in restored_files)
+
+    def test_restore_checkpoint_keeps_files_unchanged_when_no_name_evolution(self):
+        """restore_checkpoint should keep filenames unchanged when campaign name hasn't evolved."""
+        import zipfile
+        import json
+        import hashlib
+        from foothold_checkpoint.core.storage import restore_checkpoint
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = Config(
+                checkpoints_dir=Path(tmpdir) / "checkpoints",
+                servers={
+                    "test-server": ServerConfig(
+                        path=Path(tmpdir) / "server",
+                        description="Test server"
+                    )
+                },
+                campaigns={
+                    "Afghanistan": ["afghanistan"]
+                }
+            )
+
+            checkpoint_path = Path(tmpdir) / "checkpoint.zip"
+            with zipfile.ZipFile(checkpoint_path, "w") as zf:
+                lua_content = b"-- Afghanistan campaign"
+
+                zf.writestr("foothold_afghanistan.lua", lua_content)
+
+                metadata = {
+                    "campaign_name": "afghanistan",
+                    "server_name": "test-server",
+                    "created_at": "2024-02-13T14:30:00Z",
+                    "files": {
+                        "foothold_afghanistan.lua": f"sha256:{hashlib.sha256(lua_content).hexdigest()}",
+                    }
+                }
+                zf.writestr("metadata.json", json.dumps(metadata))
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                config=config
+            )
+
+            # Filename should be unchanged (campaign name hasn't evolved)
+            assert (target_dir / "foothold_afghanistan.lua").exists()
+
+    def test_restore_checkpoint_without_config_keeps_original_names(self):
+        """restore_checkpoint without config should keep original filenames (backward compatibility)."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "FootHold_GCW_Modern.lua").write_text("-- test")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="gcw_modern",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            # Restore without config (backward compatibility)
+            restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+            # Original filename should be preserved
+            assert (target_dir / "FootHold_GCW_Modern.lua").exists()
+
 
 class TestListCheckpoints:
     """Test suite for list_checkpoints function."""

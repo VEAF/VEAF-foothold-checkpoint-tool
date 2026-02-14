@@ -352,3 +352,120 @@ def create_campaign_report(filenames: list[str | Path], config: "Config") -> dic
     report = {name: len(files) for name, files in campaigns.items()}
 
     return report
+
+
+def rename_campaign_file(filename: str | Path, config: "Config") -> str:
+    """Rename a campaign file to use the current campaign name from config.
+
+    This function is used during checkpoint restoration to rename files
+    that use historical campaign names to their current names. For example,
+    if a campaign evolved from "GCW_Modern" to "Germany_Modern", files like
+    "FootHold_GCW_Modern.lua" are renamed to "FootHold_Germany_Modern.lua".
+
+    The function preserves:
+    - Original prefix case (foothold vs FootHold vs FOOTHOLD)
+    - File extensions (.lua, .csv)
+    - File type suffixes (_storage, _CTLD_FARPS, _CTLD_Save)
+
+    Non-campaign files (shared files, unknown files) are returned unchanged.
+
+    Args:
+        filename: The filename to potentially rename (string or Path object).
+                 Can be just a filename or a full path (only filename is used).
+        config: Configuration object containing campaign mappings.
+
+    Returns:
+        str: The renamed filename, or original filename if:
+             - Not a campaign file (e.g., Foothold_Ranks.lua)
+             - Campaign not found in config
+             - Campaign name hasn't changed
+
+    Examples:
+        >>> # Config: Germany_Modern: [gcw_modern, germany_modern]
+        >>> rename_campaign_file("FootHold_GCW_Modern.lua", config)
+        'FootHold_germany_modern.lua'
+
+        >>> rename_campaign_file("FootHold_GCW_Modern_storage.csv", config)
+        'FootHold_germany_modern_storage.csv'
+
+        >>> # Unchanged campaign name
+        >>> rename_campaign_file("foothold_afghanistan.lua", config)
+        'foothold_afghanistan.lua'
+
+        >>> # Non-campaign file
+        >>> rename_campaign_file("Foothold_Ranks.lua", config)
+        'Foothold_Ranks.lua'
+    """
+    # Extract filename if a Path object is provided
+    if isinstance(filename, Path):
+        filename = filename.name
+    else:
+        filename = Path(filename).name
+
+    # Don't rename non-campaign files
+    if not is_campaign_file(filename):
+        return filename
+
+    # Extract the normalized campaign name
+    normalized_name = normalize_campaign_name(filename)
+
+    if not normalized_name:
+        # Shouldn't happen (is_campaign_file returned True), but safety check
+        return filename
+
+    # Map to current campaign name
+    current_name = map_campaign_name(normalized_name, config)
+
+    # If the name hasn't changed, return original
+    if current_name == normalized_name:
+        return filename
+
+    # Now we need to reconstruct the filename with the new campaign name
+    # while preserving the original structure
+
+    # Remove file extension to work with the name part
+    name_without_ext = filename.rsplit('.', 1)[0]
+    extension = filename.rsplit('.', 1)[1]  # .lua or .csv
+
+    # Extract the original prefix (preserving case)
+    # Pattern: foothold_<campaign>_<rest>
+    # We need to find where "foothold_" ends (case-insensitive)
+    prefix_match = re.match(r'(foothold_)', name_without_ext, re.IGNORECASE)
+    if not prefix_match:
+        # Shouldn't happen, but safety
+        return filename
+
+    original_prefix = prefix_match.group(1)  # "foothold_" or "FootHold_" etc.
+
+    # Remove the prefix to get the rest
+    name_after_prefix = name_without_ext[len(original_prefix):]
+
+    # The name_after_prefix looks like: "GCW_Modern_v0.2_storage" or "afghanistan"
+    # We need to replace the campaign part (GCW_Modern) with the current name (germany_modern)
+
+    # Remove version suffix and file type suffix to find the campaign part boundary
+    # Then reconstruct with the new campaign name
+
+    # Extract file type suffix if present (_storage, _CTLD_FARPS, _CTLD_Save)
+    file_type_suffix = ""
+    if name_after_prefix.endswith("_storage"):
+        file_type_suffix = "_storage"
+        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+    elif name_after_prefix.endswith("_CTLD_FARPS"):
+        file_type_suffix = "_CTLD_FARPS"
+        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+    elif name_after_prefix.endswith("_CTLD_Save"):
+        file_type_suffix = "_CTLD_Save"
+        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+
+    # Remove version suffix (_v0.2, _V0.1, _0.1)
+    name_without_version = re.sub(r'_[vV]?[0-9]+(?:\.[0-9]+)?$', '', name_after_prefix)
+
+    # Now name_without_version contains just the campaign name part
+    # But it might have different case than current_name
+    # We want to use the current_name from config (which is lowercase from map_campaign_name)
+
+    # Reconstruct the filename
+    new_filename = f"{original_prefix}{current_name}{file_type_suffix}.{extension}"
+
+    return new_filename

@@ -7,9 +7,13 @@ Foothold campaign checkpoints with integrity verification.
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from foothold_checkpoint.core.campaign import group_campaign_files
+from foothold_checkpoint.core.campaign import group_campaign_files, rename_campaign_file
 from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+if TYPE_CHECKING:
+    from foothold_checkpoint.core.config import Config
 
 
 def save_checkpoint(
@@ -246,6 +250,7 @@ def restore_checkpoint(
     target_dir: str | Path,
     restore_ranks: bool = False,
     progress_callback: Callable[[str, int, int], None] | None = None,
+    config: "Config | None" = None,  # noqa: UP007
 ) -> list[Path]:
     """Restore a checkpoint to a target directory.
 
@@ -260,9 +265,13 @@ def restore_checkpoint(
             exclude ranks file from restoration.
         progress_callback: Optional callback function called during restoration.
             Called as: callback(message: str, current: int, total: int).
+        config: Optional configuration object containing campaign name mappings.
+            If provided, files will be renamed to use current campaign names
+            (e.g., GCW_Modern → Germany_Modern). If None, original filenames
+            are preserved (backward compatibility).
 
     Returns:
-        List of Path objects for the restored files.
+        List of Path objects for the restored files (with potentially renamed paths).
 
     Raises:
         FileNotFoundError: If checkpoint_path doesn't exist or target_dir doesn't exist.
@@ -381,7 +390,14 @@ def restore_checkpoint(
                 progress_callback(f"Extracting {filename}", idx, len(files_to_restore))
 
             file_data = zf.read(filename)
-            target_file = target_dir / filename
+
+            # Rename file if config is provided (campaign name evolution)
+            if config is not None:
+                target_filename = rename_campaign_file(filename, config)
+            else:
+                target_filename = filename
+
+            target_file = target_dir / target_filename
 
             # Write file
             target_file.write_bytes(file_data)

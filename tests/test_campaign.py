@@ -791,3 +791,218 @@ class TestCampaignDetectionReport:
             "ca": 1,
             "syria": 2
         }
+
+
+class TestRenameCampaignFile:
+    """Test suite for campaign file renaming during restoration."""
+
+    def test_rename_lua_file_with_evolved_name(self):
+        """Should rename .lua file to use current campaign name."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Historical filename should be renamed to current name
+        original = "FootHold_GCW_Modern.lua"
+        renamed = rename_campaign_file(original, config)
+
+        # map_campaign_name returns lowercase by design
+        assert renamed == "FootHold_germany_modern.lua"
+
+    def test_rename_lua_file_with_version_suffix(self):
+        """Should rename .lua file with version suffix."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                # Campaign names in config should NOT include version suffixes
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # File has version suffix in original name
+        original = "FootHold_GCW_Modern_V0.1.lua"
+        renamed = rename_campaign_file(original, config)
+
+        # Should remove version suffix and use current name
+        assert renamed == "FootHold_germany_modern.lua"
+
+    def test_rename_storage_csv_file(self):
+        """Should rename _storage.csv file with current campaign name."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        original = "FootHold_GCW_Modern_storage.csv"
+        renamed = rename_campaign_file(original, config)
+
+        assert renamed == "FootHold_germany_modern_storage.csv"
+
+    def test_rename_ctld_farps_csv_file(self):
+        """Should rename _CTLD_FARPS.csv file with current campaign name."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        original = "FootHold_GCW_Modern_CTLD_FARPS.csv"
+        renamed = rename_campaign_file(original, config)
+
+        assert renamed == "FootHold_germany_modern_CTLD_FARPS.csv"
+
+    def test_rename_ctld_save_csv_file(self):
+        """Should rename _CTLD_Save.csv file with current campaign name."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        original = "FootHold_GCW_Modern_CTLD_Save.csv"
+        renamed = rename_campaign_file(original, config)
+
+        assert renamed == "FootHold_germany_modern_CTLD_Save.csv"
+
+    def test_rename_unchanged_campaign_name(self):
+        """Should keep filename unchanged if campaign name hasn't evolved."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Afghanistan": ["afghanistan"]
+            }
+        )
+
+        original = "foothold_afghanistan.lua"
+        renamed = rename_campaign_file(original, config)
+
+        # Name hasn't changed, should stay the same
+        assert renamed == "foothold_afghanistan.lua"
+
+    def test_rename_campaign_not_in_config(self):
+        """Should keep filename unchanged if campaign not found in config."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={}
+        )
+
+        original = "foothold_unknown.lua"
+        renamed = rename_campaign_file(original, config)
+
+        # Unknown campaign, should stay unchanged
+        assert renamed == "foothold_unknown.lua"
+
+    def test_rename_non_campaign_file_unchanged(self):
+        """Should keep non-campaign files unchanged."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Shared file should not be renamed
+        assert rename_campaign_file("Foothold_Ranks.lua", config) == "Foothold_Ranks.lua"
+
+        # Non-campaign files should not be renamed
+        assert rename_campaign_file("README.txt", config) == "README.txt"
+        assert rename_campaign_file("foothold.status", config) == "foothold.status"
+
+    def test_rename_preserves_case_prefix(self):
+        """Should preserve the case of the 'foothold' prefix."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Original has "FootHold" (mixed case)
+        original = "FootHold_GCW_Modern.lua"
+        renamed = rename_campaign_file(original, config)
+
+        # Should preserve "FootHold" prefix, not change to "foothold"
+        assert renamed.startswith("FootHold_")
+
+    def test_rename_complex_evolution_chain(self):
+        """Should handle complex campaign name evolution chains."""
+        from pathlib import Path
+
+        from foothold_checkpoint.core.campaign import rename_campaign_file
+        from foothold_checkpoint.core.config import Config, ServerConfig
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Syria": ["syria_extended", "syria_modern", "syria"]
+            }
+        )
+
+        # Old name → current name
+        assert rename_campaign_file("foothold_syria_extended.lua", config) == "foothold_syria.lua"
+        # Middle name → current name
+        assert rename_campaign_file("foothold_syria_modern.lua", config) == "foothold_syria.lua"
+        # Current name → stays same
+        assert rename_campaign_file("foothold_syria.lua", config) == "foothold_syria.lua"
