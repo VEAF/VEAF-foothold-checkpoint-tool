@@ -157,18 +157,18 @@
 
 ## 11. CLI - Save Command (cli.py)
 
-- [ ] 11.1 Implement save command with flags (--server, --campaign, --all, --name, --comment)
-- [ ] 11.2 Write tests for save command with all flags
-- [ ] 11.3 Implement server prompt when flag missing
-- [ ] 11.4 Write tests for server prompt
-- [ ] 11.5 Implement campaign prompt when flag missing
-- [ ] 11.6 Write tests for campaign prompt (single, multiple, all)
-- [ ] 11.7 Implement name/comment prompts
-- [ ] 11.8 Write tests for optional metadata prompts
-- [ ] 11.9 Implement progress display with Rich
-- [ ] 11.10 Write tests for progress display
-- [ ] 11.11 Implement success/error messages
-- [ ] 11.12 Write tests for message display
+- [x] 11.1 Implement save command with flags (--server, --campaign, --all, --name, --comment)
+- [x] 11.2 Write tests for save command with all flags
+- [x] 11.3 Implement server prompt when flag missing
+- [x] 11.4 Write tests for server prompt
+- [x] 11.5 Implement campaign prompt when flag missing
+- [x] 11.6 Write tests for campaign prompt (single, multiple, all)
+- [x] 11.7 Implement name/comment prompts
+- [x] 11.8 Write tests for optional metadata prompts
+- [x] 11.9 Implement progress display with Rich
+- [x] 11.10 Write tests for progress display
+- [x] 11.11 Implement success/error messages
+- [x] 11.12 Write tests for message display
 
 ## 12. CLI - Restore Command (cli.py)
 
