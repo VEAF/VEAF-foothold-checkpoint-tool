@@ -390,6 +390,152 @@ def restore_checkpoint(
     return restored_files
 
 
+def list_checkpoints(
+    checkpoint_dir: str | Path,
+    server_filter: str | None = None,
+    campaign_filter: str | None = None,
+) -> list[dict]:
+    """List all checkpoints in the checkpoint directory.
+
+    Scans the checkpoint directory for valid checkpoint ZIP files and returns
+    their metadata. Optionally filters by server and/or campaign name.
+
+    Args:
+        checkpoint_dir: Path to the directory containing checkpoint files.
+        server_filter: Optional server name to filter checkpoints.
+        campaign_filter: Optional campaign name to filter checkpoints.
+
+    Returns:
+        List of dictionaries containing checkpoint metadata. Each dictionary has:
+        - filename: Name of the checkpoint file (str)
+        - campaign: Campaign name (str)
+        - server: Server name (str)
+        - timestamp: ISO timestamp string (str)
+        - size_bytes: File size in bytes (int)
+        - size_human: Human-readable file size (str, e.g., "1.2 MB")
+        - name: Optional user-provided name (str | None)
+        - comment: Optional user-provided comment (str | None)
+
+        List is sorted by timestamp (newest first).
+
+    Raises:
+        FileNotFoundError: If checkpoint directory doesn't exist.
+
+    Examples:
+        >>> # List all checkpoints
+        >>> checkpoints = list_checkpoints("/path/to/checkpoints")
+        >>> for cp in checkpoints:
+        ...     print(f"{cp['filename']}: {cp['campaign']} on {cp['server']}")
+
+        >>> # Filter by server
+        >>> checkpoints = list_checkpoints("/path/to/checkpoints", server_filter="prod-1")
+
+        >>> # Filter by both server and campaign
+        >>> checkpoints = list_checkpoints(
+        ...     "/path/to/checkpoints",
+        ...     server_filter="prod-1",
+        ...     campaign_filter="afghanistan"
+        ... )
+    """
+    import json
+    import zipfile
+
+    checkpoint_dir = Path(checkpoint_dir)
+
+    # Validate checkpoint directory
+    if not checkpoint_dir.exists():
+        raise FileNotFoundError(
+            f"Checkpoint directory not found: {checkpoint_dir}"
+        )
+
+    checkpoints = []
+
+    # Scan for ZIP files in checkpoint directory
+    for checkpoint_path in checkpoint_dir.glob("*.zip"):
+        try:
+            # Read metadata without extracting entire ZIP
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                # Check if metadata.json exists
+                if "metadata.json" not in zf.namelist():
+                    continue
+
+                # Read and parse metadata
+                metadata_bytes = zf.read("metadata.json")
+                metadata = json.loads(metadata_bytes.decode("utf-8"))
+
+                # Extract required fields (using Pydantic field names)
+                campaign = metadata.get("campaign_name")
+                server = metadata.get("server_name")
+                timestamp = metadata.get("created_at")
+
+                if not all([campaign, server, timestamp]):
+                    # Skip if missing required fields
+                    continue
+
+                # Apply filters
+                if server_filter and server != server_filter:
+                    continue
+                if campaign_filter and campaign != campaign_filter:
+                    continue
+
+                # Calculate file size
+                size_bytes = checkpoint_path.stat().st_size
+                size_human = _format_file_size(size_bytes)
+
+                # Build checkpoint info dictionary
+                checkpoint_info = {
+                    "filename": checkpoint_path.name,
+                    "campaign": campaign,
+                    "server": server,
+                    "timestamp": timestamp,
+                    "size_bytes": size_bytes,
+                    "size_human": size_human,
+                    "name": metadata.get("name"),
+                    "comment": metadata.get("comment"),
+                }
+
+                checkpoints.append(checkpoint_info)
+
+        except (zipfile.BadZipFile, json.JSONDecodeError, KeyError, OSError):
+            # Skip corrupted or invalid checkpoint files
+            continue
+
+    # Sort by timestamp (newest first)
+    checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=True)
+
+    return checkpoints
+
+
+def _format_file_size(size_bytes: int) -> str:
+    """Format file size in human-readable format.
+
+    Args:
+        size_bytes: File size in bytes.
+
+    Returns:
+        Human-readable file size string (e.g., "1.2 MB", "450 KB").
+
+    Examples:
+        >>> _format_file_size(1024)
+        '1.0 KB'
+        >>> _format_file_size(1536)
+        '1.5 KB'
+        >>> _format_file_size(1048576)
+        '1.0 MB'
+        >>> _format_file_size(1073741824)
+        '1.0 GB'
+    """
+    units = ["B", "KB", "MB", "GB", "TB"]
+    size = float(size_bytes)
+    unit_index = 0
+
+    while size >= 1024.0 and unit_index < len(units) - 1:
+        size /= 1024.0
+        unit_index += 1
+
+    return f"{size:.1f} {units[unit_index]}"
+
+
 def _is_writable(path: Path) -> bool:
     """Check if a directory is writable.
 
