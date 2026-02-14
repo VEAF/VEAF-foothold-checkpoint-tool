@@ -25,18 +25,18 @@
 
 ## 3. Campaign Detection (core/campaign.py)
 
-- [ ] 3.1 Implement file pattern matching for campaign files
-- [ ] 3.2 Write tests for pattern matching (various prefixes, extensions)
-- [ ] 3.3 Implement version suffix normalization (regex patterns)
-- [ ] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
-- [ ] 3.5 Implement campaign file grouping by normalized prefix
-- [ ] 3.6 Write tests for file grouping (complete, incomplete, mixed case)
-- [ ] 3.7 Implement Foothold_Ranks.lua recognition as shared file
-- [ ] 3.8 Write tests for shared file identification
-- [ ] 3.9 Implement campaign name mapping using config
-- [ ] 3.10 Write tests for name mapping (historical names, current names, unknown)
-- [ ] 3.11 Implement campaign detection report (name, file count)
-- [ ] 3.12 Write tests for detection reporting
+- [x] 3.1 Implement file pattern matching for campaign files
+- [x] 3.2 Write tests for pattern matching (various prefixes, extensions)
+- [x] 3.3 Implement version suffix normalization (regex patterns)
+- [x] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
+- [x] 3.5 Implement campaign file grouping by normalized prefix
+- [x] 3.6 Write tests for file grouping (complete, incomplete, mixed case)
+- [x] 3.7 Implement Foothold_Ranks.lua recognition as shared file
+- [x] 3.8 Write tests for shared file identification
+- [x] 3.9 Implement campaign name mapping using config
+- [x] 3.10 Write tests for name mapping (historical names, current names, unknown)
+- [x] 3.11 Implement campaign detection report (name, file count)
+- [x] 3.12 Write tests for detection reporting
 
 ## 4. Checkpoint Storage (core/checkpoint.py)
 
