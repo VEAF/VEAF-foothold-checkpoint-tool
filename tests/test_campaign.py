@@ -112,49 +112,49 @@ class TestVersionNormalization:
         """Should remove lowercase version suffix (_v0.2)."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("FootHold_CA_v0.2.lua") == "CA"
+        assert normalize_campaign_name("FootHold_CA_v0.2.lua") == "ca"
         assert normalize_campaign_name("foothold_afghanistan_v1.0.lua") == "afghanistan"
-        assert normalize_campaign_name("FootHold_Syria_v0.5_storage.csv") == "Syria"
+        assert normalize_campaign_name("FootHold_Syria_v0.5_storage.csv") == "syria"
 
     def test_normalize_uppercase_version_suffix(self):
         """Should remove uppercase version suffix (_V0.1)."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("FootHold_Germany_Modern_V0.1.lua") == "Germany_Modern"
-        assert normalize_campaign_name("foothold_CA_V2.3.lua") == "CA"
-        assert normalize_campaign_name("FOOTHOLD_Caucasus_V0.9_CTLD_FARPS.csv") == "Caucasus"
+        assert normalize_campaign_name("FootHold_Germany_Modern_V0.1.lua") == "germany_modern"
+        assert normalize_campaign_name("foothold_CA_V2.3.lua") == "ca"
+        assert normalize_campaign_name("FOOTHOLD_Caucasus_V0.9_CTLD_FARPS.csv") == "caucasus"
 
     def test_normalize_numeric_version_suffix(self):
         """Should remove numeric-only version suffix (_0.1)."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("foothold_Syria_Extended_0.1.lua") == "Syria_Extended"
+        assert normalize_campaign_name("foothold_Syria_Extended_0.1.lua") == "syria_extended"
         assert normalize_campaign_name("foothold_test_1.5.lua") == "test"
-        assert normalize_campaign_name("FootHold_PersianGulf_2.0_storage.csv") == "PersianGulf"
+        assert normalize_campaign_name("FootHold_PersianGulf_2.0_storage.csv") == "persiangulf"
 
     def test_normalize_no_version_suffix(self):
-        """Should keep campaign name unchanged when no version suffix."""
+        """Should normalize to lowercase when no version suffix."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name("foothold_afghanistan.lua") == "afghanistan"
-        assert normalize_campaign_name("FootHold_CA.lua") == "CA"
-        assert normalize_campaign_name("foothold_Syria_Extended_storage.csv") == "Syria_Extended"
+        assert normalize_campaign_name("FootHold_CA.lua") == "ca"
+        assert normalize_campaign_name("foothold_Syria_Extended_storage.csv") == "syria_extended"
 
     def test_normalize_with_file_type_suffix(self):
         """Should handle files with type suffixes (_storage, _CTLD_FARPS, _CTLD_Save)."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name("foothold_afghanistan_storage.csv") == "afghanistan"
-        assert normalize_campaign_name("FootHold_CA_v0.2_CTLD_FARPS.csv") == "CA"
-        assert normalize_campaign_name("foothold_Syria_V1.0_CTLD_Save.csv") == "Syria"
+        assert normalize_campaign_name("FootHold_CA_v0.2_CTLD_FARPS.csv") == "ca"
+        assert normalize_campaign_name("foothold_Syria_V1.0_CTLD_Save.csv") == "syria"
 
     def test_normalize_preserves_underscores_in_name(self):
-        """Should preserve underscores within campaign names."""
+        """Should preserve underscores within campaign names but normalize to lowercase."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("foothold_Syria_Extended.lua") == "Syria_Extended"
-        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "Germany_Modern"
-        assert normalize_campaign_name("foothold_Persian_Gulf_2.0.lua") == "Persian_Gulf"
+        assert normalize_campaign_name("foothold_Syria_Extended.lua") == "syria_extended"
+        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "germany_modern"
+        assert normalize_campaign_name("foothold_Persian_Gulf_2.0.lua") == "persian_gulf"
 
     def test_normalize_case_insensitive_prefix(self):
         """Should work regardless of 'foothold' prefix casing."""
@@ -166,12 +166,12 @@ class TestVersionNormalization:
         assert normalize_campaign_name("FOOTHOLD_test.lua") == "test"
 
     def test_normalize_with_path_object(self):
-        """Should work with Path objects."""
+        """Should work with Path objects and normalize to lowercase."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name(Path("foothold_afghanistan.lua")) == "afghanistan"
-        assert normalize_campaign_name(Path("FootHold_CA_v0.2.lua")) == "CA"
-        assert normalize_campaign_name(Path("/some/path/foothold_Syria_V1.0.lua")) == "Syria"
+        assert normalize_campaign_name(Path("FootHold_CA_v0.2.lua")) == "ca"
+        assert normalize_campaign_name(Path("/some/path/foothold_Syria_V1.0.lua")) == "syria"
 
     def test_normalize_multiple_version_patterns(self):
         """Should handle various version patterns correctly."""
@@ -195,3 +195,169 @@ class TestVersionNormalization:
         assert normalize_campaign_name("README.txt") == ""
         assert normalize_campaign_name("not_a_campaign.lua") == ""
         assert normalize_campaign_name(".hidden_file") == ""
+
+
+class TestFileGrouping:
+    """Test suite for grouping campaign files by campaign."""
+
+    def test_group_complete_campaign_set(self):
+        """Should group all files of a complete campaign together."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "foothold_afghanistan_CTLD_FARPS.csv",
+            "foothold_afghanistan_CTLD_Save.csv"
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert "afghanistan" in groups
+        assert len(groups["afghanistan"]) == 4
+        assert set(groups["afghanistan"]) == set(files)
+
+    def test_group_incomplete_campaign_set(self):
+        """Should group available files even if campaign is incomplete."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_CA.lua",
+            "foothold_CA_storage.csv"
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert "ca" in groups
+        assert len(groups["ca"]) == 2
+        assert set(groups["ca"]) == set(files)
+
+    def test_group_multiple_campaigns(self):
+        """Should group files from multiple campaigns separately."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "FootHold_CA.lua",
+            "FootHold_CA_CTLD_FARPS.csv",
+            "foothold_Syria.lua"
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert len(groups) == 3
+        assert "afghanistan" in groups
+        assert "ca" in groups
+        assert "syria" in groups
+        assert len(groups["afghanistan"]) == 2
+        assert len(groups["ca"]) == 2
+        assert len(groups["syria"]) == 1
+
+    def test_group_case_insensitive_matching(self):
+        """Should group files with mixed case prefixes together."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "Foothold_Afghanistan_storage.csv",
+            "FootHold_AFGHANISTAN_CTLD_FARPS.csv",
+            "FOOTHOLD_afghanistan_CTLD_Save.csv"
+        ]
+
+        groups = group_campaign_files(files)
+
+        # All should be grouped under the same normalized name
+        assert len(groups) == 1
+        assert "afghanistan" in groups
+        assert len(groups["afghanistan"]) == 4
+
+    def test_group_with_version_suffixes(self):
+        """Should group files with different version suffixes together."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "FootHold_CA_v0.2.lua",
+            "FootHold_CA_v0.2_storage.csv",
+            "foothold_CA_V0.1_CTLD_FARPS.csv",  # Different version
+            "FootHold_CA_0.3.lua"  # Another different version
+        ]
+
+        groups = group_campaign_files(files)
+
+        # All should be grouped under "ca" despite different versions
+        assert len(groups) == 1
+        assert "ca" in groups
+        assert len(groups["ca"]) == 4
+
+    def test_group_ignores_non_campaign_files(self):
+        """Should ignore files that don't match campaign patterns."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "foothold.status",  # Should be ignored
+            "README.txt",  # Should be ignored
+            ".gitignore"  # Should be ignored
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert len(groups) == 1
+        assert "afghanistan" in groups
+        assert len(groups["afghanistan"]) == 2
+
+    def test_group_empty_list(self):
+        """Should return empty dict for empty file list."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        groups = group_campaign_files([])
+
+        assert groups == {}
+
+    def test_group_no_campaign_files(self):
+        """Should return empty dict when no campaign files present."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold.status",
+            "README.txt",
+            "backup.zip",
+            ".DS_Store"
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert groups == {}
+
+    def test_group_preserves_original_filenames(self):
+        """Should preserve original filenames in groups, not normalize them."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "FootHold_CA_v0.2.lua",
+            "foothold_ca_storage.csv"
+        ]
+
+        groups = group_campaign_files(files)
+
+        # Filenames should be preserved as-is (but grouped by normalized lowercase key)
+        assert "FootHold_CA_v0.2.lua" in groups["ca"]
+        assert "foothold_ca_storage.csv" in groups["ca"]
+
+    def test_group_with_path_objects(self):
+        """Should work with Path objects."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            Path("foothold_afghanistan.lua"),
+            Path("foothold_afghanistan_storage.csv"),
+            Path("/some/path/FootHold_CA.lua")
+        ]
+
+        groups = group_campaign_files(files)
+
+        assert len(groups) == 2
+        assert "afghanistan" in groups
+        assert "ca" in groups

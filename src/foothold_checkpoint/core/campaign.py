@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 from typing import Union
+from collections import defaultdict
 
 
 # Regex pattern for campaign files
@@ -126,6 +127,71 @@ def normalize_campaign_name(filename: Union[str, Path]) -> str:
     name_without_version = re.sub(r'_[vV]?[0-9]+(?:\.[0-9]+)?', '', name_without_prefix)
 
     # Remove file type suffixes: _storage, _CTLD_FARPS, _CTLD_Save
-    name_normalized = re.sub(r'_(storage|CTLD_FARPS|CTLD_Save)$', '', name_without_version)
+    name_normalized = re.sub(r'_(storage|CTLD_FARPS|CTLD_Save)$', '', name_without_version, flags=re.IGNORECASE)
+
+    # Normalize to lowercase for consistent grouping (case-insensitive)
+    # This ensures "Afghanistan", "afghanistan", "AFGHANISTAN" all map to same group
+    name_normalized = name_normalized.lower()
 
     return name_normalized
+
+
+def group_campaign_files(filenames: list[Union[str, Path]]) -> dict[str, list[str]]:
+    """Group campaign files by their normalized campaign name.
+
+    Takes a list of filenames and groups them by campaign, using the normalized
+    campaign name as the key. Files with different version suffixes or mixed
+    case are grouped together. Non-campaign files are ignored.
+
+    The original filenames are preserved in the groups (not normalized), but
+    they are grouped by their normalized campaign name.
+
+    Args:
+        filenames: List of filenames (strings or Path objects) to group.
+                  Can include non-campaign files which will be filtered out.
+
+    Returns:
+        dict: Dictionary mapping normalized campaign names to lists of original filenames.
+              Returns empty dict if no campaign files are found.
+
+    Examples:
+        >>> group_campaign_files([
+        ...     "foothold_afghanistan.lua",
+        ...     "foothold_afghanistan_storage.csv",
+        ...     "FootHold_CA.lua"
+        ... ])
+        {
+            'afghanistan': ['foothold_afghanistan.lua', 'foothold_afghanistan_storage.csv'],
+            'CA': ['FootHold_CA.lua']
+        }
+
+        >>> group_campaign_files([
+        ...     "FootHold_CA_v0.2.lua",
+        ...     "foothold_ca_V0.1_storage.csv"
+        ... ])
+        {'CA': ['FootHold_CA_v0.2.lua', 'foothold_ca_V0.1_storage.csv']}
+    """
+    # Use defaultdict to automatically create empty lists
+    groups: dict[str, list[str]] = defaultdict(list)
+
+    for filename in filenames:
+        # Get normalized campaign name
+        campaign_name = normalize_campaign_name(filename)
+
+        # Skip non-campaign files (normalize returns empty string)
+        if not campaign_name:
+            continue
+
+        # Convert Path to string if needed, preserving original filename
+        filename_str = str(filename) if isinstance(filename, Path) else filename
+        # Extract just the filename (not the full path)
+        if isinstance(filename, Path):
+            filename_str = filename.name
+        else:
+            filename_str = Path(filename).name
+
+        # Add to the group
+        groups[campaign_name].append(filename_str)
+
+    # Convert defaultdict back to regular dict
+    return dict(groups)
