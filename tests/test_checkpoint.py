@@ -624,3 +624,213 @@ class TestFilenameGeneration:
         filename = generate_checkpoint_filename("afghanistan", timestamp)
 
         assert " " not in filename
+
+
+class TestZIPCreation:
+    """Test suite for ZIP archive creation."""
+
+    def test_create_checkpoint_single_campaign(self, tmp_path):
+        """Should create ZIP with campaign files and metadata."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+        import zipfile
+
+        # Create test campaign files
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua content", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_storage.csv").write_text("data1,data2", encoding="utf-8")
+
+        # Create checkpoint
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_afghanistan.lua",
+            source_dir / "foothold_afghanistan_storage.csv"
+        ]
+
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir
+        )
+
+        # Verify ZIP was created
+        assert zip_path.exists()
+        assert zip_path.suffix == ".zip"
+
+        # Verify ZIP contents
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            names = zf.namelist()
+            assert "foothold_afghanistan.lua" in names
+            assert "foothold_afghanistan_storage.csv" in names
+            assert "metadata.json" in names
+
+    def test_create_checkpoint_with_ranks_file(self, tmp_path):
+        """Should include Foothold_Ranks.lua when provided."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+        import zipfile
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+        (source_dir / "Foothold_Ranks.lua").write_text("-- Ranks", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_afghanistan.lua",
+            source_dir / "Foothold_Ranks.lua"
+        ]
+
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir
+        )
+
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            names = zf.namelist()
+            assert "Foothold_Ranks.lua" in names
+
+    def test_create_checkpoint_without_ranks_file(self, tmp_path):
+        """Should work without Foothold_Ranks.lua."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+        import zipfile
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir
+        )
+
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            names = zf.namelist()
+            assert "Foothold_Ranks.lua" not in names
+
+    def test_create_checkpoint_metadata_content(self, tmp_path):
+        """Should create metadata.json with correct checksums."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint, load_metadata
+        import zipfile
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Test content", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir
+        )
+
+        # Extract and verify metadata
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            metadata_json = zf.read("metadata.json").decode("utf-8")
+
+        # Parse metadata
+        import json
+        metadata_dict = json.loads(metadata_json)
+
+        assert metadata_dict["campaign_name"] == "afghanistan"
+        assert metadata_dict["server_name"] == "production-1"
+        assert "foothold_afghanistan.lua" in metadata_dict["files"]
+        assert metadata_dict["files"]["foothold_afghanistan.lua"].startswith("sha256:")
+
+    def test_create_checkpoint_with_optional_metadata(self, tmp_path):
+        """Should include optional name and comment in metadata."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+        import zipfile
+        import json
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            name="Before update",
+            comment="Test checkpoint"
+        )
+
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            metadata_dict = json.loads(zf.read("metadata.json").decode("utf-8"))
+
+        assert metadata_dict["name"] == "Before update"
+        assert metadata_dict["comment"] == "Test checkpoint"
+
+    def test_create_checkpoint_filename_format(self, tmp_path):
+        """Should use correct filename format."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            created_at=timestamp
+        )
+
+        assert zip_path.name == "afghanistan_2024-01-15_10-30-45.zip"
+
+    def test_create_checkpoint_creates_output_dir(self, tmp_path):
+        """Should create output directory if it doesn't exist."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        # Output dir doesn't exist yet
+        output_dir = tmp_path / "nested" / "checkpoints"
+        assert not output_dir.exists()
+
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir
+        )
+
+        assert output_dir.exists()
+        assert zip_path.exists()
+
+    def test_create_checkpoint_file_not_found_raises_error(self, tmp_path):
+        """Should raise FileNotFoundError if source file doesn't exist."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        output_dir = tmp_path / "checkpoints"
+        non_existent = tmp_path / "does_not_exist.lua"
+
+        with pytest.raises(FileNotFoundError):
+            create_checkpoint(
+                campaign_name="afghanistan",
+                server_name="production-1",
+                campaign_files=[non_existent],
+                output_dir=output_dir
+            )

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Union
@@ -245,3 +246,105 @@ def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None
     filename = f"{campaign_name}_{timestamp_str}.zip"
 
     return filename
+
+
+def create_checkpoint(
+    campaign_name: str,
+    server_name: str,
+    campaign_files: list[Union[str, Path]],
+    output_dir: Union[str, Path],
+    created_at: datetime | None = None,
+    name: str | None = None,
+    comment: str | None = None
+) -> Path:
+    """Create a checkpoint ZIP archive with campaign files and metadata.
+
+    Creates a ZIP file containing:
+    - All campaign files (preserving original filenames)
+    - metadata.json with checksums and metadata
+    - Foothold_Ranks.lua if included in campaign_files
+
+    Args:
+        campaign_name: Name of the campaign (e.g., "afghanistan").
+        server_name: Name of the server (e.g., "production-1").
+        campaign_files: List of file paths to include in checkpoint.
+        output_dir: Directory where the ZIP file will be created.
+        created_at: Checkpoint timestamp. If None, uses current UTC time.
+        name: Optional user-provided name for the checkpoint.
+        comment: Optional user-provided comment.
+
+    Returns:
+        Path: Path to the created ZIP file.
+
+    Raises:
+        FileNotFoundError: If any source file doesn't exist.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> files = [
+        ...     Path("foothold_afghanistan.lua"),
+        ...     Path("foothold_afghanistan_storage.csv")
+        ... ]
+        >>> zip_path = create_checkpoint(
+        ...     campaign_name="afghanistan",
+        ...     server_name="production-1",
+        ...     campaign_files=files,
+        ...     output_dir=Path("checkpoints")
+        ... )
+        >>> zip_path
+        Path('checkpoints/afghanistan_2024-01-15_10-30-45.zip')
+    """
+    # Use current UTC time if not provided
+    if created_at is None:
+        created_at = datetime.now(timezone.utc)
+
+    # Convert paths to Path objects
+    output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
+    campaign_files = [
+        Path(f) if isinstance(f, str) else f for f in campaign_files
+    ]
+
+    # Validate that all source files exist
+    for file_path in campaign_files:
+        if not file_path.exists():
+            raise FileNotFoundError(f"Source file not found: {file_path}")
+
+    # Compute checksums for all files
+    files_checksums: dict[str, str] = {}
+    for file_path in campaign_files:
+        checksum = compute_file_checksum(file_path)
+        # Store with just the filename (not full path)
+        files_checksums[file_path.name] = checksum
+
+    # Create metadata object
+    metadata = CheckpointMetadata(
+        campaign_name=campaign_name,
+        server_name=server_name,
+        created_at=created_at,
+        files=files_checksums,
+        name=name,
+        comment=comment
+    )
+
+    # Generate ZIP filename
+    zip_filename = generate_checkpoint_filename(campaign_name, created_at)
+
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Full path to ZIP file
+    zip_path = output_dir / zip_filename
+
+    # Create ZIP archive
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add all campaign files
+        for file_path in campaign_files:
+            # Add file with just its name (not full path)
+            zf.write(file_path, arcname=file_path.name)
+
+        # Create and add metadata.json
+        metadata_json = metadata.model_dump(mode='json')
+        metadata_str = json.dumps(metadata_json, indent=2, ensure_ascii=False)
+        zf.writestr("metadata.json", metadata_str)
+
+    return zip_path
