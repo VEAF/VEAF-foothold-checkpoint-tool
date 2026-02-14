@@ -55,16 +55,16 @@
 
 ## 5. Checkpoint Storage Operations (core/storage.py)
 
-- [ ] 5.1 Implement save_checkpoint function (single campaign)
-- [ ] 5.2 Write tests for save_checkpoint (various scenarios)
-- [ ] 5.3 Implement save_all_campaigns function
-- [ ] 5.4 Write tests for save_all_campaigns (multiple campaigns, partial failures)
-- [ ] 5.5 Implement source directory validation
-- [ ] 5.6 Write tests for directory validation (exists, readable, permissions)
-- [ ] 5.7 Implement ZIP creation error handling (disk full, permissions)
-- [ ] 5.8 Write tests for error handling and cleanup
-- [ ] 5.9 Implement checkpoint storage directory creation
-- [ ] 5.10 Write tests for storage directory creation
+- [x] 5.1 Implement save_checkpoint function (single campaign)
+- [x] 5.2 Write tests for save_checkpoint (various scenarios)
+- [x] 5.3 Implement save_all_campaigns function
+- [x] 5.4 Write tests for save_all_campaigns (multiple campaigns, partial failures)
+- [x] 5.5 Implement source directory validation
+- [x] 5.6 Write tests for directory validation (exists, readable, permissions)
+- [x] 5.7 Implement ZIP creation error handling (disk full, permissions)
+- [x] 5.8 Write tests for error handling and cleanup
+- [x] 5.9 Implement checkpoint storage directory creation
+- [x] 5.10 Write tests for storage directory creation
 
 ## 6. Checkpoint Restoration (core/storage.py)
 
