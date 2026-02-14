@@ -1,5 +1,7 @@
 # VEAF Foothold Checkpoint Tool
 
+[![CI](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/actions/workflows/ci.yml)
+
 A CLI tool for managing DCS Foothold campaign checkpoints with integrity verification and cross-server restoration.
 
 ## 🚀 Features
