@@ -68,24 +68,24 @@
 
 ## 6. Checkpoint Restoration (core/storage.py)
 
-- [ ] 6.1 Implement restore_checkpoint function
-- [ ] 6.2 Write tests for restore_checkpoint (basic restoration)
-- [ ] 6.3 Implement ZIP validation (exists, readable, valid format)
-- [ ] 6.4 Write tests for ZIP validation (missing, corrupted, invalid)
-- [ ] 6.5 Implement metadata.json reading and parsing
-- [ ] 6.6 Write tests for metadata parsing (valid, invalid JSON, missing)
-- [ ] 6.7 Implement checksum verification before extraction
-- [ ] 6.8 Write tests for checksum verification (match, mismatch, missing)
-- [ ] 6.9 Implement Foothold_Ranks.lua exclusion by default
-- [ ] 6.10 Write tests for ranks exclusion (default, with --restore-ranks)
+- [x] 6.1 Implement restore_checkpoint function
+- [x] 6.2 Write tests for restore_checkpoint (basic restoration)
+- [x] 6.3 Implement ZIP validation (exists, readable, valid format)
+- [x] 6.4 Write tests for ZIP validation (missing, corrupted, invalid)
+- [x] 6.5 Implement metadata.json reading and parsing
+- [x] 6.6 Write tests for metadata parsing (valid, invalid JSON, missing)
+- [x] 6.7 Implement checksum verification before extraction
+- [x] 6.8 Write tests for checksum verification (match, mismatch, missing)
+- [x] 6.9 Implement Foothold_Ranks.lua exclusion by default
+- [x] 6.10 Write tests for ranks exclusion (default, with --restore-ranks)
 - [ ] 6.11 Implement file renaming using latest campaign name
 - [ ] 6.12 Write tests for file renaming (evolved names, unchanged names)
-- [ ] 6.13 Implement overwrite confirmation prompt
-- [ ] 6.14 Write tests for overwrite confirmation (empty dir, existing files)
-- [ ] 6.15 Implement restoration progress tracking
-- [ ] 6.16 Write tests for progress tracking
-- [ ] 6.17 Implement restoration error handling
-- [ ] 6.18 Write tests for error scenarios (disk full, permissions)
+- [x] 6.13 Implement overwrite confirmation prompt
+- [x] 6.14 Write tests for overwrite confirmation (empty dir, existing files)
+- [x] 6.15 Implement restoration progress tracking
+- [x] 6.16 Write tests for progress tracking
+- [x] 6.17 Implement restoration error handling
+- [x] 6.18 Write tests for error scenarios (disk full, permissions)
 
 ## 7. Checkpoint Listing (core/storage.py)
 

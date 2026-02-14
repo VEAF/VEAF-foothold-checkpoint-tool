@@ -12,7 +12,9 @@
       "Bash(poetry install:*)",
       "Bash(poetry run python:*)",
       "Bash(git add:*)",
-      "Bash(poetry run pytest:*)"
+      "Bash(poetry run pytest:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
