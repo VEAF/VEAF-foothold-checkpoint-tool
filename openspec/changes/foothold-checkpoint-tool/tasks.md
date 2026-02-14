@@ -238,8 +238,8 @@
 - [x] 16.4 Write tests for file errors
 - [x] 16.5 Implement permission error handling
 - [x] 16.6 Write tests for permission errors
-- [ ] 16.7 Implement validation for conflicting flags
-- [ ] 16.8 Write tests for flag validation
+- [x] 16.7 Implement validation for conflicting flags
+- [x] 16.8 Write tests for flag validation
 
 ## 17. Plugin Structure Preparation (plugin/)
 

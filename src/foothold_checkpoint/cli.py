@@ -226,6 +226,12 @@ def save_command(
         $ foothold-checkpoint save
     """
     try:
+        # Validate conflicting flags
+        if campaign is not None and save_all:
+            console.print("[red]Error:[/red] Cannot use both --campaign and --all flags together")
+            console.print("Please specify either a campaign name OR use --all, not both")
+            raise typer.Exit(1)
+
         # Load configuration
         config_file = _config_path if _config_path is not None else Path("config.yaml")
         config = load_config(config_file)

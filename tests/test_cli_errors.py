@@ -312,23 +312,78 @@ def test_save_conflicting_flags_campaign_and_all() -> None:
     mock_config.servers = {"prod-1": mock_server_config}
     mock_config.checkpoints_directory = "/tmp/checkpoints"
 
+    with patch("foothold_checkpoint.cli.load_config", return_value=mock_config):
+        result = runner.invoke(
+            app, ["save", "--server", "prod-1", "--campaign", "afghanistan", "--all"]
+        )
+
+    # Should exit with error code 1
+    assert result.exit_code == 1
+
+    # Should display error message about conflicting flags
+    assert "cannot use both" in result.stdout.lower() or "conflicting" in result.stdout.lower()
+
+
+def test_save_flags_validation_accepts_campaign_only() -> None:
+    """Test that --campaign flag works when --all is not provided."""
+    from foothold_checkpoint.cli import app
+
+    runner = CliRunner()
+
+    mission_dir = Path("/tmp/test/missions")
+    mock_server_config = Mock()
+    mock_server_config.mission_directory = str(mission_dir)
+
+    mock_config = Mock()
+    mock_config.servers = {"prod-1": mock_server_config}
+    mock_config.checkpoints_directory = "/tmp/checkpoints"
+
     detected_campaigns = {"afghanistan": ["Foothold_Afghan_v0.1.lua"]}
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
         patch("foothold_checkpoint.cli.Path.exists", return_value=True),
-        patch("foothold_checkpoint.cli.Path.iterdir", return_value=[]),
+        patch("foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]),
         patch("foothold_checkpoint.cli.detect_campaigns", return_value=detected_campaigns),
+        patch("foothold_checkpoint.cli.create_checkpoint"),
     ):
         result = runner.invoke(
-            app, ["save", "--server", "prod-1", "--campaign", "afghanistan", "--all"]
+            app, ["save", "--server", "prod-1", "--campaign", "afghanistan"]
         )
 
-    # For now, the command doesn't explicitly error on conflicting flags
-    # It ignores --all when --campaign is provided
-    # This test verifies the command doesn't crash
-    # TODO: Add explicit flag conflict validation in Group 16 implementation
-    assert result.exit_code in (0, 1)
+    # Should succeed with only --campaign flag (no conflict)
+    assert result.exit_code == 0
+
+
+def test_save_flags_validation_accepts_all_only() -> None:
+    """Test that --all flag works when --campaign is not provided."""
+    from foothold_checkpoint.cli import app
+
+    runner = CliRunner()
+
+    mission_dir = Path("/tmp/test/missions")
+    mock_server_config = Mock()
+    mock_server_config.mission_directory = str(mission_dir)
+
+    mock_config = Mock()
+    mock_config.servers = {"prod-1": mock_server_config}
+    mock_config.checkpoints_directory = "/tmp/checkpoints"
+
+    detected_campaigns = {"afghanistan": ["Foothold_Afghan_v0.1.lua"]}
+
+    with (
+        patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
+        patch("foothold_checkpoint.cli.Path.exists", return_value=True),
+        patch("foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]),
+        patch("foothold_checkpoint.cli.detect_campaigns", return_value=detected_campaigns),
+        patch("foothold_checkpoint.cli.create_checkpoint"),
+    ):
+        result = runner.invoke(
+            app, ["save", "--server", "prod-1", "--all"]
+        )
+
+    # Should succeed with only --all flag (no conflict)
+    assert result.exit_code == 0
 
 
 def test_restore_permission_error_on_mission_directory() -> None:
