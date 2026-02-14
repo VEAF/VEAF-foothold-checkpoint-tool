@@ -2,8 +2,11 @@
 
 import re
 from pathlib import Path
-from typing import Union
+from typing import Union, TYPE_CHECKING
 from collections import defaultdict
+
+if TYPE_CHECKING:
+    from foothold_checkpoint.core.config import Config
 
 
 # Regex pattern for campaign files
@@ -230,3 +233,78 @@ def group_campaign_files(filenames: list[Union[str, Path]]) -> dict[str, list[st
 
     # Convert defaultdict back to regular dict
     return dict(groups)
+
+
+def map_campaign_name(campaign_name: str, config: "Config") -> str:
+    """Map a campaign name to its current name using config mappings.
+
+    Uses the configuration's campaign mappings to translate historical campaign
+    names to their current names. The last name in each campaign's list is
+    considered the current name.
+
+    Args:
+        campaign_name: The normalized campaign name to map (lowercase).
+        config: Configuration object containing campaign mappings.
+
+    Returns:
+        str: The current (mapped) campaign name, or the original name if not found in config.
+
+    Examples:
+        >>> # Config: Germany_Modern: [GCW_Modern, Germany_Modern]
+        >>> map_campaign_name("gcw_modern", config)
+        'germany_modern'
+        >>> map_campaign_name("germany_modern", config)
+        'germany_modern'
+        >>> map_campaign_name("unknown", config)
+        'unknown'
+    """
+    # Search through all campaign mappings (case-insensitive)
+    for campaign_id, name_list in config.campaigns.items():
+        # Normalize all names in the list to lowercase for comparison
+        normalized_names = [name.lower() for name in name_list]
+
+        # If the campaign name matches any name in the list
+        if campaign_name in normalized_names:
+            # Return the last name (current name), normalized to lowercase
+            return name_list[-1].lower()
+
+    # If not found in config, return unchanged
+    return campaign_name
+
+
+def detect_campaigns(filenames: list[Union[str, Path]], config: "Config") -> dict[str, list[str]]:
+    """Detect and group campaign files, applying name mapping from config.
+
+    Combines file grouping with campaign name mapping to produce groups
+    keyed by current campaign names rather than historical names.
+
+    Args:
+        filenames: List of filenames to detect and group.
+        config: Configuration object containing campaign mappings.
+
+    Returns:
+        dict: Dictionary mapping current campaign names to lists of filenames.
+
+    Examples:
+        >>> # Config: Germany_Modern: [GCW_Modern, Germany_Modern]
+        >>> files = ["FootHold_GCW_Modern.lua", "foothold_afghanistan.lua"]
+        >>> detect_campaigns(files, config)
+        {
+            'germany_modern': ['FootHold_GCW_Modern.lua'],
+            'afghanistan': ['foothold_afghanistan.lua']
+        }
+    """
+    # First, group files by normalized name
+    groups = group_campaign_files(filenames)
+
+    # Then, apply name mapping to group keys
+    mapped_groups: dict[str, list[str]] = defaultdict(list)
+
+    for campaign_name, files in groups.items():
+        # Map the campaign name to its current name
+        current_name = map_campaign_name(campaign_name, config)
+
+        # Add files to the mapped group
+        mapped_groups[current_name].extend(files)
+
+    return dict(mapped_groups)

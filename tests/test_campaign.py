@@ -451,3 +451,151 @@ class TestSharedFileIdentification:
         # Shared files should not appear
         for campaign_files in groups.values():
             assert not any("ranks" in f.lower() for f in campaign_files)
+
+
+class TestCampaignNameMapping:
+    """Test suite for campaign name mapping using config."""
+
+    def test_map_historical_name_to_current(self):
+        """Should map historical campaign name to current name from config."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Historical name should map to current (last in list)
+        assert map_campaign_name("gcw_modern", config) == "germany_modern"
+
+    def test_map_current_name_stays_same(self):
+        """Should keep current campaign name as-is."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Current name should map to itself (last in list)
+        assert map_campaign_name("germany_modern", config) == "germany_modern"
+
+    def test_map_unknown_name_stays_unchanged(self):
+        """Should return unchanged name if not in config."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        # Unknown campaign should stay as-is
+        assert map_campaign_name("unknown_campaign", config) == "unknown_campaign"
+
+    def test_map_single_name_in_config(self):
+        """Should handle campaigns with only one name in config."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Afghanistan": ["afghanistan"]
+            }
+        )
+
+        assert map_campaign_name("afghanistan", config) == "afghanistan"
+
+    def test_map_multiple_historical_names(self):
+        """Should map any historical name to the current (last) name."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Syria": ["syria_extended", "syria_modern", "syria"]
+            }
+        )
+
+        # All historical names should map to current (last)
+        assert map_campaign_name("syria_extended", config) == "syria"
+        assert map_campaign_name("syria_modern", config) == "syria"
+        assert map_campaign_name("syria", config) == "syria"
+
+    def test_map_case_insensitive_matching(self):
+        """Should match campaign names case-insensitively in config."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["GCW_Modern", "Germany_Modern"]
+            }
+        )
+
+        # Input is already lowercase from normalize_campaign_name
+        # Config names are mixed case, should still match
+        assert map_campaign_name("gcw_modern", config) == "germany_modern"
+
+    def test_map_empty_config(self):
+        """Should return unchanged name when config has no campaigns."""
+        from foothold_checkpoint.core.campaign import map_campaign_name
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={}
+        )
+
+        assert map_campaign_name("afghanistan", config) == "afghanistan"
+
+    def test_detect_campaigns_with_mapping(self):
+        """detect_campaigns should use name mapping from config."""
+        from foothold_checkpoint.core.campaign import detect_campaigns
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        files = [
+            "FootHold_GCW_Modern.lua",  # Historical name
+            "FootHold_GCW_Modern_storage.csv"
+        ]
+
+        campaigns = detect_campaigns(files, config)
+
+        # Should be grouped under current name "germany_modern", not "gcw_modern"
+        assert "germany_modern" in campaigns
+        assert "gcw_modern" not in campaigns
+        assert len(campaigns["germany_modern"]) == 2
