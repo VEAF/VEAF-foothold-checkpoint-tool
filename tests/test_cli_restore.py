@@ -30,7 +30,6 @@ class TestRestoreCommandWithFlags:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             # Setup mocks
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
@@ -73,7 +72,6 @@ class TestRestoreCommandWithFlags:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -114,7 +112,6 @@ class TestRestoreCommandWithFlags:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -144,7 +141,6 @@ class TestRestoreCommandWithFlags:
 
         runner = CliRunner()
         with patch("foothold_checkpoint.cli.load_config") as mock_load:
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_load.return_value = mock_config
@@ -183,7 +179,6 @@ class TestCheckpointSelectionPrompt:
             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -230,7 +225,6 @@ class TestCheckpointSelectionPrompt:
             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -281,7 +275,6 @@ class TestCheckpointSelectionPrompt:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock()}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -324,7 +317,6 @@ class TestServerPrompt:
             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {
                 "test-server": Mock(path=tmp_path / "mission"),
@@ -367,7 +359,6 @@ class TestServerPrompt:
             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {
                 "test-server": Mock(path=tmp_path / "mission"),
@@ -410,7 +401,6 @@ class TestProgressDisplay:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -450,7 +440,6 @@ class TestProgressDisplay:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -494,7 +483,6 @@ class TestSuccessErrorMessages:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -524,7 +512,6 @@ class TestSuccessErrorMessages:
         with patch(
             "foothold_checkpoint.cli.load_config", side_effect=FileNotFoundError("Config not found")
         ):
-
             result = runner.invoke(
                 app, ["restore", str(checkpoint_file), "--server", "test-server"]
             )
@@ -557,7 +544,6 @@ class TestSuccessErrorMessages:
             ),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -593,7 +579,6 @@ class TestSuccessErrorMessages:
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"

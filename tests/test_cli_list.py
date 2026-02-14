@@ -25,7 +25,6 @@ class TestListCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -73,7 +72,6 @@ class TestListCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -109,7 +107,6 @@ class TestListCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -145,7 +142,6 @@ class TestListCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -187,7 +183,6 @@ class TestListCommandTableFormatting:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -228,7 +223,6 @@ class TestListCommandTableFormatting:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -266,7 +260,6 @@ class TestListCommandTableFormatting:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -310,7 +303,6 @@ class TestListCommandEmptyResults:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -333,7 +325,6 @@ class TestListCommandEmptyResults:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -362,7 +353,6 @@ class TestListCommandQuietMode:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -412,7 +402,6 @@ class TestListCommandQuietMode:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -455,7 +444,6 @@ class TestListCommandErrors:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "nonexistent"
             mock_load.return_value = mock_config

@@ -21,7 +21,6 @@ class TestImportCommandWithFlags:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -61,7 +60,6 @@ class TestImportCommandWithFlags:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -114,7 +112,6 @@ class TestImportCommandPrompts:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock(), "prod-1": Mock()}
@@ -150,7 +147,6 @@ class TestImportCommandPrompts:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -187,7 +183,6 @@ class TestImportCommandPrompts:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -227,7 +222,6 @@ class TestImportCommandConfirmation:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -264,7 +258,6 @@ class TestImportCommandConfirmation:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -302,7 +295,6 @@ class TestImportCommandProgressAndWarnings:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -342,7 +334,6 @@ class TestImportCommandProgressAndWarnings:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -409,7 +400,6 @@ class TestImportCommandErrors:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -437,7 +427,6 @@ class TestImportCommandErrors:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -473,7 +462,6 @@ class TestImportCommandQuietMode:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
@@ -516,7 +504,6 @@ class TestImportCommandQuietMode:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}

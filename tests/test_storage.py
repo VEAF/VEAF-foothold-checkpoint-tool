@@ -949,9 +949,11 @@ class TestRestoreCheckpoint:
             # Mock user cancelling confirmation
             import unittest.mock
 
-            with unittest.mock.patch("builtins.input", return_value="n"):
-                with pytest.raises(RuntimeError, match="Restoration cancelled"):
-                    restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+            with (
+                unittest.mock.patch("builtins.input", return_value="n"),
+                pytest.raises(RuntimeError, match="Restoration cancelled"),
+            ):
+                restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
 
             # Original file should remain unchanged
             assert (target_dir / "foothold_test.lua").read_text() == "-- existing content"
@@ -2067,9 +2069,11 @@ class TestDeleteCheckpoint:
             )
 
             # Mock Path.unlink to raise OSError
-            with patch.object(Path, "unlink", side_effect=OSError("File in use")):
-                with pytest.raises(OSError, match="File in use"):
-                    delete_checkpoint(checkpoint_path, force=True)
+            with (
+                patch.object(Path, "unlink", side_effect=OSError("File in use")),
+                pytest.raises(OSError, match="File in use"),
+            ):
+                delete_checkpoint(checkpoint_path, force=True)
 
 
 class TestImportCheckpoint:

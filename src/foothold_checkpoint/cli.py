@@ -8,7 +8,7 @@ from typing import Annotated, Any, Optional  # noqa: UP035 - Required for Typer 
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TaskID, TextColumn
 from rich.prompt import Prompt
 
 from foothold_checkpoint.core.campaign import detect_campaigns, group_campaign_files
@@ -539,10 +539,10 @@ def save_command(
                 ) as progress:
                     task = progress.add_task(f"Creating checkpoint for {camp_name}...", total=None)
 
-                    def update_progress(message: str, current: int, total: int) -> None:
-                        progress.update(
-                            task, description=f"{message} ({current}/{total})"
-                        )  # noqa: B023
+                    def update_progress(
+                        message: str, current: int, total: int, _task: TaskID = task
+                    ) -> None:
+                        progress.update(_task, description=f"{message} ({current}/{total})")
 
                     progress_callback = update_progress
 
@@ -832,10 +832,10 @@ def restore_command(
                     task = progress.add_task("Restoring checkpoint...", total=None)
 
                     def update_progress(
-                        message: str, current: int, total: int
-                    ) -> None:  # noqa: B023 - task variable is safely captured
+                        message: str, current: int, total: int, _task: TaskID = task
+                    ) -> None:
                         """Update progress display with current status."""
-                        progress.update(task, description=f"{message} ({current}/{total})")
+                        progress.update(_task, description=f"{message} ({current}/{total})")
 
                     # Restore with progress callback (skip overwrite check since we already confirmed)
                     restored_files = restore_checkpoint(

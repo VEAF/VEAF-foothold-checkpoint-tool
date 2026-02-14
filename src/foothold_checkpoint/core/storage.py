@@ -401,7 +401,7 @@ def restore_checkpoint(
         # This avoids spinner/progress interference with confirmation prompts
         file_checksums = metadata.get("files", {})
 
-        for idx, filename in enumerate(files_to_restore, start=1):
+        for _, filename in enumerate(files_to_restore, start=1):
             # Extract file to temp location for checksum verification
             file_data = zf.read(filename)
 
@@ -826,7 +826,8 @@ def import_checkpoint(
     for pattern, description in expected_patterns:
         # Check case-insensitively
         found = any(
-            fname.lower() == pattern.lower() or
+            fname.lower() == pattern.lower()
+            or
             # Also check with version suffixes
             (
                 fname.lower().startswith(pattern.lower().rsplit(".", 1)[0])

@@ -36,7 +36,6 @@ class TestSaveCommandWithFlags:
                 ],
             ),
         ):
-
             # Setup mocks
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
@@ -97,7 +96,6 @@ class TestSaveCommandWithFlags:
                 ],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -168,7 +166,6 @@ class TestSaveCommandWithFlags:
             patch("pathlib.Path.exists", return_value=True),
             patch("pathlib.Path.iterdir", return_value=[]),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -218,7 +215,6 @@ class TestServerPrompt:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {
                 "server-1": Mock(path=tmp_path),
@@ -268,7 +264,6 @@ class TestServerPrompt:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {
                 "prod-1": Mock(path=tmp_path),
@@ -314,7 +309,6 @@ class TestCampaignPrompt:
                 ],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -362,7 +356,6 @@ class TestCampaignPrompt:
                 ],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -397,7 +390,6 @@ class TestCampaignPrompt:
             patch("pathlib.Path.exists", return_value=True),
             patch("pathlib.Path.iterdir", return_value=[]),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -432,7 +424,6 @@ class TestNameCommentPrompts:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -472,7 +463,6 @@ class TestNameCommentPrompts:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -524,7 +514,6 @@ class TestProgressDisplay:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -563,7 +552,6 @@ class TestProgressDisplay:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -605,7 +593,6 @@ class TestSuccessErrorMessages:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -650,7 +637,6 @@ class TestSuccessErrorMessages:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("pathlib.Path.exists", return_value=False),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=Path("/nonexistent"))}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
@@ -680,7 +666,6 @@ class TestSuccessErrorMessages:
                 return_value=[Mock(name="foothold_afghanistan.lua", is_file=lambda: True)],
             ),
         ):
-
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(path=tmp_path)}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"

@@ -182,13 +182,13 @@ class TestMainFunction:
 
     def test_main_calls_app(self):
         """Test main() calls the Typer app."""
+        from contextlib import suppress
+
         from foothold_checkpoint.cli import main
 
         with patch("foothold_checkpoint.cli.app") as mock_app:
-            try:
+            with suppress(SystemExit):
                 main()
-            except SystemExit:
-                pass  # Expected when no args provided
 
             # App should be called
             assert mock_app.called or mock_app.call_count >= 0

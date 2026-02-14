@@ -204,7 +204,7 @@ def load_metadata(json_path: str | Path) -> CheckpointMetadata:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in metadata file: {e}")
+        raise ValueError(f"Invalid JSON in metadata file: {e}") from e
 
     # Validate and create CheckpointMetadata object
     # Pydantic will automatically parse ISO 8601 datetime strings

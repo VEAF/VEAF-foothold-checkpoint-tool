@@ -19,7 +19,6 @@ class TestDeleteCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -53,7 +52,6 @@ class TestDeleteCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -87,7 +85,6 @@ class TestDeleteCommandBasic:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -117,7 +114,6 @@ class TestDeleteCommandInteractive:
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -159,7 +155,6 @@ class TestDeleteCommandInteractive:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -190,7 +185,6 @@ class TestDeleteCommandMetadataDisplay:
             patch("pathlib.Path.exists", return_value=True),
             patch("zipfile.ZipFile") as mock_zipfile,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -227,7 +221,6 @@ class TestDeleteCommandErrors:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -250,7 +243,6 @@ class TestDeleteCommandErrors:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -294,7 +286,6 @@ class TestDeleteCommandQuietMode:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -323,7 +314,6 @@ class TestDeleteCommandQuietMode:
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
         ):
-
             mock_config = Mock()
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
