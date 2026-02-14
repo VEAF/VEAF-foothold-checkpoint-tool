@@ -14,6 +14,7 @@ from rich.prompt import Prompt
 from foothold_checkpoint.core.campaign import detect_campaigns
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 from foothold_checkpoint.core.config import load_config
+from foothold_checkpoint.core.storage import list_checkpoints, restore_checkpoint
 
 # Package version
 __version__ = "0.1.0"
@@ -151,10 +152,9 @@ def main_callback(
         console.print(f"foothold-checkpoint version {__version__}")
         raise typer.Exit(0)
 
-    # Handle quiet flag
-    if quiet:
-        global _quiet_mode
-        _quiet_mode = True
+    # Handle quiet flag (reset to False if not provided)
+    global _quiet_mode
+    _quiet_mode = quiet
 
 
 @app.command("save")
@@ -381,6 +381,180 @@ def save_command(
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@app.command("restore")
+def restore_command(
+    checkpoint_file: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Argument(
+            help="Path to checkpoint ZIP file to restore (or omit to select interactively)"
+        ),
+    ] = None,
+    server: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--server",
+            "-s",
+            help="Target server name from configuration",
+        ),
+    ] = None,
+    restore_ranks: Annotated[
+        bool,
+        typer.Option(
+            "--restore-ranks",
+            is_flag=True,
+            flag_value=True,
+            help="Include Foothold_Ranks.lua in restoration",
+        ),
+    ] = False,
+) -> None:
+    """Restore a checkpoint to a target server directory.
+
+    If no checkpoint file is provided, lists available checkpoints for selection.
+    If --server is not provided, prompts for server selection.
+
+    The restore process verifies file integrity, excludes Foothold_Ranks.lua by
+    default, and prompts for confirmation if files will be overwritten.
+
+    Examples:
+
+        # Restore specific checkpoint to a server
+        $ foothold-checkpoint restore afghanistan_2024-02-14.zip --server test-server
+
+        # Restore with ranks file included
+        $ foothold-checkpoint restore checkpoint.zip --server prod-1 --restore-ranks
+
+        # Interactive mode (select checkpoint and server)
+        $ foothold-checkpoint restore
+    """
+    try:
+        # Step 1: Load configuration
+        config_file = _config_path if _config_path else Path("config.yaml")
+        config = load_config(config_file)
+
+        # Step 2: Get checkpoint file
+        checkpoint_path: Path
+        if checkpoint_file:
+            checkpoint_path = Path(checkpoint_file)
+            # Validate checkpoint file exists
+            if not checkpoint_path.exists():
+                console.print(f"[red]Error:[/red] Checkpoint file not found: {checkpoint_path}")
+                raise typer.Exit(1)
+        else:
+            # Interactive mode: list and prompt for checkpoint selection
+            if not _quiet_mode:
+                console.print("[cyan]Available checkpoints:[/cyan]")
+
+            # List all checkpoints
+            checkpoints = list_checkpoints(config.checkpoints_directory)
+
+            if not checkpoints:
+                console.print("[red]Error:[/red] No checkpoints found in checkpoint directory")
+                raise typer.Exit(1)
+
+            # Display checkpoints with numbering
+            if not _quiet_mode:
+                for idx, cp in enumerate(checkpoints, start=1):
+                    console.print(
+                        f"  {idx}. {cp['filename']} "
+                        f"[dim](Campaign: {cp['campaign']}, Server: {cp['server']}, "
+                        f"Created: {cp['timestamp']})[/dim]"
+                    )
+
+            # Prompt for selection
+            selection = Prompt.ask(
+                "Select checkpoint number",
+                choices=[str(i) for i in range(1, len(checkpoints) + 1)]
+            )
+
+            selected_index = int(selection) - 1
+            # Construct full path from checkpoint directory and filename
+            checkpoint_path = config.checkpoints_directory / checkpoints[selected_index]["filename"]
+
+        # Step 3: Get target server
+        if server is None:
+            # Prompt for server selection
+            available_servers = list(config.servers.keys())
+            if not available_servers:
+                console.print("[red]Error:[/red] No servers configured")
+                raise typer.Exit(1)
+
+            if not _quiet_mode:
+                console.print(f"[cyan]Available servers:[/cyan] {', '.join(available_servers)}")
+
+            server = Prompt.ask(
+                "Select target server",
+                choices=available_servers
+            )
+
+        # Validate server exists in config
+        if server not in config.servers:
+            console.print(
+                f"[red]Error:[/red] Server '{server}' not found in configuration.\n"
+                f"Available servers: {', '.join(config.servers.keys())}"
+            )
+            raise typer.Exit(1)
+
+        # Get target directory from server config
+        target_dir = config.servers[server].mission_directory
+
+        # Step 4: Restore checkpoint with progress display
+        if not _quiet_mode:
+            console.print(f"\n[cyan]Restoring checkpoint to server:[/cyan] {server}")
+            console.print(f"[cyan]Target directory:[/cyan] {target_dir}")
+            console.print(f"[cyan]Include ranks file:[/cyan] {'Yes' if restore_ranks else 'No'}\n")
+
+            # Progress display with Rich
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console
+            ) as progress:
+                task = progress.add_task("Restoring checkpoint...", total=None)
+
+                def update_progress(message: str, current: int, total: int) -> None:  # noqa: B023 - task variable is safely captured
+                    """Update progress display with current status."""
+                    progress.update(task, description=f"{message} ({current}/{total})")
+
+                # Restore with progress callback
+                restored_files = restore_checkpoint(
+                    checkpoint_path=checkpoint_path,
+                    target_dir=target_dir,
+                    restore_ranks=restore_ranks,
+                    progress_callback=update_progress
+                )
+        else:
+            # Quiet mode: no progress display
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                restore_ranks=restore_ranks,
+                progress_callback=None
+            )
+
+        # Step 5: Display success message
+        if not _quiet_mode:
+            console.print(
+                f"\n[green]✓ Success![/green] Restored {len(restored_files)} file(s) to {server}"
+            )
+        else:
+            # In quiet mode, just print the paths
+            for file_path in restored_files:
+                console.print(str(file_path))
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except RuntimeError as e:
+        console.print(f"[yellow]Warning:[/yellow] {e}")
         raise typer.Exit(1) from e
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")

@@ -172,18 +172,18 @@
 
 ## 12. CLI - Restore Command (cli.py)
 
-- [ ] 12.1 Implement restore command with flags (checkpoint file, --server, --restore-ranks)
-- [ ] 12.2 Write tests for restore command with all flags
-- [ ] 12.3 Implement checkpoint selection prompt when missing
-- [ ] 12.4 Write tests for checkpoint selection (list display, numbered selection)
-- [ ] 12.5 Implement server prompt when flag missing
-- [ ] 12.6 Write tests for server prompt
-- [ ] 12.7 Implement confirmation prompt for overwrite
-- [ ] 12.8 Write tests for overwrite confirmation
-- [ ] 12.9 Implement progress display with Rich
-- [ ] 12.10 Write tests for progress display
-- [ ] 12.11 Implement success/error messages
-- [ ] 12.12 Write tests for message display
+- [x] 12.1 Implement restore command with flags (checkpoint file, --server, --restore-ranks)
+- [x] 12.2 Write tests for restore command with all flags
+- [x] 12.3 Implement checkpoint selection prompt when missing
+- [x] 12.4 Write tests for checkpoint selection (list display, numbered selection)
+- [x] 12.5 Implement server prompt when flag missing
+- [x] 12.6 Write tests for server prompt
+- [x] 12.7 Implement confirmation prompt for overwrite
+- [x] 12.8 Write tests for overwrite confirmation
+- [x] 12.9 Implement progress display with Rich
+- [x] 12.10 Write tests for progress display
+- [x] 12.11 Implement success/error messages
+- [x] 12.12 Write tests for message display
 
 ## 13. CLI - List Command (cli.py)
 
