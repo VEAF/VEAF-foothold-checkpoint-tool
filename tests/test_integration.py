@@ -72,13 +72,8 @@ def test_campaign_detection_with_real_data(real_foothold_data: Path) -> None:
     # Create minimal config for campaign detection
     config = Config(
         checkpoints_dir=Path("~/.foothold-checkpoints"),
-        servers={
-            "test": ServerConfig(
-                path=real_foothold_data,
-                description="Test server"
-            )
-        },
-        campaigns={}
+        servers={"test": ServerConfig(path=real_foothold_data, description="Test server")},
+        campaigns={},
     )
 
     # Get list of files in the test data directory

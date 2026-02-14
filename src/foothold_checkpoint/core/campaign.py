@@ -17,12 +17,12 @@ if TYPE_CHECKING:
 #   - foothold_syria_extended_V0.1_storage.csv
 #   - FOOTHOLD_Germany_0.3_CTLD_FARPS.csv
 CAMPAIGN_FILE_PATTERN = re.compile(
-    r'^foothold_'  # Must start with 'foothold_' (case-insensitive)
-    r'[a-z0-9_]+'  # Campaign name (letters, numbers, underscores)
-    r'(?:_[vV]?[0-9]+\.[0-9]+)?'  # Optional version suffix (_v0.2, _V0.1, _0.1)
-    r'(?:_(?:CTLD_FARPS|CTLD_Save|storage))?'  # Optional file type suffix
-    r'\.(lua|csv)$',  # File extension (.lua or .csv)
-    re.IGNORECASE
+    r"^foothold_"  # Must start with 'foothold_' (case-insensitive)
+    r"[a-z0-9_]+"  # Campaign name (letters, numbers, underscores)
+    r"(?:_[vV]?[0-9]+\.[0-9]+)?"  # Optional version suffix (_v0.2, _V0.1, _0.1)
+    r"(?:_(?:CTLD_FARPS|CTLD_Save|storage))?"  # Optional file type suffix
+    r"\.(lua|csv)$",  # File extension (.lua or .csv)
+    re.IGNORECASE,
 )
 
 
@@ -94,11 +94,11 @@ def is_campaign_file(filename: str | Path) -> bool:
         filename = Path(filename).name
 
     # Ignore hidden files
-    if filename.startswith('.'):
+    if filename.startswith("."):
         return False
 
     # Special case: foothold.status is not a campaign file
-    if filename.lower() == 'foothold.status':
+    if filename.lower() == "foothold.status":
         return False
 
     # Match against campaign file pattern
@@ -150,18 +150,20 @@ def normalize_campaign_name(filename: str | Path) -> str:
         filename = Path(filename).name
 
     # Remove file extension
-    name_without_ext = filename.rsplit('.', 1)[0]
+    name_without_ext = filename.rsplit(".", 1)[0]
 
     # Remove 'foothold_' prefix (case-insensitive)
     # Use regex to handle case-insensitive matching
-    name_without_prefix = re.sub(r'^foothold_', '', name_without_ext, flags=re.IGNORECASE)
+    name_without_prefix = re.sub(r"^foothold_", "", name_without_ext, flags=re.IGNORECASE)
 
     # Remove version suffix patterns: _v0.2, _V0.1, _0.1
     # Pattern: underscore followed by optional v/V, then digits.digits
-    name_without_version = re.sub(r'_[vV]?[0-9]+(?:\.[0-9]+)?', '', name_without_prefix)
+    name_without_version = re.sub(r"_[vV]?[0-9]+(?:\.[0-9]+)?", "", name_without_prefix)
 
     # Remove file type suffixes: _storage, _CTLD_FARPS, _CTLD_Save
-    name_normalized = re.sub(r'_(storage|CTLD_FARPS|CTLD_Save)$', '', name_without_version, flags=re.IGNORECASE)
+    name_normalized = re.sub(
+        r"_(storage|CTLD_FARPS|CTLD_Save)$", "", name_without_version, flags=re.IGNORECASE
+    )
 
     # Normalize to lowercase for consistent grouping (case-insensitive)
     # This ensures "Afghanistan", "afghanistan", "AFGHANISTAN" all map to same group
@@ -424,13 +426,13 @@ def rename_campaign_file(filename: str | Path, config: "Config") -> str:
     # while preserving the original structure
 
     # Remove file extension to work with the name part
-    name_without_ext = filename.rsplit('.', 1)[0]
-    extension = filename.rsplit('.', 1)[1]  # .lua or .csv
+    name_without_ext = filename.rsplit(".", 1)[0]
+    extension = filename.rsplit(".", 1)[1]  # .lua or .csv
 
     # Extract the original prefix (preserving case)
     # Pattern: foothold_<campaign>_<rest>
     # We need to find where "foothold_" ends (case-insensitive)
-    prefix_match = re.match(r'(foothold_)', name_without_ext, re.IGNORECASE)
+    prefix_match = re.match(r"(foothold_)", name_without_ext, re.IGNORECASE)
     if not prefix_match:
         # Shouldn't happen, but safety
         return filename
@@ -438,7 +440,7 @@ def rename_campaign_file(filename: str | Path, config: "Config") -> str:
     original_prefix = prefix_match.group(1)  # "foothold_" or "FootHold_" etc.
 
     # Remove the prefix to get the rest
-    name_after_prefix = name_without_ext[len(original_prefix):]
+    name_after_prefix = name_without_ext[len(original_prefix) :]
 
     # The name_after_prefix looks like: "GCW_Modern_v0.2_storage" or "afghanistan"
     # We need to replace the campaign part (GCW_Modern) with the current name (germany_modern)
@@ -450,16 +452,16 @@ def rename_campaign_file(filename: str | Path, config: "Config") -> str:
     file_type_suffix = ""
     if name_after_prefix.endswith("_storage"):
         file_type_suffix = "_storage"
-        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+        name_after_prefix = name_after_prefix[: -len(file_type_suffix)]
     elif name_after_prefix.endswith("_CTLD_FARPS"):
         file_type_suffix = "_CTLD_FARPS"
-        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+        name_after_prefix = name_after_prefix[: -len(file_type_suffix)]
     elif name_after_prefix.endswith("_CTLD_Save"):
         file_type_suffix = "_CTLD_Save"
-        name_after_prefix = name_after_prefix[:-len(file_type_suffix)]
+        name_after_prefix = name_after_prefix[: -len(file_type_suffix)]
 
     # Remove version suffix (_v0.2, _V0.1, _0.1)
-    name_without_version = re.sub(r'_[vV]?[0-9]+(?:\.[0-9]+)?$', '', name_after_prefix)
+    name_without_version = re.sub(r"_[vV]?[0-9]+(?:\.[0-9]+)?$", "", name_after_prefix)
 
     # Now name_without_version contains just the campaign name part
     # But it might have different case than current_name

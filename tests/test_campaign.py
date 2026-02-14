@@ -207,7 +207,7 @@ class TestFileGrouping:
             "foothold_afghanistan.lua",
             "foothold_afghanistan_storage.csv",
             "foothold_afghanistan_CTLD_FARPS.csv",
-            "foothold_afghanistan_CTLD_Save.csv"
+            "foothold_afghanistan_CTLD_Save.csv",
         ]
 
         groups = group_campaign_files(files)
@@ -220,10 +220,7 @@ class TestFileGrouping:
         """Should group available files even if campaign is incomplete."""
         from foothold_checkpoint.core.campaign import group_campaign_files
 
-        files = [
-            "foothold_CA.lua",
-            "foothold_CA_storage.csv"
-        ]
+        files = ["foothold_CA.lua", "foothold_CA_storage.csv"]
 
         groups = group_campaign_files(files)
 
@@ -240,7 +237,7 @@ class TestFileGrouping:
             "foothold_afghanistan_storage.csv",
             "FootHold_CA.lua",
             "FootHold_CA_CTLD_FARPS.csv",
-            "foothold_Syria.lua"
+            "foothold_Syria.lua",
         ]
 
         groups = group_campaign_files(files)
@@ -261,7 +258,7 @@ class TestFileGrouping:
             "foothold_afghanistan.lua",
             "Foothold_Afghanistan_storage.csv",
             "FootHold_AFGHANISTAN_CTLD_FARPS.csv",
-            "FOOTHOLD_afghanistan_CTLD_Save.csv"
+            "FOOTHOLD_afghanistan_CTLD_Save.csv",
         ]
 
         groups = group_campaign_files(files)
@@ -279,7 +276,7 @@ class TestFileGrouping:
             "FootHold_CA_v0.2.lua",
             "FootHold_CA_v0.2_storage.csv",
             "foothold_CA_V0.1_CTLD_FARPS.csv",  # Different version
-            "FootHold_CA_0.3.lua"  # Another different version
+            "FootHold_CA_0.3.lua",  # Another different version
         ]
 
         groups = group_campaign_files(files)
@@ -298,7 +295,7 @@ class TestFileGrouping:
             "foothold_afghanistan_storage.csv",
             "foothold.status",  # Should be ignored
             "README.txt",  # Should be ignored
-            ".gitignore"  # Should be ignored
+            ".gitignore",  # Should be ignored
         ]
 
         groups = group_campaign_files(files)
@@ -319,12 +316,7 @@ class TestFileGrouping:
         """Should return empty dict when no campaign files present."""
         from foothold_checkpoint.core.campaign import group_campaign_files
 
-        files = [
-            "foothold.status",
-            "README.txt",
-            "backup.zip",
-            ".DS_Store"
-        ]
+        files = ["foothold.status", "README.txt", "backup.zip", ".DS_Store"]
 
         groups = group_campaign_files(files)
 
@@ -334,10 +326,7 @@ class TestFileGrouping:
         """Should preserve original filenames in groups, not normalize them."""
         from foothold_checkpoint.core.campaign import group_campaign_files
 
-        files = [
-            "FootHold_CA_v0.2.lua",
-            "foothold_ca_storage.csv"
-        ]
+        files = ["FootHold_CA_v0.2.lua", "foothold_ca_storage.csv"]
 
         groups = group_campaign_files(files)
 
@@ -352,7 +341,7 @@ class TestFileGrouping:
         files = [
             Path("foothold_afghanistan.lua"),
             Path("foothold_afghanistan_storage.csv"),
-            Path("/some/path/FootHold_CA.lua")
+            Path("/some/path/FootHold_CA.lua"),
         ]
 
         groups = group_campaign_files(files)
@@ -406,7 +395,7 @@ class TestSharedFileIdentification:
             "foothold_afghanistan.lua",
             "foothold_afghanistan_storage.csv",
             "Foothold_Ranks.lua",  # Should be excluded
-            "FootHold_CA.lua"
+            "FootHold_CA.lua",
         ]
 
         groups = group_campaign_files(files)
@@ -438,7 +427,7 @@ class TestSharedFileIdentification:
             "Foothold_Ranks.lua",  # Shared
             "FootHold_CA.lua",
             "foothold.status",  # Non-campaign file
-            "FOOTHOLD_RANKS.LUA"  # Duplicate shared (case variation)
+            "FOOTHOLD_RANKS.LUA",  # Duplicate shared (case variation)
         ]
 
         groups = group_campaign_files(files)
@@ -465,9 +454,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Historical name should map to current (last in list)
@@ -483,9 +470,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Current name should map to itself (last in list)
@@ -501,9 +486,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Unknown campaign should stay as-is
@@ -519,9 +502,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Afghanistan": ["afghanistan"]
-            }
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
         assert map_campaign_name("afghanistan", config) == "afghanistan"
@@ -536,9 +517,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Syria": ["syria_extended", "syria_modern", "syria"]
-            }
+            campaigns={"Syria": ["syria_extended", "syria_modern", "syria"]},
         )
 
         # All historical names should map to current (last)
@@ -556,9 +535,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["GCW_Modern", "Germany_Modern"]
-            }
+            campaigns={"Germany_Modern": ["GCW_Modern", "Germany_Modern"]},
         )
 
         # Input is already lowercase from normalize_campaign_name
@@ -575,7 +552,7 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={}
+            campaigns={},
         )
 
         assert map_campaign_name("afghanistan", config) == "afghanistan"
@@ -590,15 +567,10 @@ class TestCampaignNameMapping:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        files = [
-            "FootHold_GCW_Modern.lua",  # Historical name
-            "FootHold_GCW_Modern_storage.csv"
-        ]
+        files = ["FootHold_GCW_Modern.lua", "FootHold_GCW_Modern_storage.csv"]  # Historical name
 
         campaigns = detect_campaigns(files, config)
 
@@ -621,13 +593,10 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Afghanistan": ["afghanistan"]}
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv"
-        ]
+        files = ["foothold_afghanistan.lua", "foothold_afghanistan_storage.csv"]
 
         report = create_campaign_report(files, config)
 
@@ -643,25 +612,19 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Afghanistan": ["afghanistan"],
-                "Caucasus": ["ca"]
-            }
+            campaigns={"Afghanistan": ["afghanistan"], "Caucasus": ["ca"]},
         )
 
         files = [
             "foothold_afghanistan.lua",
             "foothold_afghanistan_storage.csv",
             "FootHold_CA.lua",
-            "FootHold_CA_CTLD_FARPS.csv"
+            "FootHold_CA_CTLD_FARPS.csv",
         ]
 
         report = create_campaign_report(files, config)
 
-        assert report == {
-            "afghanistan": 2,
-            "ca": 2
-        }
+        assert report == {"afghanistan": 2, "ca": 2}
 
     def test_report_empty_list(self):
         """Should return empty report for empty file list."""
@@ -673,7 +636,7 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={}
+            campaigns={},
         )
 
         report = create_campaign_report([], config)
@@ -690,15 +653,10 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Afghanistan": ["afghanistan"]}
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = [
-            "foothold_afghanistan.lua",
-            "README.txt",
-            "foothold.status",
-            ".hidden_file"
-        ]
+        files = ["foothold_afghanistan.lua", "README.txt", "foothold.status", ".hidden_file"]
 
         report = create_campaign_report(files, config)
 
@@ -715,15 +673,10 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        files = [
-            "FootHold_GCW_Modern.lua",  # Historical name
-            "FootHold_GCW_Modern_storage.csv"
-        ]
+        files = ["FootHold_GCW_Modern.lua", "FootHold_GCW_Modern_storage.csv"]  # Historical name
 
         report = create_campaign_report(files, config)
 
@@ -741,13 +694,10 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Afghanistan": ["afghanistan"]}
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = [
-            "foothold_afghanistan.lua",
-            "Foothold_Ranks.lua"  # Shared file
-        ]
+        files = ["foothold_afghanistan.lua", "Foothold_Ranks.lua"]  # Shared file
 
         report = create_campaign_report(files, config)
 
@@ -764,11 +714,7 @@ class TestCampaignDetectionReport:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Afghanistan": ["afghanistan"],
-                "Caucasus": ["ca"],
-                "Syria": ["syria"]
-            }
+            campaigns={"Afghanistan": ["afghanistan"], "Caucasus": ["ca"], "Syria": ["syria"]},
         )
 
         files = [
@@ -781,16 +727,12 @@ class TestCampaignDetectionReport:
             "FootHold_CA.lua",
             # Syria: 2 files
             "foothold_syria.lua",
-            "foothold_syria_storage.csv"
+            "foothold_syria_storage.csv",
         ]
 
         report = create_campaign_report(files, config)
 
-        assert report == {
-            "afghanistan": 4,
-            "ca": 1,
-            "syria": 2
-        }
+        assert report == {"afghanistan": 4, "ca": 1, "syria": 2}
 
 
 class TestRenameCampaignFile:
@@ -806,9 +748,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Historical filename should be renamed to current name
@@ -831,7 +771,7 @@ class TestRenameCampaignFile:
             campaigns={
                 # Campaign names in config should NOT include version suffixes
                 "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            },
         )
 
         # File has version suffix in original name
@@ -851,9 +791,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         original = "FootHold_GCW_Modern_storage.csv"
@@ -871,9 +809,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         original = "FootHold_GCW_Modern_CTLD_FARPS.csv"
@@ -891,9 +827,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         original = "FootHold_GCW_Modern_CTLD_Save.csv"
@@ -911,9 +845,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Afghanistan": ["afghanistan"]
-            }
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
         original = "foothold_afghanistan.lua"
@@ -932,7 +864,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={}
+            campaigns={},
         )
 
         original = "foothold_unknown.lua"
@@ -951,9 +883,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Shared file should not be renamed
@@ -973,9 +903,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Germany_Modern": ["gcw_modern", "germany_modern"]
-            }
+            campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
         # Original has "FootHold" (mixed case)
@@ -995,9 +923,7 @@ class TestRenameCampaignFile:
         config = Config(
             checkpoints_dir=Path("~/.test"),
             servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={
-                "Syria": ["syria_extended", "syria_modern", "syria"]
-            }
+            campaigns={"Syria": ["syria_extended", "syria_modern", "syria"]},
         )
 
         # Old name → current name

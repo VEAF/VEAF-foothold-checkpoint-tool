@@ -91,8 +91,7 @@ def save_checkpoint(
         list(source_dir.iterdir())
     except PermissionError as e:
         raise PermissionError(
-            f"Source directory '{source_dir}' is not readable. "
-            f"Check file system permissions."
+            f"Source directory '{source_dir}' is not readable. " f"Check file system permissions."
         ) from e
 
     # Create output directory if it doesn't exist
@@ -321,9 +320,7 @@ def restore_checkpoint(
 
         # Get list of files to restore
         all_files_in_zip = [
-            name
-            for name in zf.namelist()
-            if name != "metadata.json" and not name.endswith("/")
+            name for name in zf.namelist() if name != "metadata.json" and not name.endswith("/")
         ]
 
         # Filter out Foothold_Ranks.lua if not requested
@@ -460,9 +457,7 @@ def list_checkpoints(
 
     # Validate checkpoint directory
     if not checkpoint_dir.exists():
-        raise FileNotFoundError(
-            f"Checkpoint directory not found: {checkpoint_dir}"
-        )
+        raise FileNotFoundError(f"Checkpoint directory not found: {checkpoint_dir}")
 
     checkpoints = []
 
@@ -567,9 +562,7 @@ def delete_checkpoint(
 
     # Validate file exists
     if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"Checkpoint file not found: {checkpoint_path.name}"
-        )
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path.name}")
 
     # Validate it's a ZIP file
     if not zipfile.is_zipfile(checkpoint_path):
@@ -583,9 +576,7 @@ def delete_checkpoint(
             metadata_content = zf.read("metadata.json")
             metadata = json.loads(metadata_content)
     except BadZipFile as e:
-        raise ValueError(
-            f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted"
-        ) from e
+        raise ValueError(f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted") from e
     except KeyError as e:
         raise ValueError(
             f"Not a valid checkpoint (missing metadata): {checkpoint_path.name}"
@@ -599,16 +590,12 @@ def delete_checkpoint(
     required_fields = ["campaign_name", "server_name", "created_at"]
     missing_fields = [f for f in required_fields if f not in metadata]
     if missing_fields:
-        raise ValueError(
-            f"Cannot read checkpoint metadata: missing fields {missing_fields}"
-        )
+        raise ValueError(f"Cannot read checkpoint metadata: missing fields {missing_fields}")
 
     # Handle confirmation
     if not force:
         if confirm_callback is None:
-            raise ValueError(
-                "Confirmation callback required when force=False"
-            )
+            raise ValueError("Confirmation callback required when force=False")
 
         # Call confirmation callback with metadata
         if not confirm_callback(metadata):
@@ -619,9 +606,7 @@ def delete_checkpoint(
     try:
         checkpoint_path.unlink()
     except PermissionError as e:
-        raise PermissionError(
-            f"Permission denied: cannot delete {checkpoint_path.name}"
-        ) from e
+        raise PermissionError(f"Permission denied: cannot delete {checkpoint_path.name}") from e
     except OSError:
         # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
         raise
@@ -780,8 +765,10 @@ def import_checkpoint(
         found = any(
             fname.lower() == pattern.lower() or
             # Also check with version suffixes
-            (fname.lower().startswith(pattern.lower().rsplit('.', 1)[0]) and
-             fname.lower().endswith(pattern.lower().rsplit('.', 1)[1]))
+            (
+                fname.lower().startswith(pattern.lower().rsplit(".", 1)[0])
+                and fname.lower().endswith(pattern.lower().rsplit(".", 1)[1])
+            )
             for fname in campaign_files_names
         )
         if not found:

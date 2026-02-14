@@ -24,9 +24,11 @@ class TestRestoreCommandWithFlags:
         checkpoint_file = tmp_path / "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             # Setup mocks
             mock_config = Mock()
@@ -36,17 +38,17 @@ class TestRestoreCommandWithFlags:
 
             mock_restore.return_value = [
                 tmp_path / "mission" / "foothold_afghanistan.lua",
-                tmp_path / "mission" / "foothold_afghanistan_storage.csv"
+                tmp_path / "mission" / "foothold_afghanistan_storage.csv",
             ]
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code == 0
-        assert "restored successfully" in result.stdout.lower() or "success" in result.stdout.lower()
+        assert (
+            "restored successfully" in result.stdout.lower() or "success" in result.stdout.lower()
+        )
         mock_restore.assert_called_once()
 
     def test_restore_with_restore_ranks_flag(self, tmp_path):
@@ -66,9 +68,11 @@ class TestRestoreCommandWithFlags:
         checkpoint_file = tmp_path / "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -77,15 +81,12 @@ class TestRestoreCommandWithFlags:
 
             mock_restore.return_value = [
                 tmp_path / "mission" / "foothold_afghanistan.lua",
-                tmp_path / "mission" / "Foothold_Ranks.lua"
+                tmp_path / "mission" / "Foothold_Ranks.lua",
             ]
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server",
-                "--restore-ranks"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server", "--restore-ranks"]
+            )
 
         assert result.exit_code == 0
         # Verify restore_ranks=True was passed
@@ -109,18 +110,18 @@ class TestRestoreCommandWithFlags:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "nonexistent-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "nonexistent-server"]
+            )
 
         assert result.exit_code != 0
         assert "not found" in result.stdout.lower() or "invalid" in result.stdout.lower()
@@ -148,11 +149,9 @@ class TestRestoreCommandWithFlags:
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
             mock_load.return_value = mock_config
 
-            result = runner.invoke(app, [
-                "restore",
-                str(nonexistent_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(nonexistent_file), "--server", "test-server"]
+            )
 
         assert result.exit_code != 0
         assert "not found" in result.stdout.lower() or "error" in result.stdout.lower()
@@ -176,11 +175,13 @@ class TestCheckpointSelectionPrompt:
         )
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]), \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -194,7 +195,7 @@ class TestCheckpointSelectionPrompt:
                 "timestamp": "2024-02-14 10:30:00",
                 "server": "test-server",
                 "size_bytes": 1024,
-                "size_human": "1.0 KB"
+                "size_human": "1.0 KB",
             }
             mock_list.return_value = [mock_checkpoint]
 
@@ -220,11 +221,13 @@ class TestCheckpointSelectionPrompt:
         )
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]), \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -237,7 +240,7 @@ class TestCheckpointSelectionPrompt:
                 "timestamp": "2024-02-14 10:30:00",
                 "server": "test-server",
                 "size_bytes": 2048,
-                "size_human": "2.0 KB"
+                "size_human": "2.0 KB",
             }
 
             mock_checkpoint2 = {
@@ -246,7 +249,7 @@ class TestCheckpointSelectionPrompt:
                 "timestamp": "2024-02-13 15:45:00",
                 "server": "prod-1",
                 "size_bytes": 1536,
-                "size_human": "1.5 KB"
+                "size_human": "1.5 KB",
             }
 
             mock_list.return_value = [mock_checkpoint1, mock_checkpoint2]
@@ -272,8 +275,10 @@ class TestCheckpointSelectionPrompt:
         )
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock()}
@@ -310,15 +315,17 @@ class TestServerPrompt:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"), \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {
                 "test-server": Mock(mission_directory=tmp_path / "mission"),
-                "prod-1": Mock(mission_directory=tmp_path / "prod")
+                "prod-1": Mock(mission_directory=tmp_path / "prod"),
             }
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -350,15 +357,17 @@ class TestServerPrompt:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"), \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {
                 "test-server": Mock(mission_directory=tmp_path / "mission"),
-                "prod-1": Mock(mission_directory=tmp_path / "prod")
+                "prod-1": Mock(mission_directory=tmp_path / "prod"),
             }
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
@@ -391,9 +400,11 @@ class TestProgressDisplay:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -402,11 +413,9 @@ class TestProgressDisplay:
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code == 0
         # Verify progress_callback was passed
@@ -430,9 +439,11 @@ class TestProgressDisplay:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -441,12 +452,9 @@ class TestProgressDisplay:
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
 
-            result = runner.invoke(app, [
-                "--quiet",
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["--quiet", "restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code == 0
         # Verify progress_callback is None in quiet mode
@@ -474,9 +482,11 @@ class TestSuccessErrorMessages:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -485,14 +495,12 @@ class TestSuccessErrorMessages:
 
             mock_restore.return_value = [
                 tmp_path / "mission" / "foothold_afghanistan.lua",
-                tmp_path / "mission" / "foothold_afghanistan_storage.csv"
+                tmp_path / "mission" / "foothold_afghanistan_storage.csv",
             ]
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code == 0
         assert "test-server" in result.stdout or "restored" in result.stdout.lower()
@@ -506,13 +514,13 @@ class TestSuccessErrorMessages:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config", side_effect=FileNotFoundError("Config not found")):
+        with patch(
+            "foothold_checkpoint.cli.load_config", side_effect=FileNotFoundError("Config not found")
+        ):
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code != 0
         assert "error" in result.stdout.lower() or "not found" in result.stdout.lower()
@@ -534,20 +542,23 @@ class TestSuccessErrorMessages:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint", side_effect=ValueError("Checksum mismatch")), \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch(
+                "foothold_checkpoint.cli.restore_checkpoint",
+                side_effect=ValueError("Checksum mismatch"),
+            ),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
-            result = runner.invoke(app, [
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code != 0
         assert "error" in result.stdout.lower() or "checksum" in result.stdout.lower()
@@ -569,9 +580,11 @@ class TestSuccessErrorMessages:
         checkpoint_file = tmp_path / "checkpoint.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore, \
-             patch("pathlib.Path.exists", return_value=True):
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
+            patch("pathlib.Path.exists", return_value=True),
+        ):
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
@@ -580,12 +593,9 @@ class TestSuccessErrorMessages:
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
 
-            result = runner.invoke(app, [
-                "--quiet",
-                "restore",
-                str(checkpoint_file),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(
+                app, ["--quiet", "restore", str(checkpoint_file), "--server", "test-server"]
+            )
 
         assert result.exit_code == 0
         # In quiet mode, should not have decorative messages

@@ -90,11 +90,10 @@ class ServerConfig(BaseModel):
 
     path: Path = Field(
         ...,
-        description="Path to server's Missions/Saves directory (e.g., 'D:/Servers/DCS/Missions/Saves')"
+        description="Path to server's Missions/Saves directory (e.g., 'D:/Servers/DCS/Missions/Saves')",
     )
     description: str = Field(
-        ...,
-        description="Human-readable server description (e.g., 'Production server')"
+        ..., description="Human-readable server description (e.g., 'Production server')"
     )
 
     model_config = {"frozen": True}
@@ -119,11 +118,11 @@ class Config(BaseModel):
 
     checkpoints_dir: Path = Field(
         ...,
-        description="Directory where checkpoint ZIP files are stored (e.g., '~/.foothold-checkpoints')"
+        description="Directory where checkpoint ZIP files are stored (e.g., '~/.foothold-checkpoints')",
     )
     servers: dict[str, ServerConfig] = Field(
         ...,
-        description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields."
+        description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields.",
     )
     campaigns: dict[str, list[str]] = Field(
         ...,
@@ -171,22 +170,19 @@ def load_config(path: Path) -> Config:
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
 
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
     # Parse servers section - convert dict to ServerConfig objects
-    servers_data = data.get('servers', {})
-    servers = {
-        name: ServerConfig(**server_config)
-        for name, server_config in servers_data.items()
-    }
+    servers_data = data.get("servers", {})
+    servers = {name: ServerConfig(**server_config) for name, server_config in servers_data.items()}
 
     # Create Config object with validated data
     # Pydantic will validate required fields and raise ValidationError if missing
     return Config(
-        checkpoints_dir=data.get('checkpoints_dir'),
+        checkpoints_dir=data.get("checkpoints_dir"),
         servers=servers,
-        campaigns=data.get('campaigns')
+        campaigns=data.get("campaigns"),
     )
 
 
@@ -209,4 +205,4 @@ def create_default_config(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write default configuration
-    path.write_text(DEFAULT_CONFIG_TEMPLATE, encoding='utf-8')
+    path.write_text(DEFAULT_CONFIG_TEMPLATE, encoding="utf-8")

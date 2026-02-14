@@ -404,9 +404,7 @@ class TestSaveAllCampaigns:
 
             # Verify all checkpoints have same name/comment
             for checkpoint_path in results.values():
-                with zipfile.ZipFile(checkpoint_path, "r") as zf, zf.open(
-                    "metadata.json"
-                ) as mf:
+                with zipfile.ZipFile(checkpoint_path, "r") as zf, zf.open("metadata.json") as mf:
                     metadata = json.load(mf)
                     assert metadata["name"] == "Shared name"
                     assert metadata["comment"] == "Shared comment"
@@ -1058,7 +1056,10 @@ class TestRestoreCheckpoint:
 
             # Should have called progress callback
             assert len(progress_calls) > 0
-            assert any("verifying" in msg.lower() or "extracting" in msg.lower() for msg, _, _ in progress_calls)
+            assert any(
+                "verifying" in msg.lower() or "extracting" in msg.lower()
+                for msg, _, _ in progress_calls
+            )
             assert len(restored_files) >= 1
 
     def test_restore_checkpoint_handles_disk_full_gracefully(self):
@@ -1113,13 +1114,10 @@ class TestRestoreCheckpoint:
                 checkpoints_dir=Path(tmpdir) / "checkpoints",
                 servers={
                     "test-server": ServerConfig(
-                        path=Path(tmpdir) / "server",
-                        description="Test server"
+                        path=Path(tmpdir) / "server", description="Test server"
                     )
                 },
-                campaigns={
-                    "Germany_Modern": ["gcw_modern", "germany_modern"]
-                }
+                campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
             )
 
             # Create a checkpoint with old campaign name files
@@ -1140,7 +1138,7 @@ class TestRestoreCheckpoint:
                     "files": {
                         "FootHold_GCW_Modern.lua": f"sha256:{hashlib.sha256(old_lua_content).hexdigest()}",
                         "FootHold_GCW_Modern_storage.csv": f"sha256:{hashlib.sha256(old_csv_content).hexdigest()}",
-                    }
+                    },
                 }
                 zf.writestr("metadata.json", json.dumps(metadata))
 
@@ -1149,9 +1147,7 @@ class TestRestoreCheckpoint:
 
             # Restore with config (should rename files)
             restored_files = restore_checkpoint(
-                checkpoint_path=checkpoint_path,
-                target_dir=target_dir,
-                config=config
+                checkpoint_path=checkpoint_path, target_dir=target_dir, config=config
             )
 
             # Files should be renamed to current campaign name
@@ -1164,7 +1160,9 @@ class TestRestoreCheckpoint:
 
             # Content should be preserved
             assert (target_dir / "FootHold_germany_modern.lua").read_bytes() == old_lua_content
-            assert (target_dir / "FootHold_germany_modern_storage.csv").read_bytes() == old_csv_content
+            assert (
+                target_dir / "FootHold_germany_modern_storage.csv"
+            ).read_bytes() == old_csv_content
 
             # Returned paths should use new names
             assert any(f.name == "FootHold_germany_modern.lua" for f in restored_files)
@@ -1183,13 +1181,10 @@ class TestRestoreCheckpoint:
                 checkpoints_dir=Path(tmpdir) / "checkpoints",
                 servers={
                     "test-server": ServerConfig(
-                        path=Path(tmpdir) / "server",
-                        description="Test server"
+                        path=Path(tmpdir) / "server", description="Test server"
                     )
                 },
-                campaigns={
-                    "Afghanistan": ["afghanistan"]
-                }
+                campaigns={"Afghanistan": ["afghanistan"]},
             )
 
             checkpoint_path = Path(tmpdir) / "checkpoint.zip"
@@ -1204,7 +1199,7 @@ class TestRestoreCheckpoint:
                     "created_at": "2024-02-13T14:30:00Z",
                     "files": {
                         "foothold_afghanistan.lua": f"sha256:{hashlib.sha256(lua_content).hexdigest()}",
-                    }
+                    },
                 }
                 zf.writestr("metadata.json", json.dumps(metadata))
 
@@ -1212,9 +1207,7 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             restore_checkpoint(
-                checkpoint_path=checkpoint_path,
-                target_dir=target_dir,
-                config=config
+                checkpoint_path=checkpoint_path, target_dir=target_dir, config=config
             )
 
             # Filename should be unchanged (campaign name hasn't evolved)
@@ -1577,10 +1570,7 @@ class TestListCheckpoints:
             assert len(result) == 1
             assert "size_human" in result[0]
             # Should be in format like "1.2 KB", "5.6 MB", etc.
-            assert any(
-                unit in result[0]["size_human"]
-                for unit in ["B", "KB", "MB", "GB", "TB"]
-            )
+            assert any(unit in result[0]["size_human"] for unit in ["B", "KB", "MB", "GB", "TB"])
 
     def test_list_checkpoints_handles_corrupted_checkpoint_gracefully(self):
         """list_checkpoints should skip corrupted checkpoints and continue."""
@@ -1718,9 +1708,7 @@ class TestListCheckpoints:
             # Create a ZIP with invalid JSON metadata
             invalid_json_path = checkpoint_dir / "invalid_json.zip"
             with zipfile.ZipFile(invalid_json_path, "w") as zf:
-                zf.writestr(
-                    "metadata.json", '{"campaign": "test", invalid json here'
-                )
+                zf.writestr("metadata.json", '{"campaign": "test", invalid json here')
 
             result = list_checkpoints(checkpoint_dir)
 
@@ -1914,11 +1902,7 @@ class TestDeleteCheckpoint:
                 try:
                     os.chmod(
                         checkpoint_path,
-                        stat.S_IRUSR
-                        | stat.S_IWUSR
-                        | stat.S_IRGRP
-                        | stat.S_IWGRP
-                        | stat.S_IROTH,
+                        stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH,
                     )
                 except (OSError, FileNotFoundError):
                     pass
@@ -1967,9 +1951,7 @@ class TestDeleteCheckpoint:
             )
 
             # Without force and without confirmation callback should raise error
-            with pytest.raises(
-                ValueError, match="Confirmation callback required when force=False"
-            ):
+            with pytest.raises(ValueError, match="Confirmation callback required when force=False"):
                 delete_checkpoint(checkpoint_path, force=False)
 
     def test_delete_checkpoint_calls_confirmation_callback(self):
@@ -1995,9 +1977,7 @@ class TestDeleteCheckpoint:
             def confirm_no(metadata):
                 return False
 
-            result = delete_checkpoint(
-                checkpoint_path, force=False, confirm_callback=confirm_no
-            )
+            result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_no)
 
             # File should still exist
             assert checkpoint_path.exists()

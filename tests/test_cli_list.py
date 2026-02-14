@@ -21,8 +21,10 @@ class TestListCommandBasic:
         )
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -57,9 +59,7 @@ class TestListCommandBasic:
         assert "afghanistan" in result.stdout
         assert "syria" in result.stdout
         mock_list.assert_called_once_with(
-            tmp_path / "checkpoints",
-            server_filter=None,
-            campaign_filter=None
+            tmp_path / "checkpoints", server_filter=None, campaign_filter=None
         )
 
     def test_list_with_server_filter(self, tmp_path):
@@ -69,8 +69,10 @@ class TestListCommandBasic:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -93,9 +95,7 @@ class TestListCommandBasic:
 
         assert result.exit_code == 0
         mock_list.assert_called_once_with(
-            tmp_path / "checkpoints",
-            server_filter="test-server",
-            campaign_filter=None
+            tmp_path / "checkpoints", server_filter="test-server", campaign_filter=None
         )
 
     def test_list_with_campaign_filter(self, tmp_path):
@@ -105,8 +105,10 @@ class TestListCommandBasic:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -129,9 +131,7 @@ class TestListCommandBasic:
 
         assert result.exit_code == 0
         mock_list.assert_called_once_with(
-            tmp_path / "checkpoints",
-            server_filter=None,
-            campaign_filter="afghanistan"
+            tmp_path / "checkpoints", server_filter=None, campaign_filter="afghanistan"
         )
 
     def test_list_with_both_filters(self, tmp_path):
@@ -141,8 +141,10 @@ class TestListCommandBasic:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -161,17 +163,13 @@ class TestListCommandBasic:
                 },
             ]
 
-            result = runner.invoke(app, [
-                "list",
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ])
+            result = runner.invoke(
+                app, ["list", "--server", "test-server", "--campaign", "afghanistan"]
+            )
 
         assert result.exit_code == 0
         mock_list.assert_called_once_with(
-            tmp_path / "checkpoints",
-            server_filter="test-server",
-            campaign_filter="afghanistan"
+            tmp_path / "checkpoints", server_filter="test-server", campaign_filter="afghanistan"
         )
 
 
@@ -185,8 +183,10 @@ class TestListCommandTableFormatting:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -223,8 +223,10 @@ class TestListCommandTableFormatting:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -258,8 +260,10 @@ class TestListCommandTableFormatting:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -294,8 +298,10 @@ class TestListCommandEmptyResults:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -315,8 +321,10 @@ class TestListCommandEmptyResults:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -324,11 +332,9 @@ class TestListCommandEmptyResults:
 
             mock_list.return_value = []
 
-            result = runner.invoke(app, [
-                "list",
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ])
+            result = runner.invoke(
+                app, ["list", "--server", "test-server", "--campaign", "afghanistan"]
+            )
 
         assert result.exit_code == 0
         assert "no checkpoints" in result.stdout.lower()
@@ -344,8 +350,10 @@ class TestListCommandQuietMode:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -392,8 +400,10 @@ class TestListCommandQuietMode:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "checkpoints"
@@ -433,8 +443,10 @@ class TestListCommandErrors:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
             mock_config.checkpoints_directory = tmp_path / "nonexistent"

@@ -164,9 +164,7 @@ def test_restore_checkpoint_file_not_found_error() -> None:
         patch("foothold_checkpoint.cli.Path.exists", return_value=False),
         patch("foothold_checkpoint.cli._quiet_mode", True),
     ):
-        result = runner.invoke(
-            app, ["restore", "nonexistent.zip", "--server", "prod-1"]
-        )
+        result = runner.invoke(app, ["restore", "nonexistent.zip", "--server", "prod-1"])
 
     assert result.exit_code == 1
     assert "Checkpoint file not found" in result.stdout
@@ -187,9 +185,7 @@ def test_restore_server_not_found_error() -> None:
         patch("foothold_checkpoint.cli.Path.exists", return_value=True),
         patch("foothold_checkpoint.cli._quiet_mode", True),
     ):
-        result = runner.invoke(
-            app, ["restore", "test.zip", "--server", "nonexistent"]
-        )
+        result = runner.invoke(app, ["restore", "test.zip", "--server", "nonexistent"])
 
     assert result.exit_code == 1
     assert "Server 'nonexistent' not found" in result.stdout
@@ -343,13 +339,13 @@ def test_save_flags_validation_accepts_campaign_only() -> None:
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
         patch("foothold_checkpoint.cli.Path.exists", return_value=True),
-        patch("foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]),
+        patch(
+            "foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]
+        ),
         patch("foothold_checkpoint.cli.detect_campaigns", return_value=detected_campaigns),
         patch("foothold_checkpoint.cli.create_checkpoint"),
     ):
-        result = runner.invoke(
-            app, ["save", "--server", "prod-1", "--campaign", "afghanistan"]
-        )
+        result = runner.invoke(app, ["save", "--server", "prod-1", "--campaign", "afghanistan"])
 
     # Should succeed with only --campaign flag (no conflict)
     assert result.exit_code == 0
@@ -374,13 +370,13 @@ def test_save_flags_validation_accepts_all_only() -> None:
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
         patch("foothold_checkpoint.cli.Path.exists", return_value=True),
-        patch("foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]),
+        patch(
+            "foothold_checkpoint.cli.Path.iterdir", return_value=[Path("Foothold_Afghan_v0.1.lua")]
+        ),
         patch("foothold_checkpoint.cli.detect_campaigns", return_value=detected_campaigns),
         patch("foothold_checkpoint.cli.create_checkpoint"),
     ):
-        result = runner.invoke(
-            app, ["save", "--server", "prod-1", "--all"]
-        )
+        result = runner.invoke(app, ["save", "--server", "prod-1", "--all"])
 
     # Should succeed with only --all flag (no conflict)
     assert result.exit_code == 0

@@ -283,7 +283,9 @@ def save_command(
             # Save specific campaign
             if campaign not in campaigns:
                 available = ", ".join(campaigns.keys())
-                console.print(f"[red]Error:[/red] Campaign '{campaign}' not found in mission directory")
+                console.print(
+                    f"[red]Error:[/red] Campaign '{campaign}' not found in mission directory"
+                )
                 console.print(f"Available campaigns: {available}")
                 raise typer.Exit(1)
             campaigns_to_save = [campaign]
@@ -312,12 +314,16 @@ def save_command(
 
         if checkpoint_name is None and not _quiet_mode and not save_all and in_interactive_mode:
             # Only prompt for name/comment if in full interactive mode
-            checkpoint_name = Prompt.ask("Checkpoint name (optional, press Enter to skip)", default="")
+            checkpoint_name = Prompt.ask(
+                "Checkpoint name (optional, press Enter to skip)", default=""
+            )
             if checkpoint_name == "":
                 checkpoint_name = None
 
         if checkpoint_comment is None and not _quiet_mode and not save_all and in_interactive_mode:
-            checkpoint_comment = Prompt.ask("Checkpoint comment (optional, press Enter to skip)", default="")
+            checkpoint_comment = Prompt.ask(
+                "Checkpoint comment (optional, press Enter to skip)", default=""
+            )
             if checkpoint_comment == "":
                 checkpoint_comment = None
 
@@ -345,7 +351,9 @@ def save_command(
                     task = progress.add_task(f"Creating checkpoint for {camp_name}...", total=None)
 
                     def update_progress(message: str, current: int, total: int) -> None:
-                        progress.update(task, description=f"{message} ({current}/{total})")  # noqa: B023
+                        progress.update(
+                            task, description=f"{message} ({current}/{total})"
+                        )  # noqa: B023
 
                     progress_callback = update_progress
 
@@ -382,7 +390,9 @@ def save_command(
 
         # Step 6: Display success message
         if not _quiet_mode:
-            console.print(f"\n[green]✓ Success![/green] Created {len(created_checkpoints)} checkpoint(s):")
+            console.print(
+                f"\n[green]✓ Success![/green] Created {len(created_checkpoints)} checkpoint(s):"
+            )
             for cp_path in created_checkpoints:
                 console.print(f"  - {cp_path.name}")
         else:
@@ -479,13 +489,14 @@ def restore_command(
 
             # Prompt for selection
             selection = Prompt.ask(
-                "Select checkpoint number",
-                choices=[str(i) for i in range(1, len(checkpoints) + 1)]
+                "Select checkpoint number", choices=[str(i) for i in range(1, len(checkpoints) + 1)]
             )
 
             selected_index = int(selection) - 1
             # Construct full path from checkpoint directory and filename
-            checkpoint_path = Path(config.checkpoints_directory) / checkpoints[selected_index]["filename"]
+            checkpoint_path = (
+                Path(config.checkpoints_directory) / checkpoints[selected_index]["filename"]
+            )
 
         # Step 3: Get target server
         if server is None:
@@ -498,10 +509,7 @@ def restore_command(
             if not _quiet_mode:
                 console.print(f"[cyan]Available servers:[/cyan] {', '.join(available_servers)}")
 
-            server = Prompt.ask(
-                "Select target server",
-                choices=available_servers
-            )
+            server = Prompt.ask("Select target server", choices=available_servers)
 
         # Validate server exists in config
         if server not in config.servers:
@@ -524,11 +532,13 @@ def restore_command(
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                console=console
+                console=console,
             ) as progress:
                 task = progress.add_task("Restoring checkpoint...", total=None)
 
-                def update_progress(message: str, current: int, total: int) -> None:  # noqa: B023 - task variable is safely captured
+                def update_progress(
+                    message: str, current: int, total: int
+                ) -> None:  # noqa: B023 - task variable is safely captured
                     """Update progress display with current status."""
                     progress.update(task, description=f"{message} ({current}/{total})")
 
@@ -537,7 +547,7 @@ def restore_command(
                     checkpoint_path=checkpoint_path,
                     target_dir=target_dir,
                     restore_ranks=restore_ranks,
-                    progress_callback=update_progress
+                    progress_callback=update_progress,
                 )
         else:
             # Quiet mode: no progress display
@@ -545,7 +555,7 @@ def restore_command(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 restore_ranks=restore_ranks,
-                progress_callback=None
+                progress_callback=None,
             )
 
         # Step 5: Display success message
@@ -616,9 +626,7 @@ def list_command(
 
         # List checkpoints with filters
         checkpoints = list_checkpoints(
-            config.checkpoints_directory,
-            server_filter=server,
-            campaign_filter=campaign
+            config.checkpoints_directory, server_filter=server, campaign_filter=campaign
         )
 
         # Handle empty results
@@ -630,7 +638,9 @@ def list_command(
                         filters.append(f"server='{server}'")
                     if campaign:
                         filters.append(f"campaign='{campaign}'")
-                    console.print(f"[yellow]No checkpoints found matching {' and '.join(filters)}[/yellow]")
+                    console.print(
+                        f"[yellow]No checkpoints found matching {' and '.join(filters)}[/yellow]"
+                    )
                 else:
                     console.print("[yellow]No checkpoints found[/yellow]")
             return
@@ -669,7 +679,7 @@ def list_command(
                 cp["server"],
                 timestamp_display,
                 cp["size_human"],
-                name_display
+                name_display,
             )
 
         console.print(table)
@@ -751,13 +761,11 @@ def delete_command(
 
             # Prompt for selection
             choices = [str(i) for i in range(1, len(checkpoints) + 1)]
-            selection = Prompt.ask(
-                "\nSelect checkpoint number",
-                choices=choices,
-                default="1"
-            )
+            selection = Prompt.ask("\nSelect checkpoint number", choices=choices, default="1")
             selected_idx = int(selection) - 1
-            checkpoint_path = Path(config.checkpoints_directory) / checkpoints[selected_idx]["filename"]
+            checkpoint_path = (
+                Path(config.checkpoints_directory) / checkpoints[selected_idx]["filename"]
+            )
 
         # Step 2: Read metadata for display (before deletion)
         try:
@@ -774,34 +782,28 @@ def delete_command(
 
         if use_force:
             # Force mode: no confirmation needed
-            result = delete_checkpoint(
-                checkpoint_path,
-                force=True,
-                confirm_callback=None
-            )
+            result = delete_checkpoint(checkpoint_path, force=True, confirm_callback=None)
         else:
             # Interactive mode: display metadata and prompt for confirmation
             if metadata:
                 console.print("\n[yellow]About to delete checkpoint:[/yellow]")
-                console.print(f"  Campaign: [cyan]{metadata.get('campaign_name', 'Unknown')}[/cyan]")
+                console.print(
+                    f"  Campaign: [cyan]{metadata.get('campaign_name', 'Unknown')}[/cyan]"
+                )
                 console.print(f"  Server: [green]{metadata.get('server_name', 'Unknown')}[/green]")
-                console.print(f"  Created: [yellow]{metadata.get('created_at', 'Unknown')}[/yellow]")
+                console.print(
+                    f"  Created: [yellow]{metadata.get('created_at', 'Unknown')}[/yellow]"
+                )
 
             # Create confirmation callback
             def confirm(meta: dict) -> bool:  # noqa: ARG001 - callback signature required
                 """Prompt user for deletion confirmation."""
                 response = Prompt.ask(
-                    "\n[yellow]Delete this checkpoint?[/yellow]",
-                    choices=["y", "n"],
-                    default="n"
+                    "\n[yellow]Delete this checkpoint?[/yellow]", choices=["y", "n"], default="n"
                 )
                 return response.lower() == "y"
 
-            result = delete_checkpoint(
-                checkpoint_path,
-                force=False,
-                confirm_callback=confirm
-            )
+            result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm)
 
         # Step 4: Display result
         if result is None:
@@ -939,11 +941,7 @@ def import_command(
                     console.print(f"  {idx}. [white]{camp}[/white]")
 
             choices = [str(i) for i in range(1, len(campaigns_found) + 1)]
-            selection = Prompt.ask(
-                "\nSelect campaign number",
-                choices=choices,
-                default="1"
-            )
+            selection = Prompt.ask("\nSelect campaign number", choices=choices, default="1")
             selected_idx = int(selection) - 1
             campaign_name = list(campaigns_found.keys())[selected_idx]
 
@@ -961,9 +959,7 @@ def import_command(
                     console.print(f"  - {s}")
 
             server_name = Prompt.ask(
-                "\nSelect target server",
-                choices=available_servers,
-                default=available_servers[0]
+                "\nSelect target server", choices=available_servers, default=available_servers[0]
             )
         else:
             server_name = server
@@ -988,9 +984,7 @@ def import_command(
                 console.print(f"  Comment: [white]{comment}[/white]")
 
             confirm = Prompt.ask(
-                "\n[yellow]Proceed with import?[/yellow]",
-                choices=["y", "n"],
-                default="y"
+                "\n[yellow]Proceed with import?[/yellow]", choices=["y", "n"], default="y"
             )
             if confirm.lower() != "y":
                 console.print("[yellow]Import cancelled[/yellow]")
@@ -1004,7 +998,7 @@ def import_command(
             output_dir=config.checkpoints_directory,
             name=name,
             comment=comment,
-            return_warnings=True
+            return_warnings=True,
         )
 
         # Handle result (could be path or tuple with warnings)
