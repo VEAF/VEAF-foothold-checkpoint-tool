@@ -1,0 +1,6 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_CARGO_NasamsSite-20811#001,-152266,249,458882,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,26046.760000
+CTLD_CARGO_AmmoTruck-90780#001,-46004,161,304758,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,10382.551000
+CTLD_TROOPS_MRS-48574#001,-45982,157,304820,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,10325.517000
+CTLD_CARGO_NasamsSite-14754#001,-56169,335,311709,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,9657.970000
+CTLD_TROOPS_MRS-99066#001,22740,24,368678,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,20146.497000

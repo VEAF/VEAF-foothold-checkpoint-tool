@@ -1,0 +1,8 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_TROOPS_AA-53014#001,-526406,103,-867130,Anti-Air Soldiers,{CTLD_TROOPS_AA;},Troops,5,80,Soldier stinger==4;,Cargos,container_cargo,none,35743.063000
+CTLD_CARGO_Bradly-35115#001,-340450,125,-551029,Bradly,{CTLD_CARGO_Bradly;},Vehicle,2,1500,M-2 Bradley==1;,Cargos,uh1h_cargo,none,8137.269000
+CTLD_CARGO_Bradly-42119#001,-340650,125,-551084,Bradly,{CTLD_CARGO_Bradly;},Vehicle,2,1500,M-2 Bradley==1;,Cargos,uh1h_cargo,none,8137.269000
+CTLD_CARGO_NasamsSite-34264#001,-262569,80,-569503,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,7405.078000
+CTLD_CARGO_IRISTSLM_System-28380#001,-153591,68,-701991,IRIS T SLM System,{CTLD_CARGO_IRISTSLM_System;},FOB,3,2800,CHAP_IRISTSLM_CP==1;CHAP_IRISTSLM_LN==1;CHAP_IRISTSLM_STR==1;,Cargos,uh1h_cargo,none,19500.319000
+CTLD_TROOPS_AA-26488#001,-103947,32,-727706,Anti-Air Soldiers,{CTLD_TROOPS_AA;},Troops,5,80,Soldier stinger==4;,Cargos,container_cargo,none,3679.654000
+CTLD_CARGO_IRISTSLM_System-45784#001,-69635,-1,-703457,IRIS T SLM System,{CTLD_CARGO_IRISTSLM_System;},FOB,3,2800,CHAP_IRISTSLM_CP==1;,Cargos,uh1h_cargo,none,5448.965000

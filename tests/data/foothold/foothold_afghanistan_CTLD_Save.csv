@@ -1,0 +1,9 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_TROOPS_AA-80703#001,21333,2095,229911,Anti-Air Soldiers,{CTLD_TROOPS_AA;},Troops,5,80,Soldier stinger==5;,Cargos,container_cargo,none,9459.865000
+CTLD_CARGO_IRISTSLM_System-14091#001,-86544,2185,232684,IRIS T SLM System,{CTLD_CARGO_IRISTSLM_System;},FOB,3,2800,CHAP_IRISTSLM_LN==1;CHAP_IRISTSLM_CP==1;,Cargos,uh1h_cargo,none,5026.308000
+CTLD_TROOPS_AA-91519#001,21772,2077,229875,Anti-Air Soldiers,{CTLD_TROOPS_AA;},Troops,5,80,Soldier stinger==5;,Cargos,container_cargo,none,9459.865000
+CTLD_CARGO_NasamsSite-72143#001,69043,1855,265607,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,5423.302000
+CTLD_CARGO_NasamsSite-4402#001,82903,610,367374,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,7873.759000
+CTLD_CARGO_AmmoTruck-98331#001,77046,545,393311,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,9800.905000
+CTLD_TROOPS_MRS-669#001,107404,721,424842,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,3665.983000
+CTLD_TROOPS_MRS-81970#001,107404,721,424841,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,3665.983000

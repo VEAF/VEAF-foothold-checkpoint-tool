@@ -1,0 +1,7 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_CARGO_NasamsSite-46065#001,-31360,691,355155,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,12403.916000
+CTLD_CARGO_AmmoTruck-69796#001,-31352,691,355166,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,12873.390000
+CTLD_TROOPS_ATS-57970#001,-10854,426,356660,Squad 8,{CTLD_TROOPS_ATS;},Troops,8,80,Paratrooper RPG-16==4;Soldier M249==4;,Cargos,container_cargo,none,17097.668000
+STATIC,-10853,427,356686,50 of everything,iso_container,Static,1,10000,'none',Cargos,iso_container,none
+STATIC,-10850,427,356692,50 of everything,iso_container,Static,1,10000,'none',Cargos,iso_container,none
+STATIC,-10855,427,356682,25 of everything,iso_container_small,Static,1,6000,'none',Cargos,iso_container_small,none
