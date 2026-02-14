@@ -8,14 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Configuration Management (feature/config-management) - IN PROGRESS
+- Configuration Management (feature/config-management) - COMPLETE ✅
   - Pydantic models (ServerConfig, Config) with frozen/immutable design ✅
   - Field validator for non-empty campaign name lists ✅
   - YAML configuration loading from files with error handling ✅
   - Auto-creation of default configuration files ✅
   - Path expansion for tilde (~) and environment variables ($VAR, %VAR%) ✅
   - Support for both Unix ($VAR) and Windows (%VAR%) environment variable formats ✅
-  - Comprehensive test suite with TDD approach (30/30 tests passing, 100% coverage) ✅
+  - Clear, contextual validation error messages with examples ✅
+  - Improved field descriptions with usage examples ✅
+  - Comprehensive test suite with TDD approach (38/38 tests passing, 100% coverage) ✅
 - OpenSpec change artifacts for foothold-checkpoint-tool
   - Proposal: Project vision and capabilities
   - Design: Technical architecture and decisions

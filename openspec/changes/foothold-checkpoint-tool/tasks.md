@@ -20,8 +20,8 @@
 - [x] 2.6 Write tests for auto-creation (directory creation, default values)
 - [x] 2.7 Implement config path expansion (tilde, environment variables)
 - [x] 2.8 Write tests for path expansion
-- [ ] 2.9 Add config validation error messages with helpful context
-- [ ] 2.10 Write tests for error message clarity
+- [x] 2.9 Add config validation error messages with helpful context
+- [x] 2.10 Write tests for error message clarity
 
 ## 3. Campaign Detection (core/campaign.py)
 

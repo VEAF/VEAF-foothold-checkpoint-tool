@@ -144,7 +144,7 @@ class TestConfig:
         """Config should raise ValidationError if campaign has empty name list."""
         from foothold_checkpoint.core.config import Config, ServerConfig
 
-        with pytest.raises(ValidationError, match="at least 1 item"):
+        with pytest.raises(ValidationError, match="empty name list"):
             Config(
                 checkpoints_dir=Path("~/.foothold-checkpoints"),
                 servers={
@@ -273,7 +273,7 @@ class TestLoadConfig:
             temp_path = Path(f.name)
 
         try:
-            with pytest.raises(ValidationError, match="at least 1 item"):
+            with pytest.raises(ValidationError, match="empty name list"):
                 load_config(temp_path)
         finally:
             temp_path.unlink()
@@ -551,3 +551,143 @@ class TestPathExpansion:
         finally:
             if "USERPROFILE" in os.environ:
                 del os.environ["USERPROFILE"]
+
+
+class TestErrorMessages:
+    """Test suite for clear and helpful error messages."""
+
+    def test_missing_checkpoints_dir_error_message(self):
+        """Config should provide clear error when checkpoints_dir is missing."""
+        from foothold_checkpoint.core.config import Config
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError) as exc_info:
+            Config(
+                servers={},
+                campaigns={}
+            )
+
+        # Error should mention the missing field
+        error_str = str(exc_info.value)
+        assert "checkpoints_dir" in error_str.lower()
+        assert "required" in error_str.lower() or "missing" in error_str.lower()
+
+    def test_missing_servers_error_message(self):
+        """Config should provide clear error when servers is missing."""
+        from foothold_checkpoint.core.config import Config
+        from pydantic import ValidationError
+        from pathlib import Path
+
+        with pytest.raises(ValidationError) as exc_info:
+            Config(
+                checkpoints_dir=Path("~/.foothold-checkpoints"),
+                campaigns={}
+            )
+
+        # Error should mention the missing field
+        error_str = str(exc_info.value)
+        assert "servers" in error_str.lower()
+        assert "required" in error_str.lower() or "missing" in error_str.lower()
+
+    def test_missing_campaigns_error_message(self):
+        """Config should provide clear error when campaigns is missing."""
+        from foothold_checkpoint.core.config import Config
+        from pydantic import ValidationError
+        from pathlib import Path
+
+        with pytest.raises(ValidationError) as exc_info:
+            Config(
+                checkpoints_dir=Path("~/.foothold-checkpoints"),
+                servers={}
+            )
+
+        # Error should mention the missing field
+        error_str = str(exc_info.value)
+        assert "campaigns" in error_str.lower()
+        assert "required" in error_str.lower() or "missing" in error_str.lower()
+
+    def test_empty_campaign_list_error_message(self):
+        """Config should provide clear error when campaign has empty name list."""
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pydantic import ValidationError
+        from pathlib import Path
+
+        with pytest.raises(ValidationError) as exc_info:
+            Config(
+                checkpoints_dir=Path("~/.foothold-checkpoints"),
+                servers={
+                    "test": ServerConfig(
+                        path=Path("D:/Test"),
+                        description="Test"
+                    )
+                },
+                campaigns={
+                    "Afghanistan": []  # Empty list
+                }
+            )
+
+        # Error should be clear about the problem
+        error_str = str(exc_info.value)
+        assert ("empty" in error_str.lower() or "at least 1" in error_str.lower())
+
+    def test_invalid_yaml_error_message(self):
+        """load_config should provide clear error for invalid YAML syntax."""
+        from foothold_checkpoint.core.config import load_config
+        from pathlib import Path
+        import yaml
+
+        # Create a file with invalid YAML
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("invalid: yaml: syntax:\n  broken: [unclosed")
+            temp_path = Path(f.name)
+
+        try:
+            with pytest.raises(yaml.YAMLError) as exc_info:
+                load_config(temp_path)
+
+            # YAML library provides the error - we just need to ensure it's raised
+            error_str = str(exc_info.value)
+            assert len(error_str) > 0  # Should have some error message
+        finally:
+            temp_path.unlink()
+
+    def test_file_not_found_error_message(self):
+        """load_config should provide clear error when file doesn't exist."""
+        from foothold_checkpoint.core.config import load_config
+        from pathlib import Path
+
+        nonexistent_path = Path("/nonexistent/directory/config.yaml")
+
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_config(nonexistent_path)
+
+        # Error should mention the file path
+        error_str = str(exc_info.value)
+        assert "config" in error_str.lower() or str(nonexistent_path) in error_str
+
+    def test_missing_server_path_error_message(self):
+        """ServerConfig should provide clear error when path is missing."""
+        from foothold_checkpoint.core.config import ServerConfig
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError) as exc_info:
+            ServerConfig(description="Test server")
+
+        # Error should mention the missing field
+        error_str = str(exc_info.value)
+        assert "path" in error_str.lower()
+        assert "required" in error_str.lower() or "missing" in error_str.lower()
+
+    def test_missing_server_description_error_message(self):
+        """ServerConfig should provide clear error when description is missing."""
+        from foothold_checkpoint.core.config import ServerConfig
+        from pydantic import ValidationError
+        from pathlib import Path
+
+        with pytest.raises(ValidationError) as exc_info:
+            ServerConfig(path=Path("D:/Test"))
+
+        # Error should mention the missing field
+        error_str = str(exc_info.value)
+        assert "description" in error_str.lower()
+        assert "required" in error_str.lower() or "missing" in error_str.lower()

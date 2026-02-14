@@ -87,8 +87,14 @@ class ServerConfig(BaseModel):
         description: Human-readable server description
     """
 
-    path: Path = Field(..., description="Path to server Missions/Saves directory")
-    description: str = Field(..., description="Human-readable server description")
+    path: Path = Field(
+        ...,
+        description="Path to server's Missions/Saves directory (e.g., 'D:/Servers/DCS/Missions/Saves')"
+    )
+    description: str = Field(
+        ...,
+        description="Human-readable server description (e.g., 'Production server')"
+    )
 
     model_config = {"frozen": True}
 
@@ -111,14 +117,16 @@ class Config(BaseModel):
     """
 
     checkpoints_dir: Path = Field(
-        ..., description="Directory where checkpoint ZIP files are stored"
+        ...,
+        description="Directory where checkpoint ZIP files are stored (e.g., '~/.foothold-checkpoints')"
     )
     servers: dict[str, ServerConfig] = Field(
-        ..., description="Map of server names to ServerConfig"
+        ...,
+        description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields."
     )
     campaigns: dict[str, list[str]] = Field(
         ...,
-        description="Map of campaign names to list of historical names (oldest→newest)",
+        description="Map of campaign IDs to lists of historical names (oldest→newest). Example: {'Afghanistan': ['afghanistan'], 'Germany_Modern': ['GCW_Modern', 'Germany_Modern']}",
     )
 
     model_config = {"frozen": True}
@@ -135,9 +143,13 @@ class Config(BaseModel):
     @classmethod
     def validate_campaign_names(cls, campaigns: dict[str, list[str]]) -> dict[str, list[str]]:
         """Validate that campaign name lists are not empty."""
-        for campaign, names in campaigns.items():
+        for campaign_id, names in campaigns.items():
             if not names:
-                raise ValueError(f"List should have at least 1 item after validation, not 0")
+                raise ValueError(
+                    f"Campaign '{campaign_id}' has an empty name list. "
+                    f"Each campaign must have at least one name. "
+                    f"Example: '{campaign_id}: [\"campaign_name\"]'"
+                )
         return campaigns
 
 
