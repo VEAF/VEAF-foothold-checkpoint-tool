@@ -40,12 +40,12 @@
 
 ## 4. Checkpoint Storage (core/checkpoint.py)
 
-- [ ] 4.1 Define checkpoint metadata structure (dataclass or Pydantic model)
-- [ ] 4.2 Write tests for metadata structure validation
-- [ ] 4.3 Implement SHA-256 checksum computation for files
-- [ ] 4.4 Write tests for checksum computation (small, large files)
-- [ ] 4.5 Implement metadata.json serialization
-- [ ] 4.6 Write tests for metadata serialization (all fields, optional fields)
+- [x] 4.1 Define checkpoint metadata structure (dataclass or Pydantic model)
+- [x] 4.2 Write tests for metadata structure validation
+- [x] 4.3 Implement SHA-256 checksum computation for files
+- [x] 4.4 Write tests for checksum computation (small, large files)
+- [x] 4.5 Implement metadata.json serialization
+- [x] 4.6 Write tests for metadata serialization (all fields, optional fields)
 - [ ] 4.7 Implement checkpoint filename generation (campaign_YYYY-MM-DD_HH-MM-SS.zip)
 - [ ] 4.8 Write tests for filename generation (uniqueness, format)
 - [ ] 4.9 Implement ZIP archive creation with files and metadata
