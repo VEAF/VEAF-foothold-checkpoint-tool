@@ -457,8 +457,8 @@ class TestCampaignNameMapping:
             campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        # Historical name should map to campaign ID
-        assert map_campaign_name("gcw_modern", config) == "Germany_Modern"
+        # Historical name should map to last (current) name in list
+        assert map_campaign_name("gcw_modern", config) == "germany_modern"
 
     def test_map_current_name_stays_same(self):
         """Should keep current campaign name as-is."""
@@ -473,8 +473,8 @@ class TestCampaignNameMapping:
             campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        # Current name should map to campaign ID
-        assert map_campaign_name("germany_modern", config) == "Germany_Modern"
+        # Current name should map to itself (last name in list)
+        assert map_campaign_name("germany_modern", config) == "germany_modern"
 
     def test_map_unknown_name_stays_unchanged(self):
         """Should return unchanged name if not in config."""
@@ -505,7 +505,7 @@ class TestCampaignNameMapping:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        assert map_campaign_name("afghanistan", config) == "Afghanistan"
+        assert map_campaign_name("afghanistan", config) == "afghanistan"
 
     def test_map_multiple_historical_names(self):
         """Should map any historical name to the current (last) name."""
@@ -520,10 +520,10 @@ class TestCampaignNameMapping:
             campaigns={"Syria": ["syria_extended", "syria_modern", "syria"]},
         )
 
-        # All historical names should map to campaign ID
-        assert map_campaign_name("syria_extended", config) == "Syria"
-        assert map_campaign_name("syria_modern", config) == "Syria"
-        assert map_campaign_name("syria", config) == "Syria"
+        # All historical names should map to last (current) name in list
+        assert map_campaign_name("syria_extended", config) == "syria"
+        assert map_campaign_name("syria_modern", config) == "syria"
+        assert map_campaign_name("syria", config) == "syria"
 
     def test_map_case_insensitive_matching(self):
         """Should match campaign names case-insensitively in config."""
@@ -539,7 +539,7 @@ class TestCampaignNameMapping:
         )
 
         # Input is already lowercase from normalize_campaign_name
-        # Config names are mixed case, should still match
+        # Config names are mixed case, should still match and return last name
         assert map_campaign_name("gcw_modern", config) == "Germany_Modern"
 
     def test_map_empty_config(self):
@@ -575,10 +575,10 @@ class TestCampaignNameMapping:
 
         campaigns = detect_campaigns(files, config)
 
-        # Should be grouped under campaign ID "Germany_Modern", not "gcw_modern"
-        assert "Germany_Modern" in campaigns
+        # Should be grouped under current name "germany_modern", not "gcw_modern"
+        assert "germany_modern" in campaigns
         assert "gcw_modern" not in campaigns
-        assert len(campaigns["Germany_Modern"]) == 2
+        assert len(campaigns["germany_modern"]) == 2
 
 
 class TestCampaignDetectionReport:
@@ -601,7 +601,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"Afghanistan": 2}
+        assert report == {"afghanistan": 2}
 
     def test_report_multiple_campaigns(self):
         """Should generate report for multiple campaigns."""
@@ -625,7 +625,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"Afghanistan": 2, "Caucasus": 2}
+        assert report == {"afghanistan": 2, "ca": 2}
 
     def test_report_empty_list(self):
         """Should return empty report for empty file list."""
@@ -662,7 +662,7 @@ class TestCampaignDetectionReport:
         report = create_campaign_report(files, config)
 
         # Only the campaign file should be counted
-        assert report == {"Afghanistan": 1}
+        assert report == {"afghanistan": 1}
 
     def test_report_with_name_mapping(self):
         """Should use current campaign names in report."""
@@ -681,8 +681,8 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        # Should use campaign ID "Germany_Modern", not historical "gcw_modern"
-        assert report == {"Germany_Modern": 2}
+        # Should use current campaign name "germany_modern" (last in list), not historical "gcw_modern"
+        assert report == {"germany_modern": 2}
         assert "gcw_modern" not in report
 
     def test_report_excludes_shared_files(self):
@@ -703,7 +703,7 @@ class TestCampaignDetectionReport:
         report = create_campaign_report(files, config)
 
         # Ranks file should not be counted
-        assert report == {"Afghanistan": 1}
+        assert report == {"afghanistan": 1}
 
     def test_report_with_varying_file_counts(self):
         """Should correctly count different numbers of files per campaign."""
@@ -733,7 +733,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"Afghanistan": 4, "Caucasus": 1, "Syria": 2}
+        assert report == {"afghanistan": 4, "ca": 1, "syria": 2}
 
 
 class TestRenameCampaignFile:
@@ -756,8 +756,8 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern.lua"
         renamed = rename_campaign_file(original, config)
 
-        # map_campaign_name returns lowercase by design
-        assert renamed == "FootHold_Germany_Modern.lua"
+        # map_campaign_name returns last name in list
+        assert renamed == "FootHold_germany_modern.lua"
 
     def test_rename_lua_file_with_version_suffix(self):
         """Should rename .lua file with version suffix."""
@@ -779,8 +779,8 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_V0.1.lua"
         renamed = rename_campaign_file(original, config)
 
-        # Should remove version suffix and use current name
-        assert renamed == "FootHold_Germany_Modern.lua"
+        # Should remove version suffix and use current name (last in list)
+        assert renamed == "FootHold_germany_modern.lua"
 
     def test_rename_storage_csv_file(self):
         """Should rename _storage.csv file with current campaign name."""
@@ -798,7 +798,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_storage.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_Germany_Modern_storage.csv"
+        assert renamed == "FootHold_germany_modern_storage.csv"
 
     def test_rename_ctld_farps_csv_file(self):
         """Should rename _CTLD_FARPS.csv file with current campaign name."""
@@ -816,7 +816,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_CTLD_FARPS.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_Germany_Modern_CTLD_FARPS.csv"
+        assert renamed == "FootHold_germany_modern_CTLD_FARPS.csv"
 
     def test_rename_ctld_save_csv_file(self):
         """Should rename _CTLD_Save.csv file with current campaign name."""
@@ -834,7 +834,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_CTLD_Save.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_Germany_Modern_CTLD_Save.csv"
+        assert renamed == "FootHold_germany_modern_CTLD_Save.csv"
 
     def test_rename_unchanged_campaign_name(self):
         """Should keep filename unchanged if campaign name hasn't evolved."""
@@ -849,11 +849,11 @@ class TestRenameCampaignFile:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        original = "foothold_Afghanistan.lua"
+        original = "foothold_afghanistan.lua"
         renamed = rename_campaign_file(original, config)
 
-        # Name hasn't changed, should stay the same
-        assert renamed == "foothold_Afghanistan.lua"
+        # Name hasn't changed (afghanistan -> afghanistan), should stay the same
+        assert renamed == "foothold_afghanistan.lua"
 
     def test_rename_campaign_not_in_config(self):
         """Should keep filename unchanged if campaign not found in config."""
@@ -927,9 +927,9 @@ class TestRenameCampaignFile:
             campaigns={"Syria": ["syria_extended", "syria_modern", "syria"]},
         )
 
-        # Old name → current name
-        assert rename_campaign_file("foothold_syria_extended.lua", config) == "foothold_Syria.lua"
+        # Old name → current name (last in list: "syria")
+        assert rename_campaign_file("foothold_syria_extended.lua", config) == "foothold_syria.lua"
         # Middle name → current name
-        assert rename_campaign_file("foothold_syria_modern.lua", config) == "foothold_Syria.lua"
+        assert rename_campaign_file("foothold_syria_modern.lua", config) == "foothold_syria.lua"
         # Current name → stays same
-        assert rename_campaign_file("foothold_Syria.lua", config) == "foothold_Syria.lua"
+        assert rename_campaign_file("foothold_syria.lua", config) == "foothold_syria.lua"

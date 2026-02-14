@@ -826,8 +826,7 @@ def import_checkpoint(
     for pattern, description in expected_patterns:
         # Check case-insensitively
         found = any(
-            fname.lower() == pattern.lower()
-            or
+            fname.lower() == pattern.lower() or
             # Also check with version suffixes
             (
                 fname.lower().startswith(pattern.lower().rsplit(".", 1)[0])

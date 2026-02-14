@@ -231,38 +231,38 @@ def group_campaign_files(filenames: Sequence[str | Path]) -> dict[str, list[str]
 
 
 def map_campaign_name(campaign_name: str, config: "Config") -> str:
-    """Map a campaign name to its canonical campaign ID using config mappings.
+    """Map a campaign name to its current name using config mappings.
 
     Uses the configuration's campaign mappings to translate historical campaign
-    names to their canonical campaign ID (the key in the config). This preserves
-    the intended capitalization from the configuration.
+    names to their current name (the last name in the list). This is used during
+    checkpoint restoration to ensure files use the current campaign naming.
 
     Args:
         campaign_name: The normalized campaign name to map (lowercase).
         config: Configuration object containing campaign mappings.
 
     Returns:
-        str: The canonical campaign ID from config, or the original name if not found.
+        str: The current campaign name (last in list), or the original name if not found.
 
     Examples:
-        >>> # Config: Germany_Modern: [GCW_Modern, Germany_Modern]
+        >>> # Config: Germany_Modern: [GCW_Modern, germany_modern]
         >>> map_campaign_name("gcw_modern", config)
-        'Germany_Modern'
+        'germany_modern'
         >>> # Config: Caucasus: [CA]
         >>> map_campaign_name("ca", config)
-        'Caucasus'
+        'CA'
         >>> map_campaign_name("unknown", config)
         'unknown'
     """
     # Search through all campaign mappings (case-insensitive)
-    for campaign_id, name_list in config.campaigns.items():
+    for _, name_list in config.campaigns.items():
         # Normalize all names in the list to lowercase for comparison
         normalized_names = [name.lower() for name in name_list]
 
         # If the campaign name matches any name in the list
         if campaign_name in normalized_names:
-            # Return the campaign ID (preserves capitalization from config)
-            return campaign_id
+            # Return the last (current) name in the list
+            return name_list[-1]
 
     # If not found in config, return unchanged
     return campaign_name

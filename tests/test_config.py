@@ -1,5 +1,6 @@
 """Tests for configuration management module."""
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -477,6 +478,9 @@ class TestPathExpansion:
             temp_path.unlink()
             del os.environ["TEST_CHECKPOINT_DIR"]
 
+    @pytest.mark.skipif(
+        sys.platform != "win32", reason="Windows-specific environment variable syntax"
+    )
     def test_path_expansion_with_windows_style_envvar(self):
         """Path expansion should handle Windows %ENVVAR% style variables."""
         import os
