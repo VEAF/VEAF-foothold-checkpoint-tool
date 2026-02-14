@@ -257,7 +257,7 @@
 - [x] 18.4 Add troubleshooting section
 - [x] 18.5 Document development setup (venv, testing)
 - [x] 18.6 Add contributing guidelines
-- [ ] 18.7 Update CHANGELOG.md with initial version
+- [x] 18.7 Update CHANGELOG.md with initial version
 
 ## 19. Integration Testing
 
@@ -285,9 +285,9 @@
 
 ## 21. Release Preparation
 
-- [ ] 21.1 Confirm version number follows semantic versioning
-- [ ] 21.2 Update version in `pyproject.toml`
-- [ ] 21.3 Update version in `__init__.py`
+- [x] 21.1 Confirm version number follows semantic versioning
+- [x] 21.2 Update version in `pyproject.toml`
+- [x] 21.3 Update version in `__init__.py`
 - [ ] 21.4 Finalize CHANGELOG.md for release
 - [ ] 21.5 Create release notes
 - [ ] 21.6 Tag release in git

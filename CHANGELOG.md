@@ -7,42 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - TBD
+
+Initial release of the VEAF Foothold Checkpoint Tool.
+
 ### Added
-- Configuration Management (feature/config-management) - COMPLETE ✅
-  - Pydantic models (ServerConfig, Config) with frozen/immutable design ✅
-  - Field validator for non-empty campaign name lists ✅
-  - YAML configuration loading from files with error handling ✅
-  - Auto-creation of default configuration files ✅
-  - Path expansion for tilde (~) and environment variables ($VAR, %VAR%) ✅
-  - Support for both Unix ($VAR) and Windows (%VAR%) environment variable formats ✅
-  - Clear, contextual validation error messages with examples ✅
-  - Improved field descriptions with usage examples ✅
-  - Comprehensive test suite with TDD approach (38/38 tests passing, 100% coverage) ✅
-- OpenSpec change artifacts for foothold-checkpoint-tool
-  - Proposal: Project vision and capabilities
-  - Design: Technical architecture and decisions
-  - Specifications: 8 detailed capability specs
-    - configuration-management
-    - campaign-detection
-    - checkpoint-storage
-    - checkpoint-restoration
-    - checkpoint-listing
-    - checkpoint-deletion
-    - checkpoint-import
-    - cli-interface
-  - Tasks: 211 implementation tasks across 21 groups
-- Development guidelines and auto-memory documentation
-- Conversation history and design rationale documentation
-- Project setup (feature/project-setup)
-  - `pyproject.toml` with Poetry configuration and project metadata
-  - Runtime dependencies: typer, rich, pyyaml, pydantic
-  - Dev dependencies: pytest, pytest-cov, ruff, black, mypy, types-PyYAML
-  - Package structure (src layout): `src/foothold_checkpoint/` and `src/foothold_checkpoint/core/`
-  - Test directory structure: `tests/`
-  - Type hints marker: `py.typed`
-  - Example configuration: `config.yaml.example`
-  - Locked dependencies: `poetry.lock`
-- Documentation restructuring
-  - `README.md`: Generic project overview
-  - `USERS.md`: Complete user guide with installation, configuration, and usage
-  - `CONTRIBUTING.md`: Developer guide with TDD workflow, coding standards, and Git workflow
+
+#### Core Features
+- **Configuration Management**
+  - YAML-based configuration with Pydantic validation
+  - Auto-creation of default configuration file
+  - Path expansion for tilde (~) and environment variables
+  - Campaign name evolution tracking (e.g., GCW_Modern → Germany_Modern)
+  - Server configuration with mission directory paths
+
+- **Campaign Detection**
+  - Automatic detection of Foothold campaign files
+  - Smart grouping by campaign name (case-insensitive, version-aware)
+  - Support for version suffixes (v0.1, v1.0, etc.)
+  - Recognition of shared files (Foothold_Ranks.lua)
+  - Campaign name mapping for historical evolution
+
+- **Checkpoint Management**
+  - Create timestamped checkpoint archives (ZIP format)
+  - SHA-256 checksum verification for file integrity
+  - Optional checkpoint names and comments
+  - Metadata preservation (campaign, server, timestamp, file hashes)
+  - Progress tracking for long operations
+
+- **Checkpoint Operations**
+  - **Save**: Create checkpoints from mission directories
+  - **Restore**: Restore checkpoints with integrity verification
+  - **List**: View checkpoints with filtering (server, campaign)
+  - **Delete**: Remove checkpoints with confirmation
+  - **Import**: Import external checkpoint files
+
+#### Command-Line Interface
+- Interactive mode with rich formatting and colors
+- Quiet mode for automation and scripting
+- Comprehensive error messages with actionable guidance
+- Progress indicators for long operations
+- Tab completion support
+
+#### Plugin System
+- DCSServerBot plugin integration
+- Discord bot commands for checkpoint management
+- Administrator-only access controls
+
+#### Quality & Testing
+- 350+ comprehensive tests with 94% code coverage
+- Test-Driven Development (TDD) approach
+- Type checking with mypy (strict mode)
+- Code formatting with Black
+- Linting with Ruff
+- Pre-commit hooks configuration
+
+#### Documentation
+- Complete user guide (USERS.md)
+- Developer guide (CONTRIBUTING.md)
+- OpenSpec design artifacts
+- Inline code documentation with examples
+- Example configuration files
+
+### Technical Details
+- **Language**: Python 3.10+
+- **Package Manager**: Poetry
+- **Key Dependencies**: Pydantic, Typer, Rich, PyYAML
+- **Testing**: pytest with comprehensive coverage
+- **Type Safety**: Full mypy compliance
+- **Code Quality**: Black formatting, Ruff linting
+
+[Unreleased]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.0.0
