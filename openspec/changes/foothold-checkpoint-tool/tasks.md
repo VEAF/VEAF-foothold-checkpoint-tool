@@ -46,10 +46,10 @@
 - [x] 4.4 Write tests for checksum computation (small, large files)
 - [x] 4.5 Implement metadata.json serialization
 - [x] 4.6 Write tests for metadata serialization (all fields, optional fields)
-- [ ] 4.7 Implement checkpoint filename generation (campaign_YYYY-MM-DD_HH-MM-SS.zip)
-- [ ] 4.8 Write tests for filename generation (uniqueness, format)
-- [ ] 4.9 Implement ZIP archive creation with files and metadata
-- [ ] 4.10 Write tests for ZIP creation (single campaign, with/without ranks)
+- [x] 4.7 Implement checkpoint filename generation (campaign_YYYY-MM-DD_HH-MM-SS.zip)
+- [x] 4.8 Write tests for filename generation (uniqueness, format)
+- [x] 4.9 Implement ZIP archive creation with files and metadata
+- [x] 4.10 Write tests for ZIP creation (single campaign, with/without ranks)
 - [ ] 4.11 Implement progress tracking for checkpoint creation
 - [ ] 4.12 Write tests for progress tracking callbacks
 
