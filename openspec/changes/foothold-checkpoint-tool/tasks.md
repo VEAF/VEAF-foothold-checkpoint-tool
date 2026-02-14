@@ -25,8 +25,8 @@
 
 ## 3. Campaign Detection (core/campaign.py)
 
-- [ ] 3.1 Implement file pattern matching for campaign files
-- [ ] 3.2 Write tests for pattern matching (various prefixes, extensions)
+- [x] 3.1 Implement file pattern matching for campaign files
+- [x] 3.2 Write tests for pattern matching (various prefixes, extensions)
 - [ ] 3.3 Implement version suffix normalization (regex patterns)
 - [ ] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
 - [ ] 3.5 Implement campaign file grouping by normalized prefix
