@@ -23,6 +23,37 @@ CAMPAIGN_FILE_PATTERN = re.compile(
 )
 
 
+def is_shared_file(filename: Union[str, Path]) -> bool:
+    """Check if a filename is the shared Foothold_Ranks.lua file.
+
+    Foothold_Ranks.lua is a special file that is shared across all campaigns
+    and should not be grouped with any specific campaign.
+
+    Args:
+        filename: The filename to check (string or Path object).
+                 Can be just a filename or a full path.
+
+    Returns:
+        bool: True if the file is Foothold_Ranks.lua (case-insensitive), False otherwise.
+
+    Examples:
+        >>> is_shared_file("Foothold_Ranks.lua")
+        True
+        >>> is_shared_file("foothold_ranks.lua")
+        True
+        >>> is_shared_file("foothold_afghanistan.lua")
+        False
+    """
+    # Extract filename if a Path object or full path string is provided
+    if isinstance(filename, Path):
+        filename = filename.name
+    else:
+        filename = Path(filename).name
+
+    # Check if it matches Foothold_Ranks.lua (case-insensitive)
+    return filename.lower() == "foothold_ranks.lua"
+
+
 def is_campaign_file(filename: Union[str, Path]) -> bool:
     """Check if a filename matches the Foothold campaign file pattern.
 
@@ -175,6 +206,10 @@ def group_campaign_files(filenames: list[Union[str, Path]]) -> dict[str, list[st
     groups: dict[str, list[str]] = defaultdict(list)
 
     for filename in filenames:
+        # Skip shared files (Foothold_Ranks.lua)
+        if is_shared_file(filename):
+            continue
+
         # Get normalized campaign name
         campaign_name = normalize_campaign_name(filename)
 

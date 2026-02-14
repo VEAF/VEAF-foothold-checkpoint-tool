@@ -361,3 +361,93 @@ class TestFileGrouping:
         assert len(groups) == 2
         assert "afghanistan" in groups
         assert "ca" in groups
+
+
+class TestSharedFileIdentification:
+    """Test suite for identifying Foothold_Ranks.lua as a shared file."""
+
+    def test_is_shared_file_foothold_ranks_exact(self):
+        """Should identify Foothold_Ranks.lua as a shared file."""
+        from foothold_checkpoint.core.campaign import is_shared_file
+
+        assert is_shared_file("Foothold_Ranks.lua") is True
+
+    def test_is_shared_file_case_insensitive(self):
+        """Should recognize Foothold_Ranks.lua regardless of case."""
+        from foothold_checkpoint.core.campaign import is_shared_file
+
+        assert is_shared_file("Foothold_Ranks.lua") is True
+        assert is_shared_file("foothold_ranks.lua") is True
+        assert is_shared_file("FOOTHOLD_RANKS.LUA") is True
+        assert is_shared_file("FootHold_Ranks.Lua") is True
+
+    def test_is_shared_file_with_path(self):
+        """Should work with full paths, not just filenames."""
+        from foothold_checkpoint.core.campaign import is_shared_file
+
+        assert is_shared_file(Path("Foothold_Ranks.lua")) is True
+        assert is_shared_file(Path("/some/path/Foothold_Ranks.lua")) is True
+        assert is_shared_file("D:/Servers/DCS/Missions/Saves/Foothold_Ranks.lua") is True
+
+    def test_is_shared_file_not_ranks_file(self):
+        """Should return False for non-ranks files."""
+        from foothold_checkpoint.core.campaign import is_shared_file
+
+        assert is_shared_file("foothold_afghanistan.lua") is False
+        assert is_shared_file("Foothold_CA_Ranks.lua") is False  # Campaign-specific ranks
+        assert is_shared_file("Ranks.lua") is False
+        assert is_shared_file("foothold.status") is False
+        assert is_shared_file("README.txt") is False
+
+    def test_group_excludes_shared_file(self):
+        """group_campaign_files should exclude Foothold_Ranks.lua from campaign groups."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "Foothold_Ranks.lua",  # Should be excluded
+            "FootHold_CA.lua"
+        ]
+
+        groups = group_campaign_files(files)
+
+        # Foothold_Ranks.lua should not appear in any campaign group
+        assert len(groups) == 2
+        assert "afghanistan" in groups
+        assert "ca" in groups
+        assert "Foothold_Ranks.lua" not in groups.get("afghanistan", [])
+        assert "Foothold_Ranks.lua" not in groups.get("ca", [])
+
+    def test_group_with_only_shared_file(self):
+        """group_campaign_files should return empty dict if only shared file present."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = ["Foothold_Ranks.lua"]
+
+        groups = group_campaign_files(files)
+
+        assert groups == {}
+
+    def test_group_multiple_files_including_shared(self):
+        """Should handle mixed campaign files and shared file correctly."""
+        from foothold_checkpoint.core.campaign import group_campaign_files
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "Foothold_Ranks.lua",  # Shared
+            "FootHold_CA.lua",
+            "foothold.status",  # Non-campaign file
+            "FOOTHOLD_RANKS.LUA"  # Duplicate shared (case variation)
+        ]
+
+        groups = group_campaign_files(files)
+
+        # Only campaign files should be grouped
+        assert len(groups) == 2
+        assert len(groups["afghanistan"]) == 2
+        assert len(groups["ca"]) == 1
+        # Shared files should not appear
+        for campaign_files in groups.values():
+            assert not any("ranks" in f.lower() for f in campaign_files)

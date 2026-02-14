@@ -31,8 +31,8 @@
 - [x] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
 - [x] 3.5 Implement campaign file grouping by normalized prefix
 - [x] 3.6 Write tests for file grouping (complete, incomplete, mixed case)
-- [ ] 3.7 Implement Foothold_Ranks.lua recognition as shared file
-- [ ] 3.8 Write tests for shared file identification
+- [x] 3.7 Implement Foothold_Ranks.lua recognition as shared file
+- [x] 3.8 Write tests for shared file identification
 - [ ] 3.9 Implement campaign name mapping using config
 - [ ] 3.10 Write tests for name mapping (historical names, current names, unknown)
 - [ ] 3.11 Implement campaign detection report (name, file count)
