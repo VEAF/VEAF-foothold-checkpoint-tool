@@ -3,9 +3,10 @@
 import hashlib
 import json
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -249,7 +250,7 @@ def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None
 def create_checkpoint(
     campaign_name: str,
     server_name: str,
-    campaign_files: list[str | Path],
+    campaign_files: Sequence[str | Path],
     output_dir: str | Path,
     created_at: datetime | None = None,
     name: str | None = None,
@@ -302,7 +303,11 @@ def create_checkpoint(
 
     # Convert paths to Path objects
     output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
-    campaign_files = [Path(f) if isinstance(f, str) else f for f in campaign_files]
+    # Convert all campaign files to Path objects (str -> Path, leave Path as-is)
+    # We need to cast because mypy can't infer that all items become Path after the comprehension
+    campaign_files = cast(
+        list[Path], [Path(f) if isinstance(f, str) else f for f in campaign_files]
+    )
 
     # Validate that all source files exist
     for file_path in campaign_files:

@@ -17,8 +17,8 @@ class TestRestoreCommandWithFlags:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "afghanistan_2024-02-14_10-30-00.zip"
@@ -32,8 +32,8 @@ class TestRestoreCommandWithFlags:
 
             # Setup mocks
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [
@@ -61,8 +61,8 @@ class TestRestoreCommandWithFlags:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "afghanistan_2024-02-14_10-30-00.zip"
@@ -75,8 +75,8 @@ class TestRestoreCommandWithFlags:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [
@@ -103,8 +103,8 @@ class TestRestoreCommandWithFlags:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -136,8 +136,8 @@ class TestRestoreCommandWithFlags:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         nonexistent_file = tmp_path / "nonexistent.zip"
@@ -146,7 +146,7 @@ class TestRestoreCommandWithFlags:
         with patch("foothold_checkpoint.cli.load_config") as mock_load:
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
             mock_load.return_value = mock_config
 
             result = runner.invoke(
@@ -170,8 +170,8 @@ class TestCheckpointSelectionPrompt:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         runner = CliRunner()
@@ -184,8 +184,8 @@ class TestCheckpointSelectionPrompt:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock list_checkpoints to return available checkpoints (as dicts)
@@ -216,8 +216,8 @@ class TestCheckpointSelectionPrompt:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         runner = CliRunner()
@@ -230,8 +230,8 @@ class TestCheckpointSelectionPrompt:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_checkpoint1 = {
@@ -270,8 +270,8 @@ class TestCheckpointSelectionPrompt:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         runner = CliRunner()
@@ -282,7 +282,7 @@ class TestCheckpointSelectionPrompt:
 
             mock_config = Mock()
             mock_config.servers = {"test-server": Mock()}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -306,10 +306,10 @@ class TestServerPrompt:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
+            "    path: /path/to/mission\n"
             "  prod-1:\n"
-            "    mission_directory: /path/to/prod\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/prod\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -324,10 +324,10 @@ class TestServerPrompt:
 
             mock_config = Mock()
             mock_config.servers = {
-                "test-server": Mock(mission_directory=tmp_path / "mission"),
-                "prod-1": Mock(mission_directory=tmp_path / "prod"),
+                "test-server": Mock(path=tmp_path / "mission"),
+                "prod-1": Mock(path=tmp_path / "prod"),
             }
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
@@ -348,10 +348,10 @@ class TestServerPrompt:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
+            "    path: /path/to/mission\n"
             "  prod-1:\n"
-            "    mission_directory: /path/to/prod\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/prod\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -366,10 +366,10 @@ class TestServerPrompt:
 
             mock_config = Mock()
             mock_config.servers = {
-                "test-server": Mock(mission_directory=tmp_path / "mission"),
-                "prod-1": Mock(mission_directory=tmp_path / "prod"),
+                "test-server": Mock(path=tmp_path / "mission"),
+                "prod-1": Mock(path=tmp_path / "prod"),
             }
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
@@ -393,8 +393,8 @@ class TestProgressDisplay:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -407,8 +407,8 @@ class TestProgressDisplay:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
@@ -432,8 +432,8 @@ class TestProgressDisplay:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -446,8 +446,8 @@ class TestProgressDisplay:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]
@@ -475,8 +475,8 @@ class TestSuccessErrorMessages:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -489,8 +489,8 @@ class TestSuccessErrorMessages:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [
@@ -535,8 +535,8 @@ class TestSuccessErrorMessages:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -552,8 +552,8 @@ class TestSuccessErrorMessages:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             result = runner.invoke(
@@ -573,8 +573,8 @@ class TestSuccessErrorMessages:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         checkpoint_file = tmp_path / "checkpoint.zip"
@@ -587,8 +587,8 @@ class TestSuccessErrorMessages:
         ):
 
             mock_config = Mock()
-            mock_config.servers = {"test-server": Mock(mission_directory=tmp_path / "mission")}
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.servers = {"test-server": Mock(path=tmp_path / "mission")}
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_restore.return_value = [tmp_path / "mission" / "foothold.lua"]

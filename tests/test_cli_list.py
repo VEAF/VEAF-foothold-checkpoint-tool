@@ -16,8 +16,8 @@ class TestListCommandBasic:
         config_file.write_text(
             "servers:\n"
             "  test-server:\n"
-            "    mission_directory: /path/to/mission\n"
-            "checkpoints_directory: /path/to/checkpoints\n"
+            "    path: /path/to/mission\n"
+            "checkpoints_dir: /path/to/checkpoints\n"
         )
 
         runner = CliRunner()
@@ -27,7 +27,7 @@ class TestListCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -75,7 +75,7 @@ class TestListCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -111,7 +111,7 @@ class TestListCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -147,7 +147,7 @@ class TestListCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -189,7 +189,7 @@ class TestListCommandTableFormatting:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -229,7 +229,7 @@ class TestListCommandTableFormatting:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -266,7 +266,7 @@ class TestListCommandTableFormatting:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -304,7 +304,7 @@ class TestListCommandEmptyResults:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -327,7 +327,7 @@ class TestListCommandEmptyResults:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -356,7 +356,7 @@ class TestListCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -406,7 +406,7 @@ class TestListCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -449,7 +449,7 @@ class TestListCommandErrors:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "nonexistent"
+            mock_config.checkpoints_dir = tmp_path / "nonexistent"
             mock_load.return_value = mock_config
 
             mock_list.side_effect = FileNotFoundError("Checkpoint directory not found")

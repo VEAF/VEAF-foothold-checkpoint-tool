@@ -180,9 +180,9 @@ def load_config(path: Path) -> Config:
     # Create Config object with validated data
     # Pydantic will validate required fields and raise ValidationError if missing
     return Config(
-        checkpoints_dir=data.get("checkpoints_dir"),
+        checkpoints_dir=data.get("checkpoints_dir"),  # type: ignore[arg-type]
         servers=servers,
-        campaigns=data.get("campaigns"),
+        campaigns=data.get("campaigns"),  # type: ignore[arg-type]
     )
 
 

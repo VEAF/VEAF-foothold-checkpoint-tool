@@ -23,7 +23,7 @@ class TestImportCommandWithFlags:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -63,7 +63,7 @@ class TestImportCommandWithFlags:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -116,7 +116,7 @@ class TestImportCommandPrompts:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock(), "prod-1": Mock()}
             mock_load.return_value = mock_config
 
@@ -152,7 +152,7 @@ class TestImportCommandPrompts:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -189,7 +189,7 @@ class TestImportCommandPrompts:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -229,7 +229,7 @@ class TestImportCommandConfirmation:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -266,7 +266,7 @@ class TestImportCommandConfirmation:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -304,7 +304,7 @@ class TestImportCommandProgressAndWarnings:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -344,7 +344,7 @@ class TestImportCommandProgressAndWarnings:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -376,7 +376,7 @@ class TestImportCommandErrors:
         runner = CliRunner()
         with patch("foothold_checkpoint.cli.load_config") as mock_load:
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             result = runner.invoke(
@@ -411,7 +411,7 @@ class TestImportCommandErrors:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -439,7 +439,7 @@ class TestImportCommandErrors:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -475,7 +475,7 @@ class TestImportCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -518,7 +518,7 @@ class TestImportCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 

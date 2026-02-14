@@ -258,7 +258,7 @@ def save_command(
             raise typer.Exit(1)
 
         server_config = config.servers[server]
-        mission_dir = Path(server_config.mission_directory)
+        mission_dir = Path(server_config.path)
 
         # Validate mission directory exists
         if not mission_dir.exists():
@@ -328,7 +328,7 @@ def save_command(
                 checkpoint_comment = None
 
         # Step 5: Create checkpoints
-        checkpoints_dir = Path(config.checkpoints_directory)
+        checkpoints_dir = Path(config.checkpoints_dir)
         checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
         created_checkpoints: list[Path] = []
@@ -472,7 +472,7 @@ def restore_command(
                 console.print("[cyan]Available checkpoints:[/cyan]")
 
             # List all checkpoints
-            checkpoints = list_checkpoints(config.checkpoints_directory)
+            checkpoints = list_checkpoints(config.checkpoints_dir)
 
             if not checkpoints:
                 console.print("[red]Error:[/red] No checkpoints found in checkpoint directory")
@@ -495,7 +495,7 @@ def restore_command(
             selected_index = int(selection) - 1
             # Construct full path from checkpoint directory and filename
             checkpoint_path = (
-                Path(config.checkpoints_directory) / checkpoints[selected_index]["filename"]
+                Path(config.checkpoints_dir) / checkpoints[selected_index]["filename"]
             )
 
         # Step 3: Get target server
@@ -520,7 +520,7 @@ def restore_command(
             raise typer.Exit(1)
 
         # Get target directory from server config
-        target_dir = config.servers[server].mission_directory
+        target_dir = config.servers[server].path
 
         # Step 4: Restore checkpoint with progress display
         if not _quiet_mode:
@@ -626,7 +626,7 @@ def list_command(
 
         # List checkpoints with filters
         checkpoints = list_checkpoints(
-            config.checkpoints_directory, server_filter=server, campaign_filter=campaign
+            config.checkpoints_dir, server_filter=server, campaign_filter=campaign
         )
 
         # Handle empty results
@@ -738,10 +738,10 @@ def delete_command(
 
         # Step 1: Get checkpoint file (from argument or interactive selection)
         if checkpoint_file:
-            checkpoint_path = Path(config.checkpoints_directory) / checkpoint_file
+            checkpoint_path = Path(config.checkpoints_dir) / checkpoint_file
         else:
             # Interactive mode: list checkpoints and prompt for selection
-            checkpoints = list_checkpoints(config.checkpoints_directory)
+            checkpoints = list_checkpoints(config.checkpoints_dir)
 
             if not checkpoints:
                 console.print("[yellow]No checkpoints found[/yellow]")
@@ -764,7 +764,7 @@ def delete_command(
             selection = Prompt.ask("\nSelect checkpoint number", choices=choices, default="1")
             selected_idx = int(selection) - 1
             checkpoint_path = (
-                Path(config.checkpoints_directory) / checkpoints[selected_idx]["filename"]
+                Path(config.checkpoints_dir) / checkpoints[selected_idx]["filename"]
             )
 
         # Step 2: Read metadata for display (before deletion)
@@ -995,7 +995,7 @@ def import_command(
             source_dir=source_dir,
             campaign_name=campaign_name,
             server_name=server_name,
-            output_dir=config.checkpoints_directory,
+            output_dir=config.checkpoints_dir,
             name=name,
             comment=comment,
             return_warnings=True,

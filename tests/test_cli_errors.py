@@ -45,7 +45,7 @@ def test_save_campaign_not_found_error_message() -> None:
     # Mock config and server
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
@@ -71,7 +71,7 @@ def test_save_campaign_not_found_error_message() -> None:
     assert "afghanistan" in result.stdout
 
 
-def test_save_mission_directory_not_found_error() -> None:
+def test_save_path_not_found_error() -> None:
     """Test error message when mission directory does not exist."""
     from foothold_checkpoint.cli import app
 
@@ -79,7 +79,7 @@ def test_save_mission_directory_not_found_error() -> None:
 
     mission_dir = Path("/nonexistent/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
@@ -103,7 +103,7 @@ def test_save_no_campaigns_detected_error() -> None:
 
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
@@ -157,7 +157,7 @@ def test_restore_checkpoint_file_not_found_error() -> None:
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": Mock()}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
@@ -178,7 +178,7 @@ def test_restore_server_not_found_error() -> None:
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": Mock(), "prod-2": Mock()}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
@@ -198,7 +198,7 @@ def test_delete_checkpoint_file_not_found_error() -> None:
     runner = CliRunner()
 
     mock_config = Mock()
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
@@ -218,7 +218,7 @@ def test_import_directory_not_found_error() -> None:
     runner = CliRunner()
 
     mock_config = Mock()
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
@@ -247,7 +247,7 @@ def test_import_path_not_directory_error() -> None:
     runner = CliRunner()
 
     mock_config = Mock()
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
@@ -271,11 +271,11 @@ def test_save_permission_error_on_checkpoint_directory() -> None:
 
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
-    mock_config.checkpoints_directory = "/root/forbidden"
+    mock_config.checkpoints_dir = "/root/forbidden"
 
     detected_campaigns = {"afghanistan": ["Foothold_Afghan_v0.1.lua"]}
 
@@ -302,11 +302,11 @@ def test_save_conflicting_flags_campaign_and_all() -> None:
     # Mock config to allow test to proceed to flag validation
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     with patch("foothold_checkpoint.cli.load_config", return_value=mock_config):
         result = runner.invoke(
@@ -328,11 +328,11 @@ def test_save_flags_validation_accepts_campaign_only() -> None:
 
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     detected_campaigns = {"afghanistan": ["Foothold_Afghan_v0.1.lua"]}
 
@@ -359,11 +359,11 @@ def test_save_flags_validation_accepts_all_only() -> None:
 
     mission_dir = Path("/tmp/test/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     detected_campaigns = {"afghanistan": ["Foothold_Afghan_v0.1.lua"]}
 
@@ -382,7 +382,7 @@ def test_save_flags_validation_accepts_all_only() -> None:
     assert result.exit_code == 0
 
 
-def test_restore_permission_error_on_mission_directory() -> None:
+def test_restore_permission_error_on_path() -> None:
     """Test error message when cannot write to mission directory due to permissions."""
     from foothold_checkpoint.cli import app
 
@@ -390,11 +390,11 @@ def test_restore_permission_error_on_mission_directory() -> None:
 
     mission_dir = Path("/root/forbidden/missions")
     mock_server_config = Mock()
-    mock_server_config.mission_directory = str(mission_dir)
+    mock_server_config.path = str(mission_dir)
 
     mock_config = Mock()
     mock_config.servers = {"prod-1": mock_server_config}
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     # Mock restore_checkpoint to raise PermissionError
     mock_restore = Mock(side_effect=PermissionError("Access denied"))
@@ -418,7 +418,7 @@ def test_list_no_checkpoints_found_message() -> None:
     runner = CliRunner()
 
     mock_config = Mock()
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     # Mock list_checkpoints to return empty list
     with (
@@ -439,7 +439,7 @@ def test_delete_permission_error_on_checkpoint_file() -> None:
     runner = CliRunner()
 
     mock_config = Mock()
-    mock_config.checkpoints_directory = "/tmp/checkpoints"
+    mock_config.checkpoints_dir = "/tmp/checkpoints"
 
     # Mock delete_checkpoint to raise PermissionError
     mock_delete = Mock(side_effect=PermissionError("Access denied"))

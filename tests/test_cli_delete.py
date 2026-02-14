@@ -21,7 +21,7 @@ class TestDeleteCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock deleted checkpoint metadata
@@ -55,7 +55,7 @@ class TestDeleteCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock metadata and deletion
@@ -89,7 +89,7 @@ class TestDeleteCommandBasic:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock delete returning None (user cancelled)
@@ -119,7 +119,7 @@ class TestDeleteCommandInteractive:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -161,7 +161,7 @@ class TestDeleteCommandInteractive:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -192,7 +192,7 @@ class TestDeleteCommandMetadataDisplay:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock reading metadata from ZIP
@@ -229,7 +229,7 @@ class TestDeleteCommandErrors:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = FileNotFoundError("Checkpoint file not found")
@@ -252,7 +252,7 @@ class TestDeleteCommandErrors:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = ValueError("Not a valid checkpoint file")
@@ -296,7 +296,7 @@ class TestDeleteCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.return_value = {
@@ -325,7 +325,7 @@ class TestDeleteCommandQuietMode:
         ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = FileNotFoundError("Checkpoint file not found")

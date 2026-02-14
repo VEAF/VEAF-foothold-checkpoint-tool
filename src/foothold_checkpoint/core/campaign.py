@@ -2,6 +2,7 @@
 
 import re
 from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -172,7 +173,7 @@ def normalize_campaign_name(filename: str | Path) -> str:
     return name_normalized
 
 
-def group_campaign_files(filenames: list[str | Path]) -> dict[str, list[str]]:
+def group_campaign_files(filenames: Sequence[str | Path]) -> dict[str, list[str]]:
     """Group campaign files by their normalized campaign name.
 
     Takes a list of filenames and groups them by campaign, using the normalized
@@ -274,7 +275,7 @@ def map_campaign_name(campaign_name: str, config: "Config") -> str:
     return campaign_name
 
 
-def detect_campaigns(filenames: list[str | Path], config: "Config") -> dict[str, list[str]]:
+def detect_campaigns(filenames: Sequence[str | Path], config: "Config") -> dict[str, list[str]]:
     """Detect and group campaign files, applying name mapping from config.
 
     Combines file grouping with campaign name mapping to produce groups
@@ -312,7 +313,7 @@ def detect_campaigns(filenames: list[str | Path], config: "Config") -> dict[str,
     return dict(mapped_groups)
 
 
-def create_campaign_report(filenames: list[str | Path], config: "Config") -> dict[str, int]:
+def create_campaign_report(filenames: Sequence[str | Path], config: "Config") -> dict[str, int]:
     """Create a campaign detection report with file counts.
 
     Analyzes a list of filenames and generates a summary report showing

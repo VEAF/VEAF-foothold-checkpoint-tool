@@ -7,7 +7,7 @@ Foothold campaign checkpoints with integrity verification.
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from foothold_checkpoint.core.campaign import group_campaign_files, rename_campaign_file
 from foothold_checkpoint.core.checkpoint import create_checkpoint
@@ -574,7 +574,7 @@ def delete_checkpoint(
     try:
         with zipfile.ZipFile(checkpoint_path, "r") as zf:
             metadata_content = zf.read("metadata.json")
-            metadata = json.loads(metadata_content)
+            metadata = cast(dict[Any, Any], json.loads(metadata_content))
     except BadZipFile as e:
         raise ValueError(f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted") from e
     except KeyError as e:
