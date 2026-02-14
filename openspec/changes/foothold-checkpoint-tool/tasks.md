@@ -78,8 +78,8 @@
 - [x] 6.8 Write tests for checksum verification (match, mismatch, missing)
 - [x] 6.9 Implement Foothold_Ranks.lua exclusion by default
 - [x] 6.10 Write tests for ranks exclusion (default, with --restore-ranks)
-- [ ] 6.11 Implement file renaming using latest campaign name
-- [ ] 6.12 Write tests for file renaming (evolved names, unchanged names)
+- [x] 6.11 Implement file renaming using latest campaign name
+- [x] 6.12 Write tests for file renaming (evolved names, unchanged names)
 - [x] 6.13 Implement overwrite confirmation prompt
 - [x] 6.14 Write tests for overwrite confirmation (empty dir, existing files)
 - [x] 6.15 Implement restoration progress tracking
