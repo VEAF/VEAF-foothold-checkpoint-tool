@@ -264,7 +264,7 @@
 - [x] 19.1 Create end-to-end test for save → list → restore workflow
 - [x] 19.2 Create end-to-end test for import workflow
 - [x] 19.3 Create end-to-end test for delete workflow
-- [ ] 19.4 Test with real data from `tests/data/foothold/`
+- [x] 19.4 Test with real data from `tests/data/foothold/`
 - [x] 19.5 Test cross-server restoration
 - [x] 19.6 Test all campaigns save/restore
 - [x] 19.7 Test error scenarios (disk full, permissions)
