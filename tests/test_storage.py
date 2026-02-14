@@ -602,3 +602,499 @@ class TestStorageDirectoryCreation:
                 )
 
 
+class TestRestoreCheckpoint:
+    """Test suite for restore_checkpoint function."""
+
+    def test_restore_checkpoint_extracts_files_to_target_dir(self):
+        """restore_checkpoint should extract campaign files to the target directory."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a checkpoint
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign code")
+            (source_dir / "foothold_test_storage.csv").write_text("test,data")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Restore to a different directory
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+            # Verify files were extracted
+            assert (target_dir / "foothold_test.lua").exists()
+            assert (target_dir / "foothold_test_storage.csv").exists()
+            assert (target_dir / "foothold_test.lua").read_text() == "-- campaign code"
+            assert (target_dir / "foothold_test_storage.csv").read_text() == "test,data"
+
+    def test_restore_checkpoint_returns_list_of_restored_files(self):
+        """restore_checkpoint should return a list of restored file paths."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path, target_dir=target_dir
+            )
+
+            assert isinstance(restored_files, list)
+            assert len(restored_files) >= 1
+            assert all(isinstance(f, Path) for f in restored_files)
+            assert any(f.name == "foothold_test.lua" for f in restored_files)
+
+    def test_restore_checkpoint_raises_error_if_checkpoint_not_exists(self):
+        """restore_checkpoint should raise FileNotFoundError if checkpoint doesn't exist."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "nonexistent.zip"
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
+                restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+    def test_restore_checkpoint_raises_error_if_not_valid_zip(self):
+        """restore_checkpoint should raise error if file is not a valid ZIP."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a non-ZIP file
+            invalid_zip = Path(tmpdir) / "invalid.zip"
+            invalid_zip.write_text("this is not a ZIP file")
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            with pytest.raises(ValueError, match="not a valid ZIP archive"):
+                restore_checkpoint(checkpoint_path=invalid_zip, target_dir=target_dir)
+
+    def test_restore_checkpoint_raises_error_if_metadata_missing(self):
+        """restore_checkpoint should raise error if metadata.json is missing."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a ZIP without metadata.json
+            zip_path = Path(tmpdir) / "no_metadata.zip"
+            with zipfile.ZipFile(zip_path, "w") as zf:
+                zf.writestr("foothold_test.lua", "-- test")
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            with pytest.raises(ValueError, match="missing metadata"):
+                restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir)
+
+    def test_restore_checkpoint_raises_error_if_metadata_invalid_json(self):
+        """restore_checkpoint should raise error if metadata.json has invalid JSON."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a ZIP with invalid JSON in metadata
+            zip_path = Path(tmpdir) / "invalid_metadata.zip"
+            with zipfile.ZipFile(zip_path, "w") as zf:
+                zf.writestr("metadata.json", "{ invalid json }")
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            with pytest.raises(ValueError, match="Invalid metadata JSON"):
+                restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir)
+
+    def test_restore_checkpoint_raises_error_if_target_dir_not_exists(self):
+        """restore_checkpoint should raise error if target directory doesn't exist."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "nonexistent_target"
+
+            with pytest.raises(FileNotFoundError, match="Target directory does not exist"):
+                restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+    def test_restore_checkpoint_raises_error_if_target_not_writable(self):
+        """restore_checkpoint should raise error if target directory is not writable."""
+        import os
+
+        if os.name == "nt":
+            pytest.skip("Permission tests unreliable on Windows")
+
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "readonly_target"
+            target_dir.mkdir()
+            target_dir.chmod(0o444)  # Read-only
+
+            try:
+                with pytest.raises(PermissionError):
+                    restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+            finally:
+                target_dir.chmod(0o755)
+
+    def test_restore_checkpoint_verifies_checksums(self):
+        """restore_checkpoint should verify file checksums before extraction."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+        import zipfile
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- test content")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Tamper with the ZIP by recreating it with wrong content but same metadata
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                metadata_json = zf.read("metadata.json")
+
+            # Recreate ZIP with tampered content
+            temp_zip = Path(tmpdir) / "tampered.zip"
+            with zipfile.ZipFile(temp_zip, "w") as zf:
+                zf.writestr("metadata.json", metadata_json)
+                zf.writestr("foothold_test.lua", "-- tampered content")
+
+            # Replace original with tampered
+            temp_zip.replace(checkpoint_path)
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            with pytest.raises(ValueError, match="Checksum mismatch"):
+                restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+    def test_restore_checkpoint_excludes_foothold_ranks_by_default(self):
+        """restore_checkpoint should exclude Foothold_Ranks.lua by default."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+            (source_dir / "Foothold_Ranks.lua").write_text("-- ranks")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path, target_dir=target_dir
+            )
+
+            # Campaign file should be restored
+            assert (target_dir / "foothold_test.lua").exists()
+            # Ranks file should NOT be restored
+            assert not (target_dir / "Foothold_Ranks.lua").exists()
+            # Ranks file should not be in returned list
+            assert not any(f.name == "Foothold_Ranks.lua" for f in restored_files)
+
+    def test_restore_checkpoint_includes_ranks_with_flag(self):
+        """restore_checkpoint should restore Foothold_Ranks.lua when restore_ranks=True."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+            (source_dir / "Foothold_Ranks.lua").write_text("-- ranks")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                restore_ranks=True,
+            )
+
+            # Both files should be restored
+            assert (target_dir / "foothold_test.lua").exists()
+            assert (target_dir / "Foothold_Ranks.lua").exists()
+            assert any(f.name == "Foothold_Ranks.lua" for f in restored_files)
+
+    def test_restore_checkpoint_warns_if_ranks_requested_but_not_in_checkpoint(self):
+        """restore_checkpoint should warn if restore_ranks=True but Foothold_Ranks.lua not in checkpoint."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+            # NO Foothold_Ranks.lua
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            # Should not raise error, should just warn/log
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                restore_ranks=True,
+            )
+
+            # Should restore campaign file successfully
+            assert (target_dir / "foothold_test.lua").exists()
+            assert not any(f.name == "Foothold_Ranks.lua" for f in restored_files)
+
+    def test_restore_checkpoint_prompts_confirmation_on_overwrite(self):
+        """restore_checkpoint should prompt for confirmation when overwriting existing files."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+            # Create existing file
+            (target_dir / "foothold_test.lua").write_text("-- existing content")
+
+            # Mock user cancelling confirmation
+            import unittest.mock
+
+            with unittest.mock.patch("builtins.input", return_value="n"):
+                with pytest.raises(RuntimeError, match="Restoration cancelled"):
+                    restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir)
+
+            # Original file should remain unchanged
+            assert (target_dir / "foothold_test.lua").read_text() == "-- existing content"
+
+    def test_restore_checkpoint_proceeds_on_confirmation(self):
+        """restore_checkpoint should proceed with restoration when user confirms overwrite."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- new campaign")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+            (target_dir / "foothold_test.lua").write_text("-- old content")
+
+            import unittest.mock
+
+            with unittest.mock.patch("builtins.input", return_value="y"):
+                restored_files = restore_checkpoint(
+                    checkpoint_path=checkpoint_path, target_dir=target_dir
+                )
+
+            # File should be overwritten
+            assert (target_dir / "foothold_test.lua").read_text() == "-- new campaign"
+            assert len(restored_files) >= 1
+
+    def test_restore_checkpoint_skips_prompt_for_empty_target(self):
+        """restore_checkpoint should not prompt when target directory is empty."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+            # Empty target - no prompt should be shown
+
+            import unittest.mock
+
+            # Should not call input
+            with unittest.mock.patch("builtins.input") as mock_input:
+                restored_files = restore_checkpoint(
+                    checkpoint_path=checkpoint_path, target_dir=target_dir
+                )
+                mock_input.assert_not_called()
+
+            assert len(restored_files) >= 1
+
+    def test_restore_checkpoint_supports_progress_callback(self):
+        """restore_checkpoint should call progress callback during restoration."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- campaign")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            progress_calls = []
+
+            def progress_callback(message: str, current: int, total: int):
+                progress_calls.append((message, current, total))
+
+            restored_files = restore_checkpoint(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                progress_callback=progress_callback,
+            )
+
+            # Should have called progress callback
+            assert len(progress_calls) > 0
+            assert any("verifying" in msg.lower() or "extracting" in msg.lower() for msg, _, _ in progress_calls)
+            assert len(restored_files) >= 1
+
+    def test_restore_checkpoint_handles_disk_full_gracefully(self):
+        """restore_checkpoint should handle disk full errors gracefully."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            (source_dir / "foothold_test.lua").write_text("-- test" * 10000)
+
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            target_dir = Path(tmpdir) / "target"
+            target_dir.mkdir()
+
+            # Mock disk full error on write_bytes
+            import unittest.mock
+
+            def mock_write_bytes_raises(*args, **kwargs):
+                raise OSError("No space left on device")
+
+            # Patch write_bytes on Path instances
+            with unittest.mock.patch.object(
+                Path, "write_bytes", side_effect=mock_write_bytes_raises, autospec=False
+            ):
+                # Need to re-create target_dir Path instance after patching
+                target_dir_patched = Path(tmpdir) / "target"
+                with pytest.raises(OSError, match="No space left on device"):
+                    restore_checkpoint(
+                        checkpoint_path=checkpoint_path, target_dir=target_dir_patched
+                    )
+
+

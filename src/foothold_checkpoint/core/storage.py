@@ -240,3 +240,165 @@ def save_all_campaigns(
 
     return results
 
+
+def restore_checkpoint(
+    checkpoint_path: str | Path,
+    target_dir: str | Path,
+    restore_ranks: bool = False,
+    progress_callback: Callable[[str, int, int], None] | None = None,
+) -> list[Path]:
+    """Restore a checkpoint to a target directory.
+
+    Extracts campaign files from a checkpoint ZIP archive to the specified
+    target directory after verifying file integrity with SHA-256 checksums.
+    By default, excludes Foothold_Ranks.lua unless explicitly requested.
+
+    Args:
+        checkpoint_path: Path to the checkpoint ZIP file to restore.
+        target_dir: Path to the directory where files will be extracted.
+        restore_ranks: If True, restore Foothold_Ranks.lua. If False (default),
+            exclude ranks file from restoration.
+        progress_callback: Optional callback function called during restoration.
+            Called as: callback(message: str, current: int, total: int).
+
+    Returns:
+        List of Path objects for the restored files.
+
+    Raises:
+        FileNotFoundError: If checkpoint_path doesn't exist or target_dir doesn't exist.
+        ValueError: If checkpoint is not a valid ZIP, metadata is missing/invalid,
+            or checksum verification fails.
+        PermissionError: If target_dir is not writable.
+        RuntimeError: If user cancels overwrite confirmation.
+        OSError: If restoration fails (e.g., disk full).
+    """
+    import json
+    import zipfile
+
+    checkpoint_path = Path(checkpoint_path)
+    target_dir = Path(target_dir)
+
+    # Validate checkpoint file exists
+    if not checkpoint_path.exists():
+        raise FileNotFoundError("Checkpoint file not found")
+
+    # Validate checkpoint is a valid ZIP
+    if not zipfile.is_zipfile(checkpoint_path):
+        raise ValueError("Invalid checkpoint file (not a valid ZIP archive)")
+
+    # Validate target directory exists
+    if not target_dir.exists():
+        raise FileNotFoundError("Target directory does not exist")
+
+    if not target_dir.is_dir():
+        raise NotADirectoryError("Target path is not a directory")
+
+    # Check target directory is writable
+    if not _is_writable(target_dir):
+        raise PermissionError(f"Target directory is not writable: {target_dir}")
+
+    # Open ZIP and read metadata
+    with zipfile.ZipFile(checkpoint_path, "r") as zf:
+        # Check metadata.json exists
+        if "metadata.json" not in zf.namelist():
+            raise ValueError("Invalid checkpoint (missing metadata)")
+
+        # Read and parse metadata.json
+        try:
+            metadata_json = zf.read("metadata.json").decode("utf-8")
+            metadata = json.loads(metadata_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid metadata JSON: {e}") from e
+
+        # Get list of files to restore
+        all_files_in_zip = [
+            name
+            for name in zf.namelist()
+            if name != "metadata.json" and not name.endswith("/")
+        ]
+
+        # Filter out Foothold_Ranks.lua if not requested
+        files_to_restore = []
+        for filename in all_files_in_zip:
+            if filename == "Foothold_Ranks.lua" and not restore_ranks:
+                continue
+            files_to_restore.append(filename)
+
+        if not files_to_restore:
+            return []
+
+        # Verify checksums before extraction
+        if progress_callback:
+            progress_callback("Verifying checksums", 0, len(files_to_restore))
+
+        file_checksums = metadata.get("files", {})
+
+        for idx, filename in enumerate(files_to_restore, start=1):
+            if progress_callback:
+                progress_callback(f"Verifying {filename}", idx, len(files_to_restore))
+
+            # Extract file to temp location for checksum verification
+            file_data = zf.read(filename)
+
+            # Compute checksum of extracted data
+            import hashlib
+
+            computed_checksum = hashlib.sha256(file_data).hexdigest()
+
+            # Compare with metadata checksum
+            expected_checksum = file_checksums.get(filename)
+            if expected_checksum:
+                # Remove 'sha256:' prefix if present
+                if expected_checksum.startswith("sha256:"):
+                    expected_checksum = expected_checksum[7:]  # len("sha256:") = 7
+
+                if computed_checksum != expected_checksum:
+                    raise ValueError(
+                        f"Checksum mismatch for file {filename}: "
+                        f"expected {expected_checksum}, got {computed_checksum}"
+                    )
+
+        # Check for existing files and prompt for confirmation
+        existing_files = []
+        for filename in files_to_restore:
+            target_file = target_dir / filename
+            if target_file.exists():
+                existing_files.append(filename)
+
+        if existing_files:
+            # Prompt for confirmation
+            confirmation = input(
+                f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
+            )
+            if confirmation.lower() != "y":
+                raise RuntimeError("Restoration cancelled by user")
+
+        # Extract files
+        restored_files: list[Path] = []
+
+        for idx, filename in enumerate(files_to_restore, start=1):
+            if progress_callback:
+                progress_callback(f"Extracting {filename}", idx, len(files_to_restore))
+
+            file_data = zf.read(filename)
+            target_file = target_dir / filename
+
+            # Write file
+            target_file.write_bytes(file_data)
+            restored_files.append(target_file)
+
+    return restored_files
+
+
+def _is_writable(path: Path) -> bool:
+    """Check if a directory is writable.
+
+    Args:
+        path: Path to check for write permissions.
+
+    Returns:
+        True if writable, False otherwise.
+    """
+    import os
+
+    return os.access(path, os.W_OK)
