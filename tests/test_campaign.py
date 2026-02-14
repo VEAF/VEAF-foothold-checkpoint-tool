@@ -599,3 +599,181 @@ class TestCampaignNameMapping:
         assert "germany_modern" in campaigns
         assert "gcw_modern" not in campaigns
         assert len(campaigns["germany_modern"]) == 2
+
+
+class TestCampaignDetectionReport:
+    """Test suite for campaign detection report generation."""
+
+    def test_report_single_campaign(self):
+        """Should generate report for single campaign."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Afghanistan": ["afghanistan"]}
+        )
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv"
+        ]
+
+        report = create_campaign_report(files, config)
+
+        assert report == {"afghanistan": 2}
+
+    def test_report_multiple_campaigns(self):
+        """Should generate report for multiple campaigns."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Afghanistan": ["afghanistan"],
+                "Caucasus": ["ca"]
+            }
+        )
+
+        files = [
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "FootHold_CA.lua",
+            "FootHold_CA_CTLD_FARPS.csv"
+        ]
+
+        report = create_campaign_report(files, config)
+
+        assert report == {
+            "afghanistan": 2,
+            "ca": 2
+        }
+
+    def test_report_empty_list(self):
+        """Should return empty report for empty file list."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={}
+        )
+
+        report = create_campaign_report([], config)
+
+        assert report == {}
+
+    def test_report_ignores_non_campaign_files(self):
+        """Should ignore non-campaign files in report."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Afghanistan": ["afghanistan"]}
+        )
+
+        files = [
+            "foothold_afghanistan.lua",
+            "README.txt",
+            "foothold.status",
+            ".hidden_file"
+        ]
+
+        report = create_campaign_report(files, config)
+
+        # Only the campaign file should be counted
+        assert report == {"afghanistan": 1}
+
+    def test_report_with_name_mapping(self):
+        """Should use current campaign names in report."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Germany_Modern": ["gcw_modern", "germany_modern"]
+            }
+        )
+
+        files = [
+            "FootHold_GCW_Modern.lua",  # Historical name
+            "FootHold_GCW_Modern_storage.csv"
+        ]
+
+        report = create_campaign_report(files, config)
+
+        # Should use current name "germany_modern", not historical "gcw_modern"
+        assert report == {"germany_modern": 2}
+        assert "gcw_modern" not in report
+
+    def test_report_excludes_shared_files(self):
+        """Should exclude shared files (Foothold_Ranks.lua) from report."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Afghanistan": ["afghanistan"]}
+        )
+
+        files = [
+            "foothold_afghanistan.lua",
+            "Foothold_Ranks.lua"  # Shared file
+        ]
+
+        report = create_campaign_report(files, config)
+
+        # Ranks file should not be counted
+        assert report == {"afghanistan": 1}
+
+    def test_report_with_varying_file_counts(self):
+        """Should correctly count different numbers of files per campaign."""
+        from foothold_checkpoint.core.campaign import create_campaign_report
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        from pathlib import Path
+
+        config = Config(
+            checkpoints_dir=Path("~/.test"),
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={
+                "Afghanistan": ["afghanistan"],
+                "Caucasus": ["ca"],
+                "Syria": ["syria"]
+            }
+        )
+
+        files = [
+            # Afghanistan: 4 files
+            "foothold_afghanistan.lua",
+            "foothold_afghanistan_storage.csv",
+            "foothold_afghanistan_CTLD_FARPS.csv",
+            "foothold_afghanistan_CTLD_Save.csv",
+            # CA: 1 file
+            "FootHold_CA.lua",
+            # Syria: 2 files
+            "foothold_syria.lua",
+            "foothold_syria_storage.csv"
+        ]
+
+        report = create_campaign_report(files, config)
+
+        assert report == {
+            "afghanistan": 4,
+            "ca": 1,
+            "syria": 2
+        }

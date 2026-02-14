@@ -308,3 +308,47 @@ def detect_campaigns(filenames: list[Union[str, Path]], config: "Config") -> dic
         mapped_groups[current_name].extend(files)
 
     return dict(mapped_groups)
+
+
+def create_campaign_report(filenames: list[Union[str, Path]], config: "Config") -> dict[str, int]:
+    """Create a campaign detection report with file counts.
+
+    Analyzes a list of filenames and generates a summary report showing
+    how many files belong to each detected campaign. Uses campaign name
+    mapping from config to ensure current names are used.
+
+    Args:
+        filenames: List of filenames to analyze (strings or Path objects).
+                  Can include campaign files, shared files, and other files.
+        config: Configuration object containing campaign mappings.
+
+    Returns:
+        dict: Dictionary mapping current campaign names to file counts.
+              Only includes campaigns with at least one file.
+              Empty dict if no campaign files are found.
+
+    Examples:
+        >>> # Config: Germany_Modern: [gcw_modern, germany_modern]
+        >>> files = ["FootHold_GCW_Modern.lua", "foothold_afghanistan.lua"]
+        >>> create_campaign_report(files, config)
+        {
+            'germany_modern': 1,
+            'afghanistan': 1
+        }
+
+        >>> # With multiple files per campaign
+        >>> files = [
+        ...     "foothold_afghanistan.lua",
+        ...     "foothold_afghanistan_storage.csv",
+        ...     "Foothold_Ranks.lua"  # Excluded (shared file)
+        ... ]
+        >>> create_campaign_report(files, config)
+        {'afghanistan': 2}
+    """
+    # Detect and group campaigns with name mapping
+    campaigns = detect_campaigns(filenames, config)
+
+    # Convert to file count report
+    report = {name: len(files) for name, files in campaigns.items()}
+
+    return report
