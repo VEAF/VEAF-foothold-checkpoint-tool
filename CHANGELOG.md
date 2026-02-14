@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Field validator for non-empty campaign name lists ✅
   - YAML configuration loading from files with error handling ✅
   - Auto-creation of default configuration files ✅
-  - Comprehensive test suite with TDD approach (23/23 tests passing, 100% coverage) ✅
+  - Path expansion for tilde (~) and environment variables ($VAR, %VAR%) ✅
+  - Support for both Unix ($VAR) and Windows (%VAR%) environment variable formats ✅
+  - Comprehensive test suite with TDD approach (30/30 tests passing, 100% coverage) ✅
 - OpenSpec change artifacts for foothold-checkpoint-tool
   - Proposal: Project vision and capabilities
   - Design: Technical architecture and decisions

@@ -82,7 +82,8 @@ class TestConfig:
             }
         )
 
-        assert config.checkpoints_dir == Path("~/.foothold-checkpoints")
+        # checkpoints_dir with ~ should be automatically expanded
+        assert config.checkpoints_dir == Path.home() / ".foothold-checkpoints"
         assert "production-1" in config.servers
         assert config.servers["production-1"].description == "Production server"
         assert "Afghanistan" in config.campaigns
@@ -203,7 +204,8 @@ class TestLoadConfig:
         try:
             config = load_config(temp_path)
 
-            assert config.checkpoints_dir == Path("~/.foothold-checkpoints")
+            # checkpoints_dir with ~ should be automatically expanded
+            assert config.checkpoints_dir == Path.home() / ".foothold-checkpoints"
             assert "production-1" in config.servers
             assert config.servers["production-1"].description == "Production server"
             assert config.campaigns["Afghanistan"] == ["afghanistan"]
@@ -384,3 +386,168 @@ class TestCreateDefaultConfig:
             assert isinstance(config.checkpoints_dir, Path)
             assert isinstance(config.servers, dict)
             assert isinstance(config.campaigns, dict)
+
+
+class TestPathExpansion:
+    """Test suite for path expansion (tilde and environment variables)."""
+
+    def test_checkpoints_dir_expands_tilde(self):
+        """Config should expand ~ in checkpoints_dir to user's home directory."""
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        import os
+
+        config = Config(
+            checkpoints_dir=Path("~/.foothold-checkpoints"),
+            servers={
+                "test": ServerConfig(
+                    path=Path("D:/Test"),
+                    description="Test"
+                )
+            },
+            campaigns={"Afghanistan": ["afghanistan"]}
+        )
+
+        # ~ should be expanded to actual home directory
+        expected_path = Path.home() / ".foothold-checkpoints"
+        assert config.checkpoints_dir == expected_path
+        assert "~" not in str(config.checkpoints_dir)
+
+    def test_server_path_expands_tilde(self):
+        """ServerConfig path should expand ~ to user's home directory."""
+        from foothold_checkpoint.core.config import ServerConfig
+        import os
+
+        config = ServerConfig(
+            path=Path("~/DCS/Missions/Saves"),
+            description="Home server"
+        )
+
+        # ~ should be expanded
+        expected_path = Path.home() / "DCS" / "Missions" / "Saves"
+        assert config.path == expected_path
+        assert "~" not in str(config.path)
+
+    def test_checkpoints_dir_expands_environment_variables(self):
+        """Config should expand environment variables in checkpoints_dir."""
+        from foothold_checkpoint.core.config import Config, ServerConfig
+        import os
+
+        # Set a test environment variable
+        os.environ["FOOTHOLD_TEST_DIR"] = "C:/TestCheckpoints"
+
+        try:
+            config = Config(
+                checkpoints_dir=Path("$FOOTHOLD_TEST_DIR/backups"),
+                servers={
+                    "test": ServerConfig(
+                        path=Path("D:/Test"),
+                        description="Test"
+                    )
+                },
+                campaigns={"Afghanistan": ["afghanistan"]}
+            )
+
+            # Environment variable should be expanded
+            assert config.checkpoints_dir == Path("C:/TestCheckpoints/backups")
+            assert "$FOOTHOLD_TEST_DIR" not in str(config.checkpoints_dir)
+        finally:
+            del os.environ["FOOTHOLD_TEST_DIR"]
+
+    def test_server_path_expands_environment_variables(self):
+        """ServerConfig path should expand environment variables."""
+        from foothold_checkpoint.core.config import ServerConfig
+        import os
+
+        # Set a test environment variable
+        os.environ["DCS_ROOT"] = "D:/Servers/DCS"
+
+        try:
+            config = ServerConfig(
+                path=Path("$DCS_ROOT/Missions/Saves"),
+                description="DCS server"
+            )
+
+            # Environment variable should be expanded
+            assert config.path == Path("D:/Servers/DCS/Missions/Saves")
+            assert "$DCS_ROOT" not in str(config.path)
+        finally:
+            del os.environ["DCS_ROOT"]
+
+    def test_path_expansion_combined_tilde_and_envvar(self):
+        """Path expansion should handle both tilde and environment variables."""
+        from foothold_checkpoint.core.config import ServerConfig
+        import os
+
+        # This is a bit contrived but tests both mechanisms
+        os.environ["MISSIONS_SUBDIR"] = "Missions"
+
+        try:
+            # Start with tilde, followed by env var
+            config = ServerConfig(
+                path=Path("~/DCS/$MISSIONS_SUBDIR/Saves"),
+                description="Combined"
+            )
+
+            # Both should be expanded
+            expected_path = Path.home() / "DCS" / "Missions" / "Saves"
+            assert config.path == expected_path
+        finally:
+            del os.environ["MISSIONS_SUBDIR"]
+
+    def test_load_config_expands_paths(self):
+        """load_config should expand paths from YAML file."""
+        from foothold_checkpoint.core.config import load_config
+        import os
+
+        # Set environment variable for test
+        os.environ["TEST_CHECKPOINT_DIR"] = "C:/TestCheckpoints"
+
+        # Create YAML with unexpanded paths
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump({
+                'checkpoints_dir': '~/.foothold-checkpoints',
+                'servers': {
+                    'test-server': {
+                        'path': '$TEST_CHECKPOINT_DIR/Saves',
+                        'description': 'Test server with env var'
+                    }
+                },
+                'campaigns': {
+                    'Afghanistan': ['afghanistan']
+                }
+            }, f)
+            temp_path = Path(f.name)
+
+        try:
+            config = load_config(temp_path)
+
+            # checkpoints_dir should have expanded tilde
+            expected_checkpoints = Path.home() / ".foothold-checkpoints"
+            assert config.checkpoints_dir == expected_checkpoints
+
+            # Server path should have expanded env var
+            assert config.servers["test-server"].path == Path("C:/TestCheckpoints/Saves")
+        finally:
+            temp_path.unlink()
+            del os.environ["TEST_CHECKPOINT_DIR"]
+
+    def test_path_expansion_with_windows_style_envvar(self):
+        """Path expansion should handle Windows %ENVVAR% style variables."""
+        from foothold_checkpoint.core.config import ServerConfig
+        import os
+
+        os.environ["USERPROFILE"] = "C:/Users/TestUser"
+
+        try:
+            # Windows style: %USERPROFILE%
+            config = ServerConfig(
+                path=Path("%USERPROFILE%/DCS/Missions/Saves"),
+                description="Windows style"
+            )
+
+            # Should be expanded
+            assert config.path == Path("C:/Users/TestUser/DCS/Missions/Saves")
+            assert "%" not in str(config.path)
+        finally:
+            if "USERPROFILE" in os.environ:
+                del os.environ["USERPROFILE"]

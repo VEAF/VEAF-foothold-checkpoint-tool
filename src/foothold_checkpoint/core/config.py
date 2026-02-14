@@ -2,8 +2,38 @@
 
 from pathlib import Path
 from typing import Any
+import os
 import yaml
 from pydantic import BaseModel, Field, field_validator
+
+
+def expand_path(path: Path) -> Path:
+    """Expand tilde and environment variables in path.
+
+    Args:
+        path: Path potentially containing ~ or environment variables
+
+    Returns:
+        Path: Expanded path with ~ and environment variables resolved
+
+    Examples:
+        >>> expand_path(Path("~/.config"))
+        Path("/home/user/.config")
+        >>> expand_path(Path("$HOME/data"))
+        Path("/home/user/data")
+        >>> expand_path(Path("%USERPROFILE%/Documents"))
+        Path("C:/Users/user/Documents")
+    """
+    # Convert to string for manipulation
+    path_str = str(path)
+
+    # Expand environment variables (supports both $VAR and %VAR% formats)
+    path_str = os.path.expandvars(path_str)
+
+    # Create Path and expand tilde
+    expanded = Path(path_str).expanduser()
+
+    return expanded
 
 
 # Default configuration template
@@ -62,6 +92,14 @@ class ServerConfig(BaseModel):
 
     model_config = {"frozen": True}
 
+    @field_validator("path", mode="before")
+    @classmethod
+    def expand_server_path(cls, value: Any) -> Path:
+        """Expand tilde and environment variables in server path."""
+        if isinstance(value, str):
+            value = Path(value)
+        return expand_path(value)
+
 
 class Config(BaseModel):
     """Main configuration model.
@@ -84,6 +122,14 @@ class Config(BaseModel):
     )
 
     model_config = {"frozen": True}
+
+    @field_validator("checkpoints_dir", mode="before")
+    @classmethod
+    def expand_checkpoints_dir(cls, value: Any) -> Path:
+        """Expand tilde and environment variables in checkpoints directory."""
+        if isinstance(value, str):
+            value = Path(value)
+        return expand_path(value)
 
     @field_validator("campaigns")
     @classmethod
