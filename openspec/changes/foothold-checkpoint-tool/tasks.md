@@ -27,8 +27,8 @@
 
 - [x] 3.1 Implement file pattern matching for campaign files
 - [x] 3.2 Write tests for pattern matching (various prefixes, extensions)
-- [ ] 3.3 Implement version suffix normalization (regex patterns)
-- [ ] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
+- [x] 3.3 Implement version suffix normalization (regex patterns)
+- [x] 3.4 Write tests for version normalization (_v0.2, _V0.1, _0.1, none)
 - [ ] 3.5 Implement campaign file grouping by normalized prefix
 - [ ] 3.6 Write tests for file grouping (complete, incomplete, mixed case)
 - [ ] 3.7 Implement Foothold_Ranks.lua recognition as shared file
