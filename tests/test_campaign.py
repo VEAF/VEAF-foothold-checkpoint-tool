@@ -152,7 +152,7 @@ class TestVersionNormalization:
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name("foothold_Syria_Extended.lua") == "syria_extended"
-        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "Germany_Modern"
+        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "germany_modern"
         assert normalize_campaign_name("foothold_Persian_Gulf_2.0.lua") == "persian_gulf"
 
     def test_normalize_case_insensitive_prefix(self):
@@ -505,7 +505,7 @@ class TestCampaignNameMapping:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        assert map_campaign_name("afghanistan", config) == "afghanistan"
+        assert map_campaign_name("afghanistan", config) == "Afghanistan"
 
     def test_map_multiple_historical_names(self):
         """Should map any historical name to the current (last) name."""
@@ -520,10 +520,10 @@ class TestCampaignNameMapping:
             campaigns={"Syria": ["syria_extended", "syria_modern", "syria"]},
         )
 
-        # All historical names should map to current (last)
-        assert map_campaign_name("syria_extended", config) == "syria"
-        assert map_campaign_name("syria_modern", config) == "syria"
-        assert map_campaign_name("syria", config) == "syria"
+        # All historical names should map to campaign ID
+        assert map_campaign_name("syria_extended", config) == "Syria"
+        assert map_campaign_name("syria_modern", config) == "Syria"
+        assert map_campaign_name("syria", config) == "Syria"
 
     def test_map_case_insensitive_matching(self):
         """Should match campaign names case-insensitively in config."""
@@ -555,6 +555,7 @@ class TestCampaignNameMapping:
             campaigns={},
         )
 
+        # When config is empty, return the input unchanged (lowercase)
         assert map_campaign_name("afghanistan", config) == "afghanistan"
 
     def test_detect_campaigns_with_mapping(self):
@@ -574,10 +575,10 @@ class TestCampaignNameMapping:
 
         campaigns = detect_campaigns(files, config)
 
-        # Should be grouped under current name "germany_modern", not "gcw_modern"
-        assert "germany_modern" in campaigns
+        # Should be grouped under campaign ID "Germany_Modern", not "gcw_modern"
+        assert "Germany_Modern" in campaigns
         assert "gcw_modern" not in campaigns
-        assert len(campaigns["germany_modern"]) == 2
+        assert len(campaigns["Germany_Modern"]) == 2
 
 
 class TestCampaignDetectionReport:
@@ -600,7 +601,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"afghanistan": 2}
+        assert report == {"Afghanistan": 2}
 
     def test_report_multiple_campaigns(self):
         """Should generate report for multiple campaigns."""
@@ -624,7 +625,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"afghanistan": 2, "ca": 2}
+        assert report == {"Afghanistan": 2, "Caucasus": 2}
 
     def test_report_empty_list(self):
         """Should return empty report for empty file list."""
@@ -661,7 +662,7 @@ class TestCampaignDetectionReport:
         report = create_campaign_report(files, config)
 
         # Only the campaign file should be counted
-        assert report == {"afghanistan": 1}
+        assert report == {"Afghanistan": 1}
 
     def test_report_with_name_mapping(self):
         """Should use current campaign names in report."""
@@ -680,8 +681,8 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        # Should use current name "germany_modern", not historical "gcw_modern"
-        assert report == {"germany_modern": 2}
+        # Should use campaign ID "Germany_Modern", not historical "gcw_modern"
+        assert report == {"Germany_Modern": 2}
         assert "gcw_modern" not in report
 
     def test_report_excludes_shared_files(self):
@@ -702,7 +703,7 @@ class TestCampaignDetectionReport:
         report = create_campaign_report(files, config)
 
         # Ranks file should not be counted
-        assert report == {"afghanistan": 1}
+        assert report == {"Afghanistan": 1}
 
     def test_report_with_varying_file_counts(self):
         """Should correctly count different numbers of files per campaign."""
@@ -732,7 +733,7 @@ class TestCampaignDetectionReport:
 
         report = create_campaign_report(files, config)
 
-        assert report == {"afghanistan": 4, "ca": 1, "syria": 2}
+        assert report == {"Afghanistan": 4, "Caucasus": 1, "Syria": 2}
 
 
 class TestRenameCampaignFile:

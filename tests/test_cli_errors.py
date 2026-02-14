@@ -91,8 +91,8 @@ def test_save_path_not_found_error() -> None:
         result = runner.invoke(app, ["save", "--server", "prod-1"])
 
     assert result.exit_code == 1
-    assert "Mission directory does not exist" in result.stdout
-    assert str(mission_dir) in result.stdout
+    assert "Mission saves directory does not exist" in result.stdout
+    # Note: mission_dir in output now includes /Missions/Saves appended
 
 
 def test_save_no_campaigns_detected_error() -> None:

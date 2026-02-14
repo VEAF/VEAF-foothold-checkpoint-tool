@@ -1151,22 +1151,22 @@ class TestRestoreCheckpoint:
             )
 
             # Files should be renamed to current campaign name
-            assert (target_dir / "FootHold_germany_modern.lua").exists()
-            assert (target_dir / "FootHold_germany_modern_storage.csv").exists()
+            assert (target_dir / "FootHold_Germany_Modern.lua").exists()
+            assert (target_dir / "FootHold_Germany_Modern_storage.csv").exists()
 
             # Old names should NOT exist
             assert not (target_dir / "FootHold_GCW_Modern.lua").exists()
             assert not (target_dir / "FootHold_GCW_Modern_storage.csv").exists()
 
             # Content should be preserved
-            assert (target_dir / "FootHold_germany_modern.lua").read_bytes() == old_lua_content
+            assert (target_dir / "FootHold_Germany_Modern.lua").read_bytes() == old_lua_content
             assert (
-                target_dir / "FootHold_germany_modern_storage.csv"
+                target_dir / "FootHold_Germany_Modern_storage.csv"
             ).read_bytes() == old_csv_content
 
             # Returned paths should use new names
-            assert any(f.name == "FootHold_germany_modern.lua" for f in restored_files)
-            assert any(f.name == "FootHold_germany_modern_storage.csv" for f in restored_files)
+            assert any(f.name == "FootHold_Germany_Modern.lua" for f in restored_files)
+            assert any(f.name == "FootHold_Germany_Modern_storage.csv" for f in restored_files)
 
     def test_restore_checkpoint_keeps_files_unchanged_when_no_name_evolution(self):
         """restore_checkpoint should keep filenames unchanged when campaign name hasn't evolved."""
