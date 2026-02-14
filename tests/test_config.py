@@ -477,6 +477,10 @@ class TestPathExpansion:
             temp_path.unlink()
             del os.environ["TEST_CHECKPOINT_DIR"]
 
+    @pytest.mark.skipif(
+        __import__("sys").platform != "win32",
+        reason="Windows-style environment variable expansion is Windows-specific",
+    )
     def test_path_expansion_with_windows_style_envvar(self):
         """Path expansion should handle Windows %ENVVAR% style variables."""
         import os

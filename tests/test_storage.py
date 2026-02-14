@@ -1212,7 +1212,10 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             restore_checkpoint(
-                checkpoint_path=checkpoint_path, target_dir=target_dir, config=config
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                config=config,
+                skip_overwrite_check=True,
             )
 
             # Filename should be unchanged (campaign name hasn't evolved)
@@ -1874,6 +1877,10 @@ class TestDeleteCheckpoint:
             with pytest.raises(ValueError, match="Cannot read checkpoint metadata"):
                 delete_checkpoint(corrupted_zip, force=True)
 
+    @pytest.mark.skipif(
+        __import__("sys").platform != "win32",
+        reason="Read-only file deletion behavior is Windows-specific",
+    )
     def test_delete_checkpoint_handles_permission_error(self):
         """delete_checkpoint should raise PermissionError if file is read-only."""
         import os
