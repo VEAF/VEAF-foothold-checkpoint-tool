@@ -123,24 +123,24 @@
 
 ## 9. Checkpoint Import (core/storage.py)
 
-- [ ] 9.1 Implement import_checkpoint function
-- [ ] 9.2 Write tests for import_checkpoint (basic import)
-- [ ] 9.3 Implement source directory scanning
-- [ ] 9.4 Write tests for directory scanning (single, multiple campaigns)
-- [ ] 9.5 Implement campaign auto-detection from files
-- [ ] 9.6 Write tests for auto-detection
-- [ ] 9.7 Implement file validation with warnings
-- [ ] 9.8 Write tests for validation warnings (missing files)
-- [ ] 9.9 Implement import metadata collection
-- [ ] 9.10 Write tests for metadata collection (from user input)
-- [ ] 9.11 Implement checkpoint creation with current timestamp
-- [ ] 9.12 Write tests for timestamp behavior
-- [ ] 9.13 Implement checksum computation for imported files
-- [ ] 9.14 Write tests for checksum computation
-- [ ] 9.15 Implement original filename preservation
-- [ ] 9.16 Write tests for filename preservation
-- [ ] 9.17 Implement import error handling
-- [ ] 9.18 Write tests for error scenarios (corrupted source, disk full)
+- [x] 9.1 Implement import_checkpoint function
+- [x] 9.2 Write tests for import_checkpoint (basic import)
+- [x] 9.3 Implement source directory scanning
+- [x] 9.4 Write tests for directory scanning (single, multiple campaigns)
+- [x] 9.5 Implement campaign auto-detection from files
+- [x] 9.6 Write tests for auto-detection
+- [x] 9.7 Implement file validation with warnings
+- [x] 9.8 Write tests for validation warnings (missing files)
+- [x] 9.9 Implement import metadata collection
+- [x] 9.10 Write tests for metadata collection (from user input)
+- [x] 9.11 Implement checkpoint creation with current timestamp
+- [x] 9.12 Write tests for timestamp behavior
+- [x] 9.13 Implement checksum computation for imported files
+- [x] 9.14 Write tests for checksum computation
+- [x] 9.15 Implement original filename preservation
+- [x] 9.16 Write tests for filename preservation
+- [x] 9.17 Implement import error handling
+- [x] 9.18 Write tests for error scenarios (corrupted source, disk full)
 
 ## 10. CLI - Base Structure (cli.py)
 
