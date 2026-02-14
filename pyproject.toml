@@ -31,6 +31,9 @@ typer = "^0.9.0"
 rich = "^13.0.0"
 pyyaml = "^6.0"
 pydantic = "^2.0.0"
+# CRITICAL: Click 8.3.x breaks Typer 0.9.x help rendering (Parameter.make_metavar() TypeError)
+# Keep at 8.1.7 until Typer releases a compatible version. See CONTRIBUTING.md for details.
+click = "8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

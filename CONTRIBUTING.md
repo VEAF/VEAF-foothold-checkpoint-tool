@@ -60,6 +60,37 @@ Configure VS Code to use the Poetry virtualenv:
 2. Select "Python: Select Interpreter"
 3. Choose the Poetry virtualenv (usually `foothold-checkpoint-xxx-py3.x`)
 
+### Critical Dependencies
+
+**⚠️ Important: Click Version Constraint**
+
+This project uses **Typer 0.9.x** for the CLI, which has a critical compatibility issue with Click 8.3.x. 
+
+**Required:** Click must be pinned to version **8.1.7** in `pyproject.toml`:
+
+```toml
+[tool.poetry.dependencies]
+click = "8.1.7"  # DO NOT upgrade to 8.3.x
+```
+
+**Issue:** Click 8.3.x introduces a breaking change where `Parameter.make_metavar()` requires a `ctx` argument. This causes a `TypeError` when Typer renders help text with `Annotated` type hints:
+
+```
+TypeError: Parameter.make_metavar() missing 1 required positional argument: 'ctx'
+```
+
+**Symptoms:**
+- `--help` flag crashes with TypeError
+- CLI commands fail to display usage information
+- Help rendering fails when using `typer.Option()` with `Annotated` syntax
+
+**Resolution:** Keep Click at 8.1.7 until Typer releases a version compatible with Click 8.3.x.
+
+**Testing:** Always verify `--help` works after any dependency updates:
+```powershell
+poetry run foothold-checkpoint --help
+```
+
 ## Project Structure
 
 ```

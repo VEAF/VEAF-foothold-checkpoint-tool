@@ -144,16 +144,16 @@
 
 ## 10. CLI - Base Structure (cli.py)
 
-- [ ] 10.1 Create Typer app instance with metadata
-- [ ] 10.2 Write tests for CLI app initialization
-- [ ] 10.3 Implement --version flag
-- [ ] 10.4 Write tests for version display
-- [ ] 10.5 Implement --config flag for custom config path
-- [ ] 10.6 Write tests for custom config loading
-- [ ] 10.7 Implement --quiet flag for suppressed output
-- [ ] 10.8 Write tests for quiet mode
-- [ ] 10.9 Implement Ctrl+C signal handler for graceful exit
-- [ ] 10.10 Write tests for interrupt handling
+- [x] 10.1 Create Typer app instance with metadata
+- [x] 10.2 Write tests for CLI app initialization
+- [x] 10.3 Implement --version flag
+- [x] 10.4 Write tests for version display
+- [x] 10.5 Implement --config flag for custom config path
+- [x] 10.6 Write tests for custom config loading
+- [x] 10.7 Implement --quiet flag for suppressed output
+- [x] 10.8 Write tests for quiet mode
+- [x] 10.9 Implement Ctrl+C signal handler for graceful exit
+- [x] 10.10 Write tests for interrupt handling
 
 ## 11. CLI - Save Command (cli.py)
 
