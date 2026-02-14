@@ -1,27 +1,27 @@
 ## 1. Project Setup
 
-- [ ] 1.1 Create `pyproject.toml` with project metadata and dependencies
-- [ ] 1.2 Add runtime dependencies (typer, rich, pyyaml, pydantic)
-- [ ] 1.3 Add dev dependencies (pytest, ruff, black, mypy)
-- [ ] 1.4 Create `foothold_checkpoint/` package structure with `__init__.py`
-- [ ] 1.5 Create `foothold_checkpoint/core/` subpackage with `__init__.py`
-- [ ] 1.6 Create `tests/` directory structure matching package layout
-- [ ] 1.7 Create `CHANGELOG.md` following Keep a Changelog format
-- [ ] 1.8 Create `README.md` with project description and basic usage
-- [ ] 1.9 Create `config.yaml.example` with sample configuration
+- [x] 1.1 Create `pyproject.toml` with project metadata and dependencies
+- [x] 1.2 Add runtime dependencies (typer, rich, pyyaml, pydantic)
+- [x] 1.3 Add dev dependencies (pytest, ruff, black, mypy)
+- [x] 1.4 Create `foothold_checkpoint/` package structure with `__init__.py`
+- [x] 1.5 Create `foothold_checkpoint/core/` subpackage with `__init__.py`
+- [x] 1.6 Create `tests/` directory structure matching package layout
+- [x] 1.7 Create `CHANGELOG.md` following Keep a Changelog format
+- [x] 1.8 Create `README.md` with project description and basic usage
+- [x] 1.9 Create `config.yaml.example` with sample configuration
 
 ## 2. Configuration Management (core/config.py)
 
-- [ ] 2.1 Define Pydantic models for configuration (ServerConfig, Config)
-- [ ] 2.2 Write tests for Pydantic model validation
-- [ ] 2.3 Implement configuration loading from YAML file
-- [ ] 2.4 Write tests for config loading (valid, invalid YAML, invalid schema)
-- [ ] 2.5 Implement auto-creation of default config file
-- [ ] 2.6 Write tests for auto-creation (directory creation, default values)
-- [ ] 2.7 Implement config path expansion (tilde, environment variables)
-- [ ] 2.8 Write tests for path expansion
-- [ ] 2.9 Add config validation error messages with helpful context
-- [ ] 2.10 Write tests for error message clarity
+- [x] 2.1 Define Pydantic models for configuration (ServerConfig, Config)
+- [x] 2.2 Write tests for Pydantic model validation
+- [x] 2.3 Implement configuration loading from YAML file
+- [x] 2.4 Write tests for config loading (valid, invalid YAML, invalid schema)
+- [x] 2.5 Implement auto-creation of default config file
+- [x] 2.6 Write tests for auto-creation (directory creation, default values)
+- [x] 2.7 Implement config path expansion (tilde, environment variables)
+- [x] 2.8 Write tests for path expansion
+- [x] 2.9 Add config validation error messages with helpful context
+- [x] 2.10 Write tests for error message clarity
 
 ## 3. Campaign Detection (core/campaign.py)
 

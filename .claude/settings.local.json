@@ -6,7 +6,13 @@
       "Bash(openspec instructions proposal:*)",
       "Bash(openspec instructions design:*)",
       "Bash(openspec instructions specs:*)",
-      "Bash(openspec instructions tasks:*)"
+      "Bash(openspec instructions tasks:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python -c:*)",
+      "Bash(poetry install:*)",
+      "Bash(poetry run python:*)",
+      "Bash(git add:*)",
+      "Bash(poetry run pytest:*)"
     ]
   }
 }
