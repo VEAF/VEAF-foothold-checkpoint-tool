@@ -11,10 +11,15 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
-from foothold_checkpoint.core.campaign import detect_campaigns
+from foothold_checkpoint.core.campaign import detect_campaigns, group_campaign_files
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 from foothold_checkpoint.core.config import load_config
-from foothold_checkpoint.core.storage import list_checkpoints, restore_checkpoint
+from foothold_checkpoint.core.storage import (
+    delete_checkpoint,
+    import_checkpoint,
+    list_checkpoints,
+    restore_checkpoint,
+)
 
 # Package version
 __version__ = "0.1.0"
@@ -555,6 +560,475 @@ def restore_command(
         raise typer.Exit(1) from e
     except RuntimeError as e:
         console.print(f"[yellow]Warning:[/yellow] {e}")
+        raise typer.Exit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@app.command("list")
+def list_command(
+    server: Annotated[
+        str | None,
+        typer.Option("--server", "-s", help="Filter checkpoints by server name"),
+    ] = None,
+    campaign: Annotated[
+        str | None,
+        typer.Option("--campaign", "-c", help="Filter checkpoints by campaign name"),
+    ] = None,
+) -> None:
+    """List available checkpoints with optional filters.
+
+    Displays all checkpoints in the checkpoints directory, optionally filtered
+    by server and/or campaign name. Shows checkpoint metadata including filename,
+    campaign, server, timestamp, and file size in a formatted table.
+
+    Args:
+        server: Optional server name to filter checkpoints
+        campaign: Optional campaign name to filter checkpoints
+
+    Examples:
+        # List all checkpoints
+        foothold-checkpoint list
+
+        # Filter by server
+        foothold-checkpoint list --server prod-1
+
+        # Filter by campaign
+        foothold-checkpoint list --campaign afghanistan
+
+        # Filter by both
+        foothold-checkpoint list --server prod-1 --campaign afghanistan
+
+        # Quiet mode (filenames only)
+        foothold-checkpoint --quiet list
+    """
+    try:
+        # Load configuration
+        config_file = _config_path if _config_path else Path("config.yaml")
+        config = load_config(config_file)
+
+        # List checkpoints with filters
+        checkpoints = list_checkpoints(
+            config.checkpoints_directory,
+            server_filter=server,
+            campaign_filter=campaign
+        )
+
+        # Handle empty results
+        if not checkpoints:
+            if not _quiet_mode:
+                if server or campaign:
+                    filters = []
+                    if server:
+                        filters.append(f"server='{server}'")
+                    if campaign:
+                        filters.append(f"campaign='{campaign}'")
+                    console.print(f"[yellow]No checkpoints found matching {' and '.join(filters)}[/yellow]")
+                else:
+                    console.print("[yellow]No checkpoints found[/yellow]")
+            return
+
+        # Quiet mode: just print filenames
+        if _quiet_mode:
+            for cp in checkpoints:
+                print(cp["filename"])
+            return
+
+        # Normal mode: display Rich table
+        from rich.table import Table
+
+        table = Table(title="Checkpoints", show_header=True, header_style="bold cyan")
+        table.add_column("Filename", style="white", no_wrap=True)
+        table.add_column("Campaign", style="cyan")
+        table.add_column("Server", style="green")
+        table.add_column("Created", style="yellow")
+        table.add_column("Size", style="magenta", justify="right")
+        table.add_column("Name", style="blue")
+
+        # Add rows for each checkpoint
+        for cp in checkpoints:
+            # Format timestamp for human readability
+            timestamp_str = cp["timestamp"]
+            # Convert ISO timestamp to more readable format
+            # "2024-02-14T10:30:00" -> "2024-02-14 10:30:00"
+            timestamp_display = timestamp_str.replace("T", " ")
+
+            # Get optional name
+            name_display = cp.get("name") or ""
+
+            table.add_row(
+                cp["filename"],
+                cp["campaign"],
+                cp["server"],
+                timestamp_display,
+                cp["size_human"],
+                name_display
+            )
+
+        console.print(table)
+        console.print(f"\n[cyan]Total:[/cyan] {len(checkpoints)} checkpoint(s)")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@app.command("delete")
+def delete_command(
+    checkpoint_file: Annotated[
+        str | None,
+        typer.Argument(help="Checkpoint file to delete (optional if interactive)"),
+    ] = None,
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Delete without confirmation"),
+    ] = False,
+) -> None:
+    """Delete a checkpoint file from storage.
+
+    Validates that the file is a valid checkpoint before deletion. By default,
+    prompts for confirmation showing checkpoint metadata. Use --force to skip
+    confirmation. In interactive mode (no checkpoint file specified), displays
+    available checkpoints and prompts for selection.
+
+    Args:
+        checkpoint_file: Optional checkpoint filename to delete
+        force: If True, delete immediately without confirmation
+
+    Examples:
+        # Delete with confirmation
+        foothold-checkpoint delete afghanistan_2024-02-14.zip
+
+        # Force delete without confirmation
+        foothold-checkpoint delete checkpoint.zip --force
+
+        # Interactive mode
+        foothold-checkpoint delete
+
+        # Quiet mode (automatic force, no prompts)
+        foothold-checkpoint --quiet delete checkpoint.zip
+    """
+    import json
+    import zipfile
+
+    try:
+        # Load configuration
+        config_file = _config_path if _config_path else Path("config.yaml")
+        config = load_config(config_file)
+
+        # Step 1: Get checkpoint file (from argument or interactive selection)
+        if checkpoint_file:
+            checkpoint_path = config.checkpoints_directory / checkpoint_file
+        else:
+            # Interactive mode: list checkpoints and prompt for selection
+            checkpoints = list_checkpoints(config.checkpoints_directory)
+
+            if not checkpoints:
+                console.print("[yellow]No checkpoints found[/yellow]")
+                raise typer.Exit(1)
+
+            # Display numbered list
+            if not _quiet_mode:
+                console.print("\n[cyan]Available checkpoints:[/cyan]")
+                for idx, cp in enumerate(checkpoints, 1):
+                    timestamp = cp["timestamp"].replace("T", " ")
+                    console.print(
+                        f"  {idx}. [white]{cp['filename']}[/white] - "
+                        f"[cyan]{cp['campaign']}[/cyan] on "
+                        f"[green]{cp['server']}[/green] "
+                        f"[yellow]({timestamp})[/yellow]"
+                    )
+
+            # Prompt for selection
+            choices = [str(i) for i in range(1, len(checkpoints) + 1)]
+            selection = Prompt.ask(
+                "\nSelect checkpoint number",
+                choices=choices,
+                default="1"
+            )
+            selected_idx = int(selection) - 1
+            checkpoint_path = config.checkpoints_directory / checkpoints[selected_idx]["filename"]
+
+        # Step 2: Read metadata for display (before deletion)
+        try:
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = json.loads(metadata_content)
+        except (FileNotFoundError, zipfile.BadZipFile, KeyError):
+            # If we can't read metadata, proceed anyway (delete_checkpoint will validate)
+            metadata = None
+
+        # Step 3: Delete checkpoint with optional confirmation
+        # Quiet mode acts like force mode (no prompts)
+        use_force = force or _quiet_mode
+
+        if use_force:
+            # Force mode: no confirmation needed
+            result = delete_checkpoint(
+                checkpoint_path,
+                force=True,
+                confirm_callback=None
+            )
+        else:
+            # Interactive mode: display metadata and prompt for confirmation
+            if metadata:
+                console.print("\n[yellow]About to delete checkpoint:[/yellow]")
+                console.print(f"  Campaign: [cyan]{metadata.get('campaign_name', 'Unknown')}[/cyan]")
+                console.print(f"  Server: [green]{metadata.get('server_name', 'Unknown')}[/green]")
+                console.print(f"  Created: [yellow]{metadata.get('created_at', 'Unknown')}[/yellow]")
+
+            # Create confirmation callback
+            def confirm(meta: dict) -> bool:  # noqa: ARG001 - callback signature required
+                """Prompt user for deletion confirmation."""
+                response = Prompt.ask(
+                    "\n[yellow]Delete this checkpoint?[/yellow]",
+                    choices=["y", "n"],
+                    default="n"
+                )
+                return response.lower() == "y"
+
+            result = delete_checkpoint(
+                checkpoint_path,
+                force=False,
+                confirm_callback=confirm
+            )
+
+        # Step 4: Display result
+        if result is None:
+            # User cancelled
+            if not _quiet_mode:
+                console.print("[yellow]Deletion cancelled[/yellow]")
+        else:
+            # Successfully deleted
+            if _quiet_mode:
+                # In quiet mode, just print the deleted filename
+                print(checkpoint_path.name)
+            else:
+                console.print(
+                    f"[green]✓ Success![/green] Deleted checkpoint "
+                    f"[cyan]{result['campaign_name']}[/cyan] from "
+                    f"[green]{result['server_name']}[/green]"
+                )
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@app.command("import")
+def import_command(
+    directory: Annotated[
+        str | None,
+        typer.Argument(help="Source directory containing campaign files to import"),
+    ] = None,
+    server: Annotated[
+        str | None,
+        typer.Option("--server", "-s", help="Target server name for metadata"),
+    ] = None,
+    campaign: Annotated[
+        str | None,
+        typer.Option("--campaign", "-c", help="Campaign name to import"),
+    ] = None,
+    name: Annotated[
+        str | None,
+        typer.Option("--name", "-n", help="Optional user-friendly name for checkpoint"),
+    ] = None,
+    comment: Annotated[
+        str | None,
+        typer.Option("--comment", help="Optional comment describing the checkpoint"),
+    ] = None,
+) -> None:
+    """Import campaign files from a directory and create a checkpoint.
+
+    Scans the source directory for Foothold campaign files, creates a checkpoint
+    ZIP archive with proper metadata. Can auto-detect campaigns or prompt for
+    selection when multiple campaigns are found.
+
+    Args:
+        directory: Source directory path containing campaign files
+        server: Server name for checkpoint metadata
+        campaign: Campaign name to import (auto-detected if omitted)
+        name: Optional user-friendly name
+        comment: Optional comment
+
+    Examples:
+        # Import with all metadata
+        foothold-checkpoint import /path/to/backup --server prod-1 --campaign afghanistan
+
+        # Auto-detect campaign and prompt for server
+        foothold-checkpoint import /path/to/backup
+
+        # With optional metadata
+        foothold-checkpoint import /backup --server prod-1 --campaign afghan --name "Manual Backup"
+
+        # Quiet mode (no prompts, auto-confirms)
+        foothold-checkpoint --quiet import /backup --server prod-1 --campaign afghan
+    """
+    try:
+        # Load configuration
+        config_file = _config_path if _config_path else Path("config.yaml")
+        config = load_config(config_file)
+
+        # Step 1: Get source directory (from argument or could be prompted)
+        if not directory:
+            console.print("[red]Error:[/red] Source directory is required")
+            raise typer.Exit(1)
+
+        source_dir = Path(directory)
+        if not source_dir.exists():
+            console.print(f"[red]Error:[/red] Source directory not found: {source_dir}")
+            raise typer.Exit(1)
+
+        if not source_dir.is_dir():
+            console.print(f"[red]Error:[/red] Not a directory: {source_dir}")
+            raise typer.Exit(1)
+
+        # Step 2: Detect campaigns in source directory
+        all_files = list(source_dir.iterdir())
+        filenames = [f.name for f in all_files if f.is_file()]
+        campaigns_found = group_campaign_files(filenames)
+
+        if not campaigns_found:
+            console.print(f"[red]Error:[/red] No campaign files found in {source_dir}")
+            raise typer.Exit(1)
+
+        # Step 3: Get campaign name (from flag, auto-detect, or prompt)
+        if campaign:
+            # User specified campaign name
+            campaign_name = campaign
+            # Validate it exists
+            if campaign_name not in campaigns_found:
+                # Try case-insensitive match
+                campaign_lower = campaign_name.lower()
+                matching = [c for c in campaigns_found if c.lower() == campaign_lower]
+                if matching:
+                    campaign_name = matching[0]
+                else:
+                    available = ", ".join(campaigns_found.keys())
+                    console.print(
+                        f"[red]Error:[/red] Campaign '{campaign}' not found. "
+                        f"Available: {available}"
+                    )
+                    raise typer.Exit(1)
+        elif len(campaigns_found) == 1:
+            # Auto-detect single campaign
+            campaign_name = list(campaigns_found.keys())[0]
+            if not _quiet_mode:
+                console.print(f"[cyan]Auto-detected campaign:[/cyan] {campaign_name}")
+        else:
+            # Multiple campaigns: prompt for selection
+            if not _quiet_mode:
+                console.print("\n[cyan]Multiple campaigns found:[/cyan]")
+                for idx, camp in enumerate(campaigns_found.keys(), 1):
+                    console.print(f"  {idx}. [white]{camp}[/white]")
+
+            choices = [str(i) for i in range(1, len(campaigns_found) + 1)]
+            selection = Prompt.ask(
+                "\nSelect campaign number",
+                choices=choices,
+                default="1"
+            )
+            selected_idx = int(selection) - 1
+            campaign_name = list(campaigns_found.keys())[selected_idx]
+
+        # Step 4: Get server name (from flag or prompt)
+        if not server:
+            # Prompt for server
+            available_servers = list(config.servers.keys())
+            if not available_servers:
+                console.print("[red]Error:[/red] No servers configured")
+                raise typer.Exit(1)
+
+            if not _quiet_mode:
+                console.print("\n[cyan]Available servers:[/cyan]")
+                for s in available_servers:
+                    console.print(f"  - {s}")
+
+            server_name = Prompt.ask(
+                "\nSelect target server",
+                choices=available_servers,
+                default=available_servers[0]
+            )
+        else:
+            server_name = server
+            # Validate server exists
+            if server_name not in config.servers:
+                available = ", ".join(config.servers.keys())
+                console.print(
+                    f"[red]Error:[/red] Server '{server_name}' not found. "
+                    f"Available servers: {available}"
+                )
+                raise typer.Exit(1)
+
+        # Step 5: Display summary and confirm (unless quiet mode)
+        if not _quiet_mode:
+            console.print("\n[yellow]Import Summary:[/yellow]")
+            console.print(f"  Source: [white]{source_dir}[/white]")
+            console.print(f"  Campaign: [cyan]{campaign_name}[/cyan]")
+            console.print(f"  Server: [green]{server_name}[/green]")
+            if name:
+                console.print(f"  Name: [blue]{name}[/blue]")
+            if comment:
+                console.print(f"  Comment: [white]{comment}[/white]")
+
+            confirm = Prompt.ask(
+                "\n[yellow]Proceed with import?[/yellow]",
+                choices=["y", "n"],
+                default="y"
+            )
+            if confirm.lower() != "y":
+                console.print("[yellow]Import cancelled[/yellow]")
+                return
+
+        # Step 6: Perform import
+        result = import_checkpoint(
+            source_dir=source_dir,
+            campaign_name=campaign_name,
+            server_name=server_name,
+            output_dir=config.checkpoints_directory,
+            name=name,
+            comment=comment,
+            return_warnings=True
+        )
+
+        # Handle result (could be path or tuple with warnings)
+        if isinstance(result, tuple):
+            checkpoint_path, warnings = result
+        else:
+            checkpoint_path = result
+            warnings = []
+
+        # Step 7: Display results
+        if _quiet_mode:
+            # Quiet mode: just print checkpoint path
+            print(checkpoint_path.name)
+        else:
+            console.print(
+                f"\n[green]✓ Success![/green] Imported checkpoint: "
+                f"[cyan]{checkpoint_path.name}[/cyan]"
+            )
+
+            # Display warnings if any
+            if warnings:
+                console.print(f"\n[yellow]Warnings ({len(warnings)}):[/yellow]")
+                for warning in warnings:
+                    console.print(f"  [yellow]⚠[/yellow] {warning}")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1) from e
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")

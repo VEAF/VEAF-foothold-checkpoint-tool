@@ -187,48 +187,48 @@
 
 ## 13. CLI - List Command (cli.py)
 
-- [ ] 13.1 Implement list command with filters (--server, --campaign)
-- [ ] 13.2 Write tests for list command with various filters
-- [ ] 13.3 Implement Rich table formatting
-- [ ] 13.4 Write tests for table formatting
-- [ ] 13.5 Implement timestamp formatting (human-readable)
-- [ ] 13.6 Write tests for timestamp display
-- [ ] 13.7 Implement file size formatting
-- [ ] 13.8 Write tests for file size display
-- [ ] 13.9 Implement empty results message
-- [ ] 13.10 Write tests for empty results
+- [x] 13.1 Implement list command with filters (--server, --campaign)
+- [x] 13.2 Write tests for list command with various filters
+- [x] 13.3 Implement Rich table formatting
+- [x] 13.4 Write tests for table formatting
+- [x] 13.5 Implement timestamp formatting (human-readable)
+- [x] 13.6 Write tests for timestamp display
+- [x] 13.7 Implement file size formatting
+- [x] 13.8 Write tests for file size display
+- [x] 13.9 Implement empty results message
+- [x] 13.10 Write tests for empty results
 
 ## 14. CLI - Delete Command (cli.py)
 
-- [ ] 14.1 Implement delete command with flags (checkpoint file, --force)
-- [ ] 14.2 Write tests for delete command with/without force
-- [ ] 14.3 Implement checkpoint selection in interactive mode
-- [ ] 14.4 Write tests for interactive selection
-- [ ] 14.5 Implement metadata display before confirmation
-- [ ] 14.6 Write tests for metadata display
-- [ ] 14.7 Implement confirmation prompt
-- [ ] 14.8 Write tests for confirmation (accept, cancel)
-- [ ] 14.9 Implement success/error messages
-- [ ] 14.10 Write tests for message display
+- [x] 14.1 Implement delete command with flags (checkpoint file, --force)
+- [x] 14.2 Write tests for delete command with/without force
+- [x] 14.3 Implement checkpoint selection in interactive mode
+- [x] 14.4 Write tests for interactive selection
+- [x] 14.5 Implement metadata display before confirmation
+- [x] 14.6 Write tests for metadata display
+- [x] 14.7 Implement confirmation prompt
+- [x] 14.8 Write tests for confirmation (accept, cancel)
+- [x] 14.9 Implement success/error messages
+- [x] 14.10 Write tests for message display
 
 ## 15. CLI - Import Command (cli.py)
 
-- [ ] 15.1 Implement import command with flags (directory, --server, --campaign, --name, --comment)
-- [ ] 15.2 Write tests for import command with all flags
-- [ ] 15.3 Implement directory prompt when missing
-- [ ] 15.4 Write tests for directory prompt
-- [ ] 15.5 Implement campaign detection and selection
-- [ ] 15.6 Write tests for campaign selection (auto-detect, multiple, user choice)
-- [ ] 15.7 Implement metadata prompts (server, name, comment)
-- [ ] 15.8 Write tests for metadata prompts
-- [ ] 15.9 Implement import summary display
-- [ ] 15.10 Write tests for summary display
-- [ ] 15.11 Implement confirmation prompt
-- [ ] 15.12 Write tests for confirmation
-- [ ] 15.13 Implement progress display
-- [ ] 15.14 Write tests for progress display
-- [ ] 15.15 Implement success/error messages with warnings
-- [ ] 15.16 Write tests for message display
+- [x] 15.1 Implement import command with flags (directory, --server, --campaign, --name, --comment)
+- [x] 15.2 Write tests for import command with all flags
+- [x] 15.3 Implement directory prompt when missing
+- [x] 15.4 Write tests for directory prompt
+- [x] 15.5 Implement campaign detection and selection
+- [x] 15.6 Write tests for campaign selection (auto-detect, multiple, user choice)
+- [x] 15.7 Implement metadata prompts (server, name, comment)
+- [x] 15.8 Write tests for metadata prompts
+- [x] 15.9 Implement import summary display
+- [x] 15.10 Write tests for summary display
+- [x] 15.11 Implement confirmation prompt
+- [x] 15.12 Write tests for confirmation
+- [x] 15.13 Implement progress display
+- [x] 15.14 Write tests for progress display
+- [x] 15.15 Implement success/error messages with warnings
+- [x] 15.16 Write tests for message display
 
 ## 16. CLI - Error Handling (cli.py)
 
