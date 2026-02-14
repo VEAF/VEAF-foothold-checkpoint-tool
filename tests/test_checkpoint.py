@@ -166,3 +166,122 @@ class TestCheckpointMetadata:
 
         assert metadata.created_at == utc_time
         assert metadata.created_at.tzinfo == timezone.utc
+
+
+class TestChecksumComputation:
+    """Test suite for SHA-256 checksum computation."""
+
+    def test_compute_checksum_small_file(self, tmp_path):
+        """Should compute SHA-256 checksum for small file."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        # Create a small test file
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Hello, World!", encoding="utf-8")
+
+        checksum = compute_file_checksum(test_file)
+
+        # Known SHA-256 of "Hello, World!"
+        expected = "sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
+        assert checksum == expected
+
+    def test_compute_checksum_large_file(self, tmp_path):
+        """Should compute SHA-256 checksum for large file (using chunks)."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        # Create a large test file (1 MB)
+        test_file = tmp_path / "large.bin"
+        test_file.write_bytes(b"x" * (1024 * 1024))  # 1 MB of 'x'
+
+        checksum = compute_file_checksum(test_file)
+
+        # Should return a valid sha256 checksum
+        assert checksum.startswith("sha256:")
+        assert len(checksum) == 71  # "sha256:" (7) + 64 hex chars
+
+    def test_compute_checksum_same_content_same_hash(self, tmp_path):
+        """Should produce same checksum for files with identical content."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        # Create two files with identical content
+        file1 = tmp_path / "file1.txt"
+        file2 = tmp_path / "file2.txt"
+        content = "Identical content for testing"
+        file1.write_text(content, encoding="utf-8")
+        file2.write_text(content, encoding="utf-8")
+
+        checksum1 = compute_file_checksum(file1)
+        checksum2 = compute_file_checksum(file2)
+
+        assert checksum1 == checksum2
+
+    def test_compute_checksum_different_content_different_hash(self, tmp_path):
+        """Should produce different checksums for different content."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        file1 = tmp_path / "file1.txt"
+        file2 = tmp_path / "file2.txt"
+        file1.write_text("Content A", encoding="utf-8")
+        file2.write_text("Content B", encoding="utf-8")
+
+        checksum1 = compute_file_checksum(file1)
+        checksum2 = compute_file_checksum(file2)
+
+        assert checksum1 != checksum2
+
+    def test_compute_checksum_empty_file(self, tmp_path):
+        """Should compute checksum for empty file."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        test_file = tmp_path / "empty.txt"
+        test_file.write_bytes(b"")
+
+        checksum = compute_file_checksum(test_file)
+
+        # Known SHA-256 of empty string
+        expected = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        assert checksum == expected
+
+    def test_compute_checksum_file_not_found(self, tmp_path):
+        """Should raise FileNotFoundError for non-existent file."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        non_existent = tmp_path / "does_not_exist.txt"
+
+        with pytest.raises(FileNotFoundError):
+            compute_file_checksum(non_existent)
+
+    def test_compute_checksum_directory_raises_error(self, tmp_path):
+        """Should raise error when path is a directory."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        # tmp_path itself is a directory
+        with pytest.raises(ValueError) as exc_info:
+            compute_file_checksum(tmp_path)
+
+        assert "not a file" in str(exc_info.value).lower()
+
+    def test_compute_checksum_accepts_string_path(self, tmp_path):
+        """Should accept path as string."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content", encoding="utf-8")
+
+        # Pass as string instead of Path
+        checksum = compute_file_checksum(str(test_file))
+
+        assert checksum.startswith("sha256:")
+        assert len(checksum) == 71
+
+    def test_compute_checksum_binary_file(self, tmp_path):
+        """Should compute checksum for binary files."""
+        from foothold_checkpoint.core.checkpoint import compute_file_checksum
+
+        test_file = tmp_path / "binary.bin"
+        test_file.write_bytes(bytes([0, 1, 2, 3, 255, 254, 253]))
+
+        checksum = compute_file_checksum(test_file)
+
+        assert checksum.startswith("sha256:")
+        assert len(checksum) == 71

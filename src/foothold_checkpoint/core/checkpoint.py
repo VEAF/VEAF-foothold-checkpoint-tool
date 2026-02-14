@@ -1,6 +1,9 @@
 """Checkpoint metadata and storage operations."""
 
+import hashlib
 from datetime import datetime
+from pathlib import Path
+from typing import Union
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -81,3 +84,51 @@ class CheckpointMetadata(BaseModel):
                 "Provide a valid server name (e.g., 'production-1', 'test-server')."
             )
         return value
+
+
+def compute_file_checksum(file_path: Union[str, Path]) -> str:
+    """Compute SHA-256 checksum for a file.
+
+    Reads the file in chunks to efficiently handle large files without
+    loading the entire content into memory.
+
+    Args:
+        file_path: Path to the file (string or Path object).
+
+    Returns:
+        str: SHA-256 checksum in the format "sha256:hexdigest".
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the path points to a directory instead of a file.
+
+    Examples:
+        >>> checksum = compute_file_checksum("foothold_afghanistan.lua")
+        >>> checksum
+        'sha256:abc123def456...'
+
+        >>> # Works with Path objects
+        >>> from pathlib import Path
+        >>> checksum = compute_file_checksum(Path("foothold_syria.lua"))
+    """
+    # Convert to Path if string
+    path = Path(file_path) if isinstance(file_path, str) else file_path
+
+    # Check if file exists
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    # Check if path is a file (not a directory)
+    if not path.is_file():
+        raise ValueError(f"Path is not a file: {path}")
+
+    # Compute SHA-256 checksum by reading in chunks
+    sha256_hash = hashlib.sha256()
+    chunk_size = 8192  # 8 KB chunks
+
+    with open(path, "rb") as f:
+        while chunk := f.read(chunk_size):
+            sha256_hash.update(chunk)
+
+    # Return checksum in format "sha256:hexdigest"
+    return f"sha256:{sha256_hash.hexdigest()}"
