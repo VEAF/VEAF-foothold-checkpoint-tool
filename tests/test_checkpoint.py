@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -60,8 +61,9 @@ class TestCheckpointMetadata:
 
     def test_metadata_missing_required_field_raises_error(self):
         """Should raise validation error when required fields are missing."""
-        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
         from pydantic import ValidationError
+
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
 
         with pytest.raises(ValidationError) as exc_info:
             CheckpointMetadata(
@@ -123,8 +125,9 @@ class TestCheckpointMetadata:
 
     def test_metadata_campaign_name_validation(self):
         """Should validate campaign_name is not empty."""
-        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
         from pydantic import ValidationError
+
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
 
         with pytest.raises(ValidationError) as exc_info:
             CheckpointMetadata(
@@ -138,8 +141,9 @@ class TestCheckpointMetadata:
 
     def test_metadata_server_name_validation(self):
         """Should validate server_name is not empty."""
-        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
         from pydantic import ValidationError
+
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata
 
         with pytest.raises(ValidationError) as exc_info:
             CheckpointMetadata(
@@ -314,7 +318,7 @@ class TestMetadataSerialization:
 
         # Verify JSON content
         import json
-        with open(json_file, 'r', encoding='utf-8') as f:
+        with open(json_file, encoding='utf-8') as f:
             data = json.load(f)
 
         assert data["campaign_name"] == "afghanistan"
@@ -342,7 +346,7 @@ class TestMetadataSerialization:
         save_metadata(metadata, json_file)
 
         import json
-        with open(json_file, 'r', encoding='utf-8') as f:
+        with open(json_file, encoding='utf-8') as f:
             data = json.load(f)
 
         assert data["name"] is None
@@ -407,7 +411,9 @@ class TestMetadataSerialization:
     def test_roundtrip_serialization(self, tmp_path):
         """Should preserve data through serialize → deserialize cycle."""
         from foothold_checkpoint.core.checkpoint import (
-            CheckpointMetadata, save_metadata, load_metadata
+            CheckpointMetadata,
+            load_metadata,
+            save_metadata,
         )
 
         original = CheckpointMetadata(
@@ -486,7 +492,7 @@ class TestMetadataSerialization:
         save_metadata(metadata, json_file)
 
         import json
-        with open(json_file, 'r', encoding='utf-8') as f:
+        with open(json_file, encoding='utf-8') as f:
             data = json.load(f)
 
         # Should be in ISO 8601 format
@@ -573,8 +579,9 @@ class TestFilenameGeneration:
 
     def test_generate_filename_without_datetime_uses_now(self):
         """Should use current time if datetime not provided."""
-        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
         from datetime import datetime
+
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
 
         campaign = "afghanistan"
 
@@ -631,8 +638,9 @@ class TestZIPCreation:
 
     def test_create_checkpoint_single_campaign(self, tmp_path):
         """Should create ZIP with campaign files and metadata."""
-        from foothold_checkpoint.core.checkpoint import create_checkpoint
         import zipfile
+
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
 
         # Create test campaign files
         source_dir = tmp_path / "source"
@@ -667,8 +675,9 @@ class TestZIPCreation:
 
     def test_create_checkpoint_with_ranks_file(self, tmp_path):
         """Should include Foothold_Ranks.lua when provided."""
-        from foothold_checkpoint.core.checkpoint import create_checkpoint
         import zipfile
+
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
 
         source_dir = tmp_path / "source"
         source_dir.mkdir()
@@ -694,8 +703,9 @@ class TestZIPCreation:
 
     def test_create_checkpoint_without_ranks_file(self, tmp_path):
         """Should work without Foothold_Ranks.lua."""
-        from foothold_checkpoint.core.checkpoint import create_checkpoint
         import zipfile
+
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
 
         source_dir = tmp_path / "source"
         source_dir.mkdir()
@@ -717,8 +727,9 @@ class TestZIPCreation:
 
     def test_create_checkpoint_metadata_content(self, tmp_path):
         """Should create metadata.json with correct checksums."""
-        from foothold_checkpoint.core.checkpoint import create_checkpoint, load_metadata
         import zipfile
+
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
 
         source_dir = tmp_path / "source"
         source_dir.mkdir()
@@ -749,9 +760,10 @@ class TestZIPCreation:
 
     def test_create_checkpoint_with_optional_metadata(self, tmp_path):
         """Should include optional name and comment in metadata."""
-        from foothold_checkpoint.core.checkpoint import create_checkpoint
-        import zipfile
         import json
+        import zipfile
+
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
 
         source_dir = tmp_path / "source"
         source_dir.mkdir()

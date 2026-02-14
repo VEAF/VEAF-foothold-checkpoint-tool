@@ -479,7 +479,7 @@ def restore_command(
 
             selected_index = int(selection) - 1
             # Construct full path from checkpoint directory and filename
-            checkpoint_path = config.checkpoints_directory / checkpoints[selected_index]["filename"]
+            checkpoint_path = Path(config.checkpoints_directory) / checkpoints[selected_index]["filename"]
 
         # Step 3: Get target server
         if server is None:
@@ -569,11 +569,11 @@ def restore_command(
 @app.command("list")
 def list_command(
     server: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--server", "-s", help="Filter checkpoints by server name"),
     ] = None,
     campaign: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--campaign", "-c", help="Filter checkpoints by campaign name"),
     ] = None,
 ) -> None:
@@ -680,7 +680,7 @@ def list_command(
 @app.command("delete")
 def delete_command(
     checkpoint_file: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Argument(help="Checkpoint file to delete (optional if interactive)"),
     ] = None,
     force: Annotated[
@@ -722,7 +722,7 @@ def delete_command(
 
         # Step 1: Get checkpoint file (from argument or interactive selection)
         if checkpoint_file:
-            checkpoint_path = config.checkpoints_directory / checkpoint_file
+            checkpoint_path = Path(config.checkpoints_directory) / checkpoint_file
         else:
             # Interactive mode: list checkpoints and prompt for selection
             checkpoints = list_checkpoints(config.checkpoints_directory)
@@ -751,7 +751,7 @@ def delete_command(
                 default="1"
             )
             selected_idx = int(selection) - 1
-            checkpoint_path = config.checkpoints_directory / checkpoints[selected_idx]["filename"]
+            checkpoint_path = Path(config.checkpoints_directory) / checkpoints[selected_idx]["filename"]
 
         # Step 2: Read metadata for display (before deletion)
         try:
@@ -828,23 +828,23 @@ def delete_command(
 @app.command("import")
 def import_command(
     directory: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Argument(help="Source directory containing campaign files to import"),
     ] = None,
     server: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--server", "-s", help="Target server name for metadata"),
     ] = None,
     campaign: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--campaign", "-c", help="Campaign name to import"),
     ] = None,
     name: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--name", "-n", help="Optional user-friendly name for checkpoint"),
     ] = None,
     comment: Annotated[
-        str | None,
+        Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--comment", help="Optional comment describing the checkpoint"),
     ] = None,
 ) -> None:

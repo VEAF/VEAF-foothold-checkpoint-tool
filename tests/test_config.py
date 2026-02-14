@@ -1,10 +1,11 @@
 """Tests for configuration management module."""
 
-import pytest
-from pathlib import Path
-from pydantic import ValidationError
 import tempfile
+from pathlib import Path
+
+import pytest
 import yaml
+from pydantic import ValidationError
 
 
 class TestServerConfig:
@@ -362,7 +363,7 @@ class TestCreateDefaultConfig:
             create_default_config(config_path)
 
             # Should be valid YAML
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, encoding='utf-8') as f:
                 data = yaml.safe_load(f)
 
             assert isinstance(data, dict)
@@ -393,8 +394,8 @@ class TestPathExpansion:
 
     def test_checkpoints_dir_expands_tilde(self):
         """Config should expand ~ in checkpoints_dir to user's home directory."""
+
         from foothold_checkpoint.core.config import Config, ServerConfig
-        import os
 
         config = Config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
@@ -414,8 +415,8 @@ class TestPathExpansion:
 
     def test_server_path_expands_tilde(self):
         """ServerConfig path should expand ~ to user's home directory."""
+
         from foothold_checkpoint.core.config import ServerConfig
-        import os
 
         config = ServerConfig(
             path=Path("~/DCS/Missions/Saves"),
@@ -429,8 +430,9 @@ class TestPathExpansion:
 
     def test_checkpoints_dir_expands_environment_variables(self):
         """Config should expand environment variables in checkpoints_dir."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
         import os
+
+        from foothold_checkpoint.core.config import Config, ServerConfig
 
         # Set a test environment variable
         os.environ["FOOTHOLD_TEST_DIR"] = "C:/TestCheckpoints"
@@ -455,8 +457,9 @@ class TestPathExpansion:
 
     def test_server_path_expands_environment_variables(self):
         """ServerConfig path should expand environment variables."""
-        from foothold_checkpoint.core.config import ServerConfig
         import os
+
+        from foothold_checkpoint.core.config import ServerConfig
 
         # Set a test environment variable
         os.environ["DCS_ROOT"] = "D:/Servers/DCS"
@@ -475,8 +478,9 @@ class TestPathExpansion:
 
     def test_path_expansion_combined_tilde_and_envvar(self):
         """Path expansion should handle both tilde and environment variables."""
-        from foothold_checkpoint.core.config import ServerConfig
         import os
+
+        from foothold_checkpoint.core.config import ServerConfig
 
         # This is a bit contrived but tests both mechanisms
         os.environ["MISSIONS_SUBDIR"] = "Missions"
@@ -496,8 +500,9 @@ class TestPathExpansion:
 
     def test_load_config_expands_paths(self):
         """load_config should expand paths from YAML file."""
-        from foothold_checkpoint.core.config import load_config
         import os
+
+        from foothold_checkpoint.core.config import load_config
 
         # Set environment variable for test
         os.environ["TEST_CHECKPOINT_DIR"] = "C:/TestCheckpoints"
@@ -533,8 +538,9 @@ class TestPathExpansion:
 
     def test_path_expansion_with_windows_style_envvar(self):
         """Path expansion should handle Windows %ENVVAR% style variables."""
-        from foothold_checkpoint.core.config import ServerConfig
         import os
+
+        from foothold_checkpoint.core.config import ServerConfig
 
         os.environ["USERPROFILE"] = "C:/Users/TestUser"
 
@@ -558,8 +564,9 @@ class TestErrorMessages:
 
     def test_missing_checkpoints_dir_error_message(self):
         """Config should provide clear error when checkpoints_dir is missing."""
-        from foothold_checkpoint.core.config import Config
         from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
             Config(
@@ -574,9 +581,11 @@ class TestErrorMessages:
 
     def test_missing_servers_error_message(self):
         """Config should provide clear error when servers is missing."""
-        from foothold_checkpoint.core.config import Config
-        from pydantic import ValidationError
         from pathlib import Path
+
+        from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
             Config(
@@ -591,9 +600,11 @@ class TestErrorMessages:
 
     def test_missing_campaigns_error_message(self):
         """Config should provide clear error when campaigns is missing."""
-        from foothold_checkpoint.core.config import Config
-        from pydantic import ValidationError
         from pathlib import Path
+
+        from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
             Config(
@@ -608,9 +619,11 @@ class TestErrorMessages:
 
     def test_empty_campaign_list_error_message(self):
         """Config should provide clear error when campaign has empty name list."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
-        from pydantic import ValidationError
         from pathlib import Path
+
+        from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import Config, ServerConfig
 
         with pytest.raises(ValidationError) as exc_info:
             Config(
@@ -632,9 +645,11 @@ class TestErrorMessages:
 
     def test_invalid_yaml_error_message(self):
         """load_config should provide clear error for invalid YAML syntax."""
-        from foothold_checkpoint.core.config import load_config
         from pathlib import Path
+
         import yaml
+
+        from foothold_checkpoint.core.config import load_config
 
         # Create a file with invalid YAML
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -653,8 +668,9 @@ class TestErrorMessages:
 
     def test_file_not_found_error_message(self):
         """load_config should provide clear error when file doesn't exist."""
-        from foothold_checkpoint.core.config import load_config
         from pathlib import Path
+
+        from foothold_checkpoint.core.config import load_config
 
         nonexistent_path = Path("/nonexistent/directory/config.yaml")
 
@@ -667,8 +683,9 @@ class TestErrorMessages:
 
     def test_missing_server_path_error_message(self):
         """ServerConfig should provide clear error when path is missing."""
-        from foothold_checkpoint.core.config import ServerConfig
         from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import ServerConfig
 
         with pytest.raises(ValidationError) as exc_info:
             ServerConfig(description="Test server")
@@ -680,9 +697,11 @@ class TestErrorMessages:
 
     def test_missing_server_description_error_message(self):
         """ServerConfig should provide clear error when description is missing."""
-        from foothold_checkpoint.core.config import ServerConfig
-        from pydantic import ValidationError
         from pathlib import Path
+
+        from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import ServerConfig
 
         with pytest.raises(ValidationError) as exc_info:
             ServerConfig(path=Path("D:/Test"))

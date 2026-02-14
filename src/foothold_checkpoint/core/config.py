@@ -1,8 +1,9 @@
 """Configuration management with Pydantic validation."""
 
+import os
 from pathlib import Path
 from typing import Any
-import os
+
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
@@ -170,7 +171,7 @@ def load_config(path: Path) -> Config:
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
 
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
     # Parse servers section - convert dict to ServerConfig objects

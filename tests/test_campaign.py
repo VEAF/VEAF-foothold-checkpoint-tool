@@ -1,6 +1,5 @@
 """Tests for campaign detection module."""
 
-import pytest
 from pathlib import Path
 
 
@@ -458,9 +457,10 @@ class TestCampaignNameMapping:
 
     def test_map_historical_name_to_current(self):
         """Should map historical campaign name to current name from config."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -475,9 +475,10 @@ class TestCampaignNameMapping:
 
     def test_map_current_name_stays_same(self):
         """Should keep current campaign name as-is."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -492,9 +493,10 @@ class TestCampaignNameMapping:
 
     def test_map_unknown_name_stays_unchanged(self):
         """Should return unchanged name if not in config."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -509,9 +511,10 @@ class TestCampaignNameMapping:
 
     def test_map_single_name_in_config(self):
         """Should handle campaigns with only one name in config."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -525,9 +528,10 @@ class TestCampaignNameMapping:
 
     def test_map_multiple_historical_names(self):
         """Should map any historical name to the current (last) name."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -544,9 +548,10 @@ class TestCampaignNameMapping:
 
     def test_map_case_insensitive_matching(self):
         """Should match campaign names case-insensitively in config."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -562,9 +567,10 @@ class TestCampaignNameMapping:
 
     def test_map_empty_config(self):
         """Should return unchanged name when config has no campaigns."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import map_campaign_name
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -576,9 +582,10 @@ class TestCampaignNameMapping:
 
     def test_detect_campaigns_with_mapping(self):
         """detect_campaigns should use name mapping from config."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import detect_campaigns
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -606,9 +613,10 @@ class TestCampaignDetectionReport:
 
     def test_report_single_campaign(self):
         """Should generate report for single campaign."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -627,9 +635,10 @@ class TestCampaignDetectionReport:
 
     def test_report_multiple_campaigns(self):
         """Should generate report for multiple campaigns."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -656,9 +665,10 @@ class TestCampaignDetectionReport:
 
     def test_report_empty_list(self):
         """Should return empty report for empty file list."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -672,9 +682,10 @@ class TestCampaignDetectionReport:
 
     def test_report_ignores_non_campaign_files(self):
         """Should ignore non-campaign files in report."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -696,9 +707,10 @@ class TestCampaignDetectionReport:
 
     def test_report_with_name_mapping(self):
         """Should use current campaign names in report."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -721,9 +733,10 @@ class TestCampaignDetectionReport:
 
     def test_report_excludes_shared_files(self):
         """Should exclude shared files (Foothold_Ranks.lua) from report."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
@@ -743,9 +756,10 @@ class TestCampaignDetectionReport:
 
     def test_report_with_varying_file_counts(self):
         """Should correctly count different numbers of files per campaign."""
+        from pathlib import Path
+
         from foothold_checkpoint.core.campaign import create_campaign_report
         from foothold_checkpoint.core.config import Config, ServerConfig
-        from pathlib import Path
 
         config = Config(
             checkpoints_dir=Path("~/.test"),
