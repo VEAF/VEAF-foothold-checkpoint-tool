@@ -285,3 +285,225 @@ class TestChecksumComputation:
 
         assert checksum.startswith("sha256:")
         assert len(checksum) == 71
+
+
+class TestMetadataSerialization:
+    """Test suite for metadata JSON serialization."""
+
+    def test_serialize_metadata_all_fields(self, tmp_path):
+        """Should serialize metadata with all fields to JSON file."""
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata, save_metadata
+
+        metadata = CheckpointMetadata(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+            files={
+                "foothold_afghanistan.lua": "sha256:abc123...",
+                "foothold_afghanistan_storage.csv": "sha256:def456..."
+            },
+            name="Before major update",
+            comment="Checkpoint created before implementing new features"
+        )
+
+        json_file = tmp_path / "metadata.json"
+        save_metadata(metadata, json_file)
+
+        # Verify file was created
+        assert json_file.exists()
+
+        # Verify JSON content
+        import json
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        assert data["campaign_name"] == "afghanistan"
+        assert data["server_name"] == "production-1"
+        assert data["created_at"] == "2024-01-15T10:30:00Z"
+        assert data["files"] == {
+            "foothold_afghanistan.lua": "sha256:abc123...",
+            "foothold_afghanistan_storage.csv": "sha256:def456..."
+        }
+        assert data["name"] == "Before major update"
+        assert data["comment"] == "Checkpoint created before implementing new features"
+
+    def test_serialize_metadata_optional_fields_none(self, tmp_path):
+        """Should serialize metadata with optional fields as null."""
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata, save_metadata
+
+        metadata = CheckpointMetadata(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+        )
+
+        json_file = tmp_path / "metadata.json"
+        save_metadata(metadata, json_file)
+
+        import json
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        assert data["name"] is None
+        assert data["comment"] is None
+
+    def test_deserialize_metadata_all_fields(self, tmp_path):
+        """Should deserialize JSON file to CheckpointMetadata."""
+        from foothold_checkpoint.core.checkpoint import load_metadata
+
+        json_file = tmp_path / "metadata.json"
+        json_content = {
+            "campaign_name": "afghanistan",
+            "server_name": "production-1",
+            "created_at": "2024-01-15T10:30:00Z",
+            "files": {
+                "foothold_afghanistan.lua": "sha256:abc123...",
+                "foothold_afghanistan_storage.csv": "sha256:def456..."
+            },
+            "name": "Before major update",
+            "comment": "Test checkpoint"
+        }
+
+        import json
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_content, f)
+
+        metadata = load_metadata(json_file)
+
+        assert metadata.campaign_name == "afghanistan"
+        assert metadata.server_name == "production-1"
+        assert metadata.created_at == datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert metadata.files == {
+            "foothold_afghanistan.lua": "sha256:abc123...",
+            "foothold_afghanistan_storage.csv": "sha256:def456..."
+        }
+        assert metadata.name == "Before major update"
+        assert metadata.comment == "Test checkpoint"
+
+    def test_deserialize_metadata_optional_fields_null(self, tmp_path):
+        """Should deserialize JSON with null optional fields."""
+        from foothold_checkpoint.core.checkpoint import load_metadata
+
+        json_file = tmp_path / "metadata.json"
+        json_content = {
+            "campaign_name": "afghanistan",
+            "server_name": "production-1",
+            "created_at": "2024-01-15T10:30:00Z",
+            "files": {"foothold_afghanistan.lua": "sha256:abc123..."},
+            "name": None,
+            "comment": None
+        }
+
+        import json
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_content, f)
+
+        metadata = load_metadata(json_file)
+
+        assert metadata.name is None
+        assert metadata.comment is None
+
+    def test_roundtrip_serialization(self, tmp_path):
+        """Should preserve data through serialize → deserialize cycle."""
+        from foothold_checkpoint.core.checkpoint import (
+            CheckpointMetadata, save_metadata, load_metadata
+        )
+
+        original = CheckpointMetadata(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+            files={
+                "foothold_afghanistan.lua": "sha256:abc123...",
+                "foothold_afghanistan_storage.csv": "sha256:def456..."
+            },
+            name="Test checkpoint",
+            comment="Roundtrip test"
+        )
+
+        json_file = tmp_path / "metadata.json"
+        save_metadata(original, json_file)
+        loaded = load_metadata(json_file)
+
+        assert loaded.campaign_name == original.campaign_name
+        assert loaded.server_name == original.server_name
+        assert loaded.created_at == original.created_at
+        assert loaded.files == original.files
+        assert loaded.name == original.name
+        assert loaded.comment == original.comment
+
+    def test_deserialize_invalid_json_raises_error(self, tmp_path):
+        """Should raise error for invalid JSON."""
+        from foothold_checkpoint.core.checkpoint import load_metadata
+
+        json_file = tmp_path / "invalid.json"
+        json_file.write_text("{ invalid json content", encoding="utf-8")
+
+        with pytest.raises(ValueError) as exc_info:
+            load_metadata(json_file)
+
+        assert "invalid json" in str(exc_info.value).lower() or "json" in str(exc_info.value).lower()
+
+    def test_deserialize_missing_required_field_raises_error(self, tmp_path):
+        """Should raise error when required fields are missing."""
+        from foothold_checkpoint.core.checkpoint import load_metadata
+
+        json_file = tmp_path / "incomplete.json"
+        json_content = {
+            "campaign_name": "afghanistan",
+            # Missing server_name, created_at, files
+        }
+
+        import json
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_content, f)
+
+        with pytest.raises(ValidationError):
+            load_metadata(json_file)
+
+    def test_deserialize_file_not_found(self, tmp_path):
+        """Should raise FileNotFoundError for non-existent file."""
+        from foothold_checkpoint.core.checkpoint import load_metadata
+
+        json_file = tmp_path / "does_not_exist.json"
+
+        with pytest.raises(FileNotFoundError):
+            load_metadata(json_file)
+
+    def test_serialize_datetime_iso_format(self, tmp_path):
+        """Should serialize datetime in ISO 8601 format with timezone."""
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata, save_metadata
+
+        metadata = CheckpointMetadata(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            created_at=datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc),
+            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+        )
+
+        json_file = tmp_path / "metadata.json"
+        save_metadata(metadata, json_file)
+
+        import json
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Should be in ISO 8601 format
+        assert data["created_at"] == "2024-01-15T10:30:45Z"
+
+    def test_serialize_accepts_string_path(self, tmp_path):
+        """Should accept path as string for save_metadata."""
+        from foothold_checkpoint.core.checkpoint import CheckpointMetadata, save_metadata
+
+        metadata = CheckpointMetadata(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+        )
+
+        json_file = str(tmp_path / "metadata.json")
+        save_metadata(metadata, json_file)
+
+        assert Path(json_file).exists()
