@@ -834,3 +834,196 @@ class TestZIPCreation:
                 campaign_files=[non_existent],
                 output_dir=output_dir
             )
+
+
+class TestProgressTracking:
+    """Test suite for progress tracking callbacks."""
+
+    def test_progress_callback_called_during_checkpoint_creation(self, tmp_path):
+        """Should call progress callback during checkpoint creation."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_storage.csv").write_text("data", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_afghanistan.lua",
+            source_dir / "foothold_afghanistan_storage.csv"
+        ]
+
+        # Track progress calls
+        progress_calls = []
+
+        def progress_callback(message: str, current: int, total: int):
+            progress_calls.append((message, current, total))
+
+        create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=progress_callback
+        )
+
+        # Should have been called at least once
+        assert len(progress_calls) > 0
+
+    def test_progress_callback_reports_checksum_computation(self, tmp_path):
+        """Should report progress for each file checksum computation."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_storage.csv").write_text("data", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_afghanistan.lua",
+            source_dir / "foothold_afghanistan_storage.csv"
+        ]
+
+        progress_calls = []
+
+        def progress_callback(message: str, current: int, total: int):
+            progress_calls.append((message, current, total))
+
+        create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=progress_callback
+        )
+
+        # Should report checksum computation progress
+        checksum_calls = [call for call in progress_calls if "checksum" in call[0].lower()]
+        assert len(checksum_calls) >= 2  # At least one per file
+
+    def test_progress_callback_reports_total_files(self, tmp_path):
+        """Should report correct total number of files."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_storage.csv").write_text("data", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_CTLD_FARPS.csv").write_text("data", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_afghanistan.lua",
+            source_dir / "foothold_afghanistan_storage.csv",
+            source_dir / "foothold_afghanistan_CTLD_FARPS.csv"
+        ]
+
+        progress_calls = []
+
+        def progress_callback(message: str, current: int, total: int):
+            progress_calls.append((message, current, total))
+
+        create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=progress_callback
+        )
+
+        # Total should be 3 files
+        assert any(call[2] == 3 for call in progress_calls)
+
+    def test_progress_callback_reports_zip_creation(self, tmp_path):
+        """Should report ZIP archive creation progress."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        progress_calls = []
+
+        def progress_callback(message: str, current: int, total: int):
+            progress_calls.append((message, current, total))
+
+        create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=progress_callback
+        )
+
+        # Should report ZIP creation
+        zip_calls = [call for call in progress_calls if "zip" in call[0].lower() or "archive" in call[0].lower()]
+        assert len(zip_calls) > 0
+
+    def test_progress_callback_optional(self, tmp_path):
+        """Should work without progress callback (None)."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "foothold_afghanistan.lua").write_text("-- Lua", encoding="utf-8")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [source_dir / "foothold_afghanistan.lua"]
+
+        # Should not raise error with no callback
+        zip_path = create_checkpoint(
+            campaign_name="afghanistan",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=None
+        )
+
+        assert zip_path.exists()
+
+    def test_progress_callback_increments_correctly(self, tmp_path):
+        """Should increment current counter for each file."""
+        from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "file1.lua").write_text("-- 1", encoding="utf-8")
+        (source_dir / "file2.lua").write_text("-- 2", encoding="utf-8")
+        (source_dir / "file3.lua").write_text("-- 3", encoding="utf-8")
+
+        # Rename to match pattern
+        (source_dir / "file1.lua").rename(source_dir / "foothold_test_file1.lua")
+        (source_dir / "file2.lua").rename(source_dir / "foothold_test_file2.lua")
+        (source_dir / "file3.lua").rename(source_dir / "foothold_test_file3.lua")
+
+        output_dir = tmp_path / "checkpoints"
+        campaign_files = [
+            source_dir / "foothold_test_file1.lua",
+            source_dir / "foothold_test_file2.lua",
+            source_dir / "foothold_test_file3.lua"
+        ]
+
+        progress_calls = []
+
+        def progress_callback(message: str, current: int, total: int):
+            progress_calls.append((message, current, total))
+
+        create_checkpoint(
+            campaign_name="test",
+            server_name="production-1",
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            progress_callback=progress_callback
+        )
+
+        # Should have calls with current: 1, 2, 3
+        checksum_calls = [call for call in progress_calls if "checksum" in call[0].lower()]
+        current_values = [call[1] for call in checksum_calls]
+        assert 1 in current_values
+        assert 2 in current_values
+        assert 3 in current_values

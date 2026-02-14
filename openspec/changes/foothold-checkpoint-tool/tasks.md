@@ -50,8 +50,8 @@
 - [x] 4.8 Write tests for filename generation (uniqueness, format)
 - [x] 4.9 Implement ZIP archive creation with files and metadata
 - [x] 4.10 Write tests for ZIP creation (single campaign, with/without ranks)
-- [ ] 4.11 Implement progress tracking for checkpoint creation
-- [ ] 4.12 Write tests for progress tracking callbacks
+- [x] 4.11 Implement progress tracking for checkpoint creation
+- [x] 4.12 Write tests for progress tracking callbacks
 
 ## 5. Checkpoint Storage Operations (core/storage.py)
 

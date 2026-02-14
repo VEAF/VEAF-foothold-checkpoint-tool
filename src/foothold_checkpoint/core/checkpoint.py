@@ -5,7 +5,7 @@ import json
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable
 from pydantic import BaseModel, Field, field_validator, ValidationError
 
 
@@ -255,7 +255,8 @@ def create_checkpoint(
     output_dir: Union[str, Path],
     created_at: datetime | None = None,
     name: str | None = None,
-    comment: str | None = None
+    comment: str | None = None,
+    progress_callback: Callable[[str, int, int], None] | None = None
 ) -> Path:
     """Create a checkpoint ZIP archive with campaign files and metadata.
 
@@ -272,6 +273,9 @@ def create_checkpoint(
         created_at: Checkpoint timestamp. If None, uses current UTC time.
         name: Optional user-provided name for the checkpoint.
         comment: Optional user-provided comment.
+        progress_callback: Optional callback for progress tracking.
+                          Called with (message, current, total) during creation.
+                          Example: callback("Computing checksums", 1, 3)
 
     Returns:
         Path: Path to the created ZIP file.
@@ -311,7 +315,13 @@ def create_checkpoint(
 
     # Compute checksums for all files
     files_checksums: dict[str, str] = {}
-    for file_path in campaign_files:
+    total_files = len(campaign_files)
+
+    for index, file_path in enumerate(campaign_files, start=1):
+        # Report progress if callback provided
+        if progress_callback:
+            progress_callback(f"Computing checksum for {file_path.name}", index, total_files)
+
         checksum = compute_file_checksum(file_path)
         # Store with just the filename (not full path)
         files_checksums[file_path.name] = checksum
@@ -334,6 +344,10 @@ def create_checkpoint(
 
     # Full path to ZIP file
     zip_path = output_dir / zip_filename
+
+    # Report progress for ZIP creation
+    if progress_callback:
+        progress_callback("Creating ZIP archive", total_files, total_files)
 
     # Create ZIP archive
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
