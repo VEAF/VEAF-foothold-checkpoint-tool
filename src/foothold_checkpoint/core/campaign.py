@@ -162,8 +162,14 @@ def normalize_campaign_name(filename: str | Path) -> str:
     name_without_version = re.sub(r"_[vV]?[0-9]+(?:\.[0-9]+)?", "", name_without_prefix)
 
     # Remove file type suffixes: _storage, _CTLD_FARPS, _CTLD_Save
+    # These can be followed by era suffixes: _Coldwar, _Modern
+    # Pattern: Match file type suffix optionally followed by era suffix
+    # Note: _Coldwar/_Modern are ONLY removed if they follow a file type suffix
     name_normalized = re.sub(
-        r"_(storage|CTLD_FARPS|CTLD_Save)$", "", name_without_version, flags=re.IGNORECASE
+        r"_(storage|CTLD_FARPS|CTLD_Save)(?:_(Coldwar|Modern))?$",
+        "",
+        name_without_version,
+        flags=re.IGNORECASE
     )
 
     # Normalize to lowercase for consistent grouping (case-insensitive)

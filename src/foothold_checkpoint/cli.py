@@ -246,18 +246,24 @@ def save_command(
             if not _quiet_mode:
                 console.print("\n[cyan]Available servers:[/cyan]")
                 for idx, srv in enumerate(available_servers, 1):
-                    console.print(f"  {idx}. {srv}")
+                    console.print(f"  {srv} ({idx})")
 
-            # Accept both number and server name
-            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
-            selection = Prompt.ask(
-                "\nSelect server (number or name)", choices=choices, default="1"
-            )
-            # Convert number to server name if needed
-            if selection.isdigit():
-                server = available_servers[int(selection) - 1]
-            else:
-                server = selection
+            # Accept both number and server name (validate manually)
+            while True:
+                selection = Prompt.ask("\nSelect server", default="1")
+                # Try as number first
+                if selection.isdigit():
+                    idx = int(selection)
+                    if 1 <= idx <= len(available_servers):
+                        server = available_servers[idx - 1]
+                        break
+                # Try as server name
+                elif selection in available_servers:
+                    server = selection
+                    break
+                else:
+                    console.print(f"[red]Invalid selection:[/red] '{selection}'")
+                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
 
         # Validate server exists
         if server not in config.servers:
@@ -305,31 +311,34 @@ def save_command(
             campaigns_to_save = [campaign]
         else:
             # Prompt for campaign selection
+            campaign_list = list(campaigns.keys())
             if not _quiet_mode:
                 console.print("\n[cyan]Detected campaigns:[/cyan]")
-                campaign_list = list(campaigns.keys())
                 for idx, camp in enumerate(campaign_list, 1):
                     file_count = len(campaigns[camp])
-                    console.print(f"  {idx}. {camp} ({file_count} file{'s' if file_count > 1 else ''})")
-                console.print(f"  [bold]A[/bold]. [yellow]all[/yellow] (save all campaigns)")
+                    console.print(f"  {camp} ({idx}) - {file_count} file{'s' if file_count > 1 else ''}")
+                console.print(f"  [yellow]all[/yellow] (A) - save all campaigns")
 
-            # Accept numbers (1-N), campaign names, 'A' or 'all'
-            campaign_list = list(campaigns.keys())
-            number_choices = [str(i) for i in range(1, len(campaign_list) + 1)]
-            campaign_choices = number_choices + campaign_list + ["A", "a", "all"]
-            selected = Prompt.ask(
-                "\nSelect campaign (number, name, or 'A' for all)",
-                choices=campaign_choices,
-                default="1"
-            )
-
-            # Convert selection to campaign name(s)
-            if selected.upper() in ["A", "ALL"]:
-                campaigns_to_save = campaign_list
-            elif selected.isdigit():
-                campaigns_to_save = [campaign_list[int(selected) - 1]]
-            else:
-                campaigns_to_save = [selected]
+            # Accept numbers (1-N), campaign names, 'A' or 'all' (validate manually)
+            while True:
+                selected = Prompt.ask("\nSelect campaign", default="1")
+                # Try 'all' options
+                if selected.upper() in ["A", "ALL"]:
+                    campaigns_to_save = campaign_list
+                    break
+                # Try as number
+                elif selected.isdigit():
+                    idx = int(selected)
+                    if 1 <= idx <= len(campaign_list):
+                        campaigns_to_save = [campaign_list[idx - 1]]
+                        break
+                # Try as campaign name
+                elif selected in campaign_list:
+                    campaigns_to_save = [selected]
+                    break
+                else:
+                    console.print(f"[red]Invalid selection:[/red] '{selected}'")
+                    console.print(f"Please enter a number (1-{len(campaign_list)}), campaign name, or 'A' for all")
 
         # Step 4: Get optional name and comment (prompt if not provided as flags)
         checkpoint_name = name
@@ -538,18 +547,22 @@ def restore_command(
             if not _quiet_mode:
                 console.print("\n[cyan]Available servers:[/cyan]")
                 for idx, srv in enumerate(available_servers, 1):
-                    console.print(f"  {idx}. {srv}")
+                    console.print(f"  {srv} ({idx})")
 
-            # Accept both number and server name
-            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
-            selection = Prompt.ask(
-                "\nSelect target server (number or name)", choices=choices, default="1"
-            )
-            # Convert number to server name if needed
-            if selection.isdigit():
-                server = available_servers[int(selection) - 1]
-            else:
-                server = selection
+            # Accept both number and server name (validate manually)
+            while True:
+                selection = Prompt.ask("\nSelect target server", default="1")
+                if selection.isdigit():
+                    idx = int(selection)
+                    if 1 <= idx <= len(available_servers):
+                        server = available_servers[idx - 1]
+                        break
+                elif selection in available_servers:
+                    server = selection
+                    break
+                else:
+                    console.print(f"[red]Invalid selection:[/red] '{selection}'")
+                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
 
         # Validate server exists in config
         if server not in config.servers:
@@ -997,18 +1010,22 @@ def import_command(
             if not _quiet_mode:
                 console.print("\n[cyan]Available servers:[/cyan]")
                 for idx, s in enumerate(available_servers, 1):
-                    console.print(f"  {idx}. {s}")
+                    console.print(f"  {s} ({idx})")
 
-            # Accept both number and server name
-            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
-            selection = Prompt.ask(
-                "\nSelect target server (number or name)", choices=choices, default="1"
-            )
-            # Convert number to server name if needed
-            if selection.isdigit():
-                server_name = available_servers[int(selection) - 1]
-            else:
-                server_name = selection
+            # Accept both number and server name (validate manually)
+            while True:
+                selection = Prompt.ask("\nSelect target server", default="1")
+                if selection.isdigit():
+                    idx = int(selection)
+                    if 1 <= idx <= len(available_servers):
+                        server_name = available_servers[idx - 1]
+                        break
+                elif selection in available_servers:
+                    server_name = selection
+                    break
+                else:
+                    console.print(f"[red]Invalid selection:[/red] '{selection}'")
+                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
         else:
             server_name = server
             # Validate server exists
