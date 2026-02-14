@@ -1940,3 +1940,524 @@ class TestDeleteCheckpoint:
             with patch.object(Path, "unlink", side_effect=OSError("File in use")):
                 with pytest.raises(OSError, match="File in use"):
                     delete_checkpoint(checkpoint_path, force=True)
+
+
+class TestImportCheckpoint:
+    """Test suite for import_checkpoint function."""
+
+    def test_import_checkpoint_creates_checkpoint_from_directory(self):
+        """import_checkpoint should create a checkpoint from files in directory."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            # Create campaign files
+            (source_dir / "foothold_test.lua").write_text("-- test campaign")
+            (source_dir / "foothold_test_storage.csv").write_text("test,data")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            assert result.exists()
+            assert result.parent == output_dir
+            assert result.suffix == ".zip"
+            assert result.name.startswith("test_")
+
+    def test_import_checkpoint_accepts_string_paths(self):
+        """import_checkpoint should accept string paths for directories."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result = import_checkpoint(
+                source_dir=str(source_dir),
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=str(output_dir),
+            )
+
+            assert result.exists()
+
+    def test_import_checkpoint_raises_error_if_source_dir_not_exists(self):
+        """import_checkpoint should raise FileNotFoundError if source directory doesn't exist."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "nonexistent"
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            with pytest.raises(FileNotFoundError, match="Import directory not found"):
+                import_checkpoint(
+                    source_dir=source_dir,
+                    campaign_name="test",
+                    server_name="test-server",
+                    output_dir=output_dir,
+                )
+
+    def test_import_checkpoint_raises_error_if_source_is_file(self):
+        """import_checkpoint should raise ValueError if source path is a file, not directory."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_file = Path(tmpdir) / "file.txt"
+            source_file.write_text("not a directory")
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            with pytest.raises(ValueError, match="Not a directory"):
+                import_checkpoint(
+                    source_dir=source_file,
+                    campaign_name="test",
+                    server_name="test-server",
+                    output_dir=output_dir,
+                )
+
+    def test_import_checkpoint_raises_error_if_no_campaign_files(self):
+        """import_checkpoint should raise ValueError if no campaign files found."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            # Create some non-campaign files
+            (source_dir / "readme.txt").write_text("not a campaign file")
+
+            with pytest.raises(ValueError, match="No campaign files found"):
+                import_checkpoint(
+                    source_dir=source_dir,
+                    campaign_name="test",
+                    server_name="test-server",
+                    output_dir=output_dir,
+                )
+
+    def test_import_checkpoint_detects_campaign_files_for_specified_campaign(self):
+        """import_checkpoint should detect and import only files for specified campaign."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            # Create files for multiple campaigns
+            (source_dir / "foothold_test1.lua").write_text("-- campaign 1")
+            (source_dir / "foothold_test1_storage.csv").write_text("data1")
+            (source_dir / "foothold_test2.lua").write_text("-- campaign 2")
+            (source_dir / "foothold_test2_storage.csv").write_text("data2")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test1",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            # Check checkpoint contains only test1 files
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert "foothold_test1.lua" in files
+                assert "foothold_test1_storage.csv" in files
+                assert "foothold_test2.lua" not in files
+                assert "foothold_test2_storage.csv" not in files
+
+    def test_import_checkpoint_creates_checkpoint_with_current_timestamp(self):
+        """import_checkpoint should use current timestamp, not file modification dates."""
+        import json
+        import zipfile
+        from datetime import datetime, timezone
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            before_import = datetime.now(timezone.utc)
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+            after_import = datetime.now(timezone.utc)
+
+            # Check metadata has current timestamp
+            with zipfile.ZipFile(result, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = json.loads(metadata_content)
+
+                created_at = datetime.fromisoformat(metadata["created_at"].replace("Z", "+00:00"))
+                assert before_import <= created_at <= after_import
+
+    def test_import_checkpoint_computes_checksums_for_all_files(self):
+        """import_checkpoint should compute SHA-256 checksums for all imported files."""
+        import json
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test campaign")
+            (source_dir / "foothold_test_storage.csv").write_text("test,data")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            # Check metadata has checksums
+            with zipfile.ZipFile(result, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = json.loads(metadata_content)
+
+                assert "files" in metadata
+                assert "foothold_test.lua" in metadata["files"]
+                assert "foothold_test_storage.csv" in metadata["files"]
+                # Checksums should be in SHA256: format
+                assert metadata["files"]["foothold_test.lua"].startswith("sha256:")
+                assert metadata["files"]["foothold_test_storage.csv"].startswith("sha256:")
+
+    def test_import_checkpoint_includes_metadata_fields(self):
+        """import_checkpoint should include campaign_name, server_name, name, comment in metadata."""
+        import json
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+                name="Imported Backup",
+                comment="Old manual backup",
+            )
+
+            # Check metadata
+            with zipfile.ZipFile(result, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = json.loads(metadata_content)
+
+                assert metadata["campaign_name"] == "test"
+                assert metadata["server_name"] == "test-server"
+                assert metadata["name"] == "Imported Backup"
+                assert metadata["comment"] == "Old manual backup"
+                assert "created_at" in metadata
+
+    def test_import_checkpoint_handles_optional_name_and_comment(self):
+        """import_checkpoint should handle None for optional name and comment."""
+        import json
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = json.loads(metadata_content)
+
+                assert metadata["name"] is None
+                assert metadata["comment"] is None
+
+    def test_import_checkpoint_includes_ranks_file_if_present(self):
+        """import_checkpoint should include Foothold_Ranks.lua if it exists."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "Foothold_Ranks.lua").write_text("-- ranks data")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert "Foothold_Ranks.lua" in files
+
+    def test_import_checkpoint_excludes_ranks_file_if_absent(self):
+        """import_checkpoint should not fail if Foothold_Ranks.lua doesn't exist."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert "Foothold_Ranks.lua" not in files
+
+    def test_import_checkpoint_with_ctld_files(self):
+        """import_checkpoint should include all CTLD CSV files."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("storage")
+            (source_dir / "foothold_test_CTLD_FARPS.csv").write_text("farps")
+            (source_dir / "foothold_test_CTLD_Save.csv").write_text("save")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert "foothold_test.lua" in files
+                assert "foothold_test_storage.csv" in files
+                assert "foothold_test_CTLD_FARPS.csv" in files
+                assert "foothold_test_CTLD_Save.csv" in files
+
+    def test_import_checkpoint_with_version_suffixes(self):
+        """import_checkpoint should handle files with version suffixes (_v0.2, _V0.1)."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "FootHold_test_v0.2.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage_V0.1.csv").write_text("data")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert "FootHold_test_v0.2.lua" in files
+                assert "foothold_test_storage_V0.1.csv" in files
+
+    def test_import_checkpoint_case_insensitive_matching(self):
+        """import_checkpoint should match campaign files case-insensitively."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "FootHold_test.lua").write_text("-- test")
+            (source_dir / "FOOTHOLD_test_storage.csv").write_text("data")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            with zipfile.ZipFile(result, "r") as zf:
+                files = zf.namelist()
+                assert len(files) >= 3  # metadata.json + 2 campaign files
+
+    def test_import_checkpoint_returns_warnings_for_missing_expected_files(self):
+        """import_checkpoint should return list of warnings for missing expected files."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            # Only .lua file, missing storage and CTLD files
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result, warnings = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+                return_warnings=True,
+            )
+
+            assert result.exists()
+            assert len(warnings) > 0
+            # Should have warnings for missing files
+            warning_text = " ".join(warnings)
+            assert "storage.csv" in warning_text or "CTLD" in warning_text
+
+    def test_import_checkpoint_no_warnings_for_complete_campaign(self):
+        """import_checkpoint should return empty warnings list for complete campaign."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            # All expected files including ranks
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("storage")
+            (source_dir / "foothold_test_CTLD_FARPS.csv").write_text("farps")
+            (source_dir / "foothold_test_CTLD_Save.csv").write_text("save")
+            (source_dir / "Foothold_Ranks.lua").write_text("-- ranks")
+
+            result, warnings = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+                return_warnings=True,
+            )
+
+            assert result.exists()
+            assert len(warnings) == 0
+
+    def test_import_checkpoint_handles_permission_error(self):
+        """import_checkpoint should raise PermissionError if source directory not readable."""
+        import os
+        import platform
+        import stat
+
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        # Skip on Windows where chmod doesn't work the same way
+        if platform.system() == "Windows":
+            pytest.skip("Cannot test Unix permission errors on Windows")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"
+            output_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            # Make directory unreadable (Unix only)
+            try:
+                os.chmod(source_dir, 0o000)
+                with pytest.raises(PermissionError):
+                    import_checkpoint(
+                        source_dir=source_dir,
+                        campaign_name="test",
+                        server_name="test-server",
+                        output_dir=output_dir,
+                    )
+            finally:
+                # Restore permissions for cleanup
+                try:
+                    os.chmod(source_dir, stat.S_IRWXU)
+                except (OSError, PermissionError):
+                    pass
+
+    def test_import_checkpoint_creates_output_directory_if_not_exists(self):
+        """import_checkpoint should create output directory if it doesn't exist."""
+        from foothold_checkpoint.core.storage import import_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            output_dir = Path(tmpdir) / "checkpoints"  # Not created
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            result = import_checkpoint(
+                source_dir=source_dir,
+                campaign_name="test",
+                server_name="test-server",
+                output_dir=output_dir,
+            )
+
+            assert result.exists()
+            assert output_dir.exists()
+            assert output_dir.is_dir()

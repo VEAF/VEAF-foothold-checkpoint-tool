@@ -5,7 +5,7 @@ Foothold campaign checkpoints with integrity verification.
 """
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from foothold_checkpoint.core.campaign import group_campaign_files
@@ -641,6 +641,161 @@ def _format_file_size(size_bytes: int) -> str:
         unit_index += 1
 
     return f"{size:.1f} {units[unit_index]}"
+
+
+def import_checkpoint(
+    source_dir: str | Path,
+    campaign_name: str,
+    server_name: str,
+    output_dir: str | Path,
+    name: str | None = None,
+    comment: str | None = None,
+    created_at: datetime | None = None,
+    return_warnings: bool = False,
+) -> Path | tuple[Path, list[str]]:
+    """Import campaign files from a directory and create a checkpoint.
+
+    Scans the source directory for Foothold campaign files matching the specified
+    campaign name and creates a checkpoint from them. Uses current timestamp by default.
+
+    Args:
+        source_dir: Directory containing campaign files to import.
+        campaign_name: Name of the campaign to import (exact match).
+        server_name: Name of the server for metadata.
+        output_dir: Directory where checkpoint ZIP will be created.
+        name: Optional user-friendly name for the checkpoint.
+        comment: Optional comment describing the checkpoint.
+        created_at: Optional timestamp (defaults to current UTC time).
+        return_warnings: If True, returns tuple of (path, warnings list).
+
+    Returns:
+        Path to the created checkpoint ZIP file.
+        If return_warnings=True, returns tuple of (Path, list of warning strings).
+
+    Raises:
+        FileNotFoundError: If source directory does not exist.
+        ValueError: If source path is not a directory or no campaign files found.
+        PermissionError: If source directory is not readable.
+
+    Example:
+        >>> # Import from manual backup directory
+        >>> checkpoint = import_checkpoint(
+        ...     source_dir="/path/to/backup",
+        ...     campaign_name="afghanistan",
+        ...     server_name="prod-1",
+        ...     output_dir="/path/to/checkpoints",
+        ...     name="Old Manual Backup",
+        ... )
+
+        >>> # Get warnings about missing files
+        >>> checkpoint, warnings = import_checkpoint(
+        ...     source_dir="/path/to/incomplete",
+        ...     campaign_name="afghanistan",
+        ...     server_name="prod-1",
+        ...     output_dir="/path/to/checkpoints",
+        ...     return_warnings=True,
+        ... )
+        >>> for warning in warnings:
+        ...     print(f"Warning: {warning}")
+    """
+    source_dir = Path(source_dir)
+    output_dir = Path(output_dir)
+
+    # Validate source directory
+    if not source_dir.exists():
+        raise FileNotFoundError(f"Import directory not found: {source_dir}")
+
+    if not source_dir.is_dir():
+        raise ValueError(f"Not a directory: {source_dir}")
+
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Scan for campaign files matching the campaign name
+    all_files = list(source_dir.iterdir())
+    filenames = [f.name for f in all_files if f.is_file()]
+
+    # Use campaign module to detect and group files
+    from foothold_checkpoint.core.campaign import group_campaign_files
+
+    grouped = group_campaign_files(filenames)
+
+    # Check if specified campaign exists
+    if campaign_name not in grouped:
+        # Try case-insensitive match
+        campaign_name_lower = campaign_name.lower()
+        matching_campaign = None
+        for camp_name in grouped.keys():
+            if camp_name.lower() == campaign_name_lower:
+                matching_campaign = camp_name
+                break
+
+        if not matching_campaign:
+            raise ValueError(
+                f"No campaign files found for campaign '{campaign_name}' in {source_dir}"
+            )
+        # Use the matched campaign name
+        campaign_files_names = grouped[matching_campaign]
+    else:
+        campaign_files_names = grouped[campaign_name]
+
+    # Build full paths for campaign files
+    campaign_files = [source_dir / fname for fname in campaign_files_names]
+
+    # Also check for Foothold_Ranks.lua (shared file)
+    ranks_file = source_dir / "Foothold_Ranks.lua"
+    if ranks_file.is_file():
+        campaign_files.append(ranks_file)
+
+    if not campaign_files:
+        raise ValueError(f"No campaign files found for '{campaign_name}'")
+
+    # Check for expected files and generate warnings
+    warnings = []
+    expected_patterns = [
+        (f"foothold_{campaign_name}.lua", "Campaign script file"),
+        (f"foothold_{campaign_name}_storage.csv", "Storage data file"),
+        (f"foothold_{campaign_name}_CTLD_FARPS.csv", "CTLD FARPS data"),
+        (f"foothold_{campaign_name}_CTLD_Save.csv", "CTLD Save data"),
+    ]
+
+    for pattern, description in expected_patterns:
+        # Check case-insensitively
+        found = any(
+            fname.lower() == pattern.lower() or
+            # Also check with version suffixes
+            (fname.lower().startswith(pattern.lower().rsplit('.', 1)[0]) and
+             fname.lower().endswith(pattern.lower().rsplit('.', 1)[1]))
+            for fname in campaign_files_names
+        )
+        if not found:
+            warnings.append(f"{description} not found: {pattern}")
+
+    # Check for ranks file
+    if not ranks_file.exists():
+        warnings.append("Shared ranks file not found: Foothold_Ranks.lua")
+
+    # Use create_checkpoint to build the checkpoint
+    from foothold_checkpoint.core.checkpoint import create_checkpoint
+
+    # Set default timestamp to current time
+    if created_at is None:
+        created_at = datetime.now(timezone.utc)
+
+    checkpoint_path = create_checkpoint(
+        campaign_name=campaign_name,
+        server_name=server_name,
+        campaign_files=campaign_files,
+        output_dir=output_dir,
+        created_at=created_at,
+        name=name,
+        comment=comment,
+    )
+
+    if return_warnings:
+        return checkpoint_path, warnings
+
+    return checkpoint_path
 
 
 def _is_writable(path: Path) -> bool:
