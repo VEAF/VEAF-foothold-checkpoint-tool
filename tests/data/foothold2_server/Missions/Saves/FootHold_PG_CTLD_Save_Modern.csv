@@ -1,0 +1,11 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_CARGO_NasamsSite-34545#001,-93177,688,-14516,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,9042.677000
+CTLD_CARGO_CRAM-23735#001,49684,15,-36526,C-RAM,{CTLD_CARGO_CRAM;},FOB,2,1000,HEMTT_C-RAM_Phalanx==1;,Cargos,uh1h_cargo,none,7075.361000
+CTLD_CARGO_CRAM-7548#001,49676,13,-36867,C-RAM,{CTLD_CARGO_CRAM;},FOB,2,1000,HEMTT_C-RAM_Phalanx==1;,Cargos,uh1h_cargo,none,7119.852000
+CTLD_CARGO_NasamsSite-72875#001,56020,3,-33806,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,7842.968000
+CTLD_CARGO_Linebacker-99423#001,76269,30,-22193,Linebacker,{CTLD_CARGO_Linebacker;},Vehicle,2,1500,M6 Linebacker==1;,Cargos,uh1h_cargo,none,9257.023000
+CTLD_CARGO_Bradly-88782#001,76234,28,-22174,Bradly,{CTLD_CARGO_Bradly;},Vehicle,2,1500,M-2 Bradley==1;,Cargos,uh1h_cargo,none,9200.978000
+CTLD_CARGO_NasamsSite-42757#001,55392,18,-119939,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,25640.723000
+CTLD_CARGO_IRISTSLM_System-70117#001,157338,781,-179317,IRIS T SLM System,{CTLD_CARGO_IRISTSLM_System;},FOB,3,2800,CHAP_IRISTSLM_CP==1;CHAP_IRISTSLM_LN==1;CHAP_IRISTSLM_STR==1;,Cargos,uh1h_cargo,none,35427.689000
+CTLD_TROOPS_MRS-95227#001,165523,813,-186285,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,7448.080000
+CTLD_TROOPS_MRS-98474#001,165574,813,-185346,Mortar Squad,{CTLD_TROOPS_MRS;},Troops,6,80,2B11 mortar==5;JTAC==1;,Cargos,container_cargo,none,7739.852000

@@ -10,7 +10,7 @@ class TestFilePatternMatching:
         """Should match .lua files with lowercase 'foothold' prefix."""
         from foothold_checkpoint.core.campaign import is_campaign_file
 
-        assert is_campaign_file("foothold_afghanistan.lua") is True
+        assert is_campaign_file("foothold_Afghanistan.lua") is True
         assert is_campaign_file("foothold_CA.lua") is True
         assert is_campaign_file("foothold_syria_extended.lua") is True
 
@@ -26,21 +26,21 @@ class TestFilePatternMatching:
         """Should match _storage.csv files."""
         from foothold_checkpoint.core.campaign import is_campaign_file
 
-        assert is_campaign_file("foothold_afghanistan_storage.csv") is True
+        assert is_campaign_file("foothold_Afghanistan_storage.csv") is True
         assert is_campaign_file("FootHold_CA_storage.csv") is True
 
     def test_match_ctld_farps_csv(self):
         """Should match _CTLD_FARPS.csv files."""
         from foothold_checkpoint.core.campaign import is_campaign_file
 
-        assert is_campaign_file("foothold_afghanistan_CTLD_FARPS.csv") is True
+        assert is_campaign_file("foothold_Afghanistan_CTLD_FARPS.csv") is True
         assert is_campaign_file("FootHold_CA_CTLD_FARPS.csv") is True
 
     def test_match_ctld_save_csv(self):
         """Should match _CTLD_Save.csv files."""
         from foothold_checkpoint.core.campaign import is_campaign_file
 
-        assert is_campaign_file("foothold_afghanistan_CTLD_Save.csv") is True
+        assert is_campaign_file("foothold_Afghanistan_CTLD_Save.csv") is True
         assert is_campaign_file("FootHold_CA_CTLD_Save.csv") is True
 
     def test_match_with_version_suffix(self):
@@ -48,7 +48,7 @@ class TestFilePatternMatching:
         from foothold_checkpoint.core.campaign import is_campaign_file
 
         assert is_campaign_file("FootHold_CA_v0.2.lua") is True
-        assert is_campaign_file("foothold_afghanistan_V0.1_storage.csv") is True
+        assert is_campaign_file("foothold_Afghanistan_V0.1_storage.csv") is True
         assert is_campaign_file("FootHold_Germany_0.3_CTLD_FARPS.csv") is True
 
     def test_ignore_status_file(self):
@@ -99,7 +99,7 @@ class TestFilePatternMatching:
         """Should work with Path objects, not just strings."""
         from foothold_checkpoint.core.campaign import is_campaign_file
 
-        assert is_campaign_file(Path("foothold_afghanistan.lua")) is True
+        assert is_campaign_file(Path("foothold_Afghanistan.lua")) is True
         assert is_campaign_file(Path("/some/path/foothold_CA.lua")) is True
         assert is_campaign_file(Path("README.txt")) is False
 
@@ -112,7 +112,7 @@ class TestVersionNormalization:
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name("FootHold_CA_v0.2.lua") == "ca"
-        assert normalize_campaign_name("foothold_afghanistan_v1.0.lua") == "afghanistan"
+        assert normalize_campaign_name("foothold_Afghanistan_v1.0.lua") == "afghanistan"
         assert normalize_campaign_name("FootHold_Syria_v0.5_storage.csv") == "syria"
 
     def test_normalize_uppercase_version_suffix(self):
@@ -135,7 +135,7 @@ class TestVersionNormalization:
         """Should normalize to lowercase when no version suffix."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("foothold_afghanistan.lua") == "afghanistan"
+        assert normalize_campaign_name("foothold_Afghanistan.lua") == "afghanistan"
         assert normalize_campaign_name("FootHold_CA.lua") == "ca"
         assert normalize_campaign_name("foothold_Syria_Extended_storage.csv") == "syria_extended"
 
@@ -143,7 +143,7 @@ class TestVersionNormalization:
         """Should handle files with type suffixes (_storage, _CTLD_FARPS, _CTLD_Save)."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name("foothold_afghanistan_storage.csv") == "afghanistan"
+        assert normalize_campaign_name("foothold_Afghanistan_storage.csv") == "afghanistan"
         assert normalize_campaign_name("FootHold_CA_v0.2_CTLD_FARPS.csv") == "ca"
         assert normalize_campaign_name("foothold_Syria_V1.0_CTLD_Save.csv") == "syria"
 
@@ -152,7 +152,7 @@ class TestVersionNormalization:
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
         assert normalize_campaign_name("foothold_Syria_Extended.lua") == "syria_extended"
-        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "germany_modern"
+        assert normalize_campaign_name("FootHold_Germany_Modern_v0.1.lua") == "Germany_Modern"
         assert normalize_campaign_name("foothold_Persian_Gulf_2.0.lua") == "persian_gulf"
 
     def test_normalize_case_insensitive_prefix(self):
@@ -168,7 +168,7 @@ class TestVersionNormalization:
         """Should work with Path objects and normalize to lowercase."""
         from foothold_checkpoint.core.campaign import normalize_campaign_name
 
-        assert normalize_campaign_name(Path("foothold_afghanistan.lua")) == "afghanistan"
+        assert normalize_campaign_name(Path("foothold_Afghanistan.lua")) == "afghanistan"
         assert normalize_campaign_name(Path("FootHold_CA_v0.2.lua")) == "ca"
         assert normalize_campaign_name(Path("/some/path/foothold_Syria_V1.0.lua")) == "syria"
 
@@ -204,10 +204,10 @@ class TestFileGrouping:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
-            "foothold_afghanistan_CTLD_FARPS.csv",
-            "foothold_afghanistan_CTLD_Save.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
+            "foothold_Afghanistan_CTLD_FARPS.csv",
+            "foothold_Afghanistan_CTLD_Save.csv",
         ]
 
         groups = group_campaign_files(files)
@@ -233,8 +233,8 @@ class TestFileGrouping:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
             "FootHold_CA.lua",
             "FootHold_CA_CTLD_FARPS.csv",
             "foothold_Syria.lua",
@@ -255,10 +255,10 @@ class TestFileGrouping:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
+            "foothold_Afghanistan.lua",
             "Foothold_Afghanistan_storage.csv",
             "FootHold_AFGHANISTAN_CTLD_FARPS.csv",
-            "FOOTHOLD_afghanistan_CTLD_Save.csv",
+            "FOOTHOLD_Afghanistan_CTLD_Save.csv",
         ]
 
         groups = group_campaign_files(files)
@@ -291,8 +291,8 @@ class TestFileGrouping:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
             "foothold.status",  # Should be ignored
             "README.txt",  # Should be ignored
             ".gitignore",  # Should be ignored
@@ -339,8 +339,8 @@ class TestFileGrouping:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            Path("foothold_afghanistan.lua"),
-            Path("foothold_afghanistan_storage.csv"),
+            Path("foothold_Afghanistan.lua"),
+            Path("foothold_Afghanistan_storage.csv"),
             Path("/some/path/FootHold_CA.lua"),
         ]
 
@@ -381,7 +381,7 @@ class TestSharedFileIdentification:
         """Should return False for non-ranks files."""
         from foothold_checkpoint.core.campaign import is_shared_file
 
-        assert is_shared_file("foothold_afghanistan.lua") is False
+        assert is_shared_file("foothold_Afghanistan.lua") is False
         assert is_shared_file("Foothold_CA_Ranks.lua") is False  # Campaign-specific ranks
         assert is_shared_file("Ranks.lua") is False
         assert is_shared_file("foothold.status") is False
@@ -392,8 +392,8 @@ class TestSharedFileIdentification:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
             "Foothold_Ranks.lua",  # Should be excluded
             "FootHold_CA.lua",
         ]
@@ -422,8 +422,8 @@ class TestSharedFileIdentification:
         from foothold_checkpoint.core.campaign import group_campaign_files
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
             "Foothold_Ranks.lua",  # Shared
             "FootHold_CA.lua",
             "foothold.status",  # Non-campaign file
@@ -457,8 +457,8 @@ class TestCampaignNameMapping:
             campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        # Historical name should map to current (last in list)
-        assert map_campaign_name("gcw_modern", config) == "germany_modern"
+        # Historical name should map to campaign ID
+        assert map_campaign_name("gcw_modern", config) == "Germany_Modern"
 
     def test_map_current_name_stays_same(self):
         """Should keep current campaign name as-is."""
@@ -473,8 +473,8 @@ class TestCampaignNameMapping:
             campaigns={"Germany_Modern": ["gcw_modern", "germany_modern"]},
         )
 
-        # Current name should map to itself (last in list)
-        assert map_campaign_name("germany_modern", config) == "germany_modern"
+        # Current name should map to campaign ID
+        assert map_campaign_name("germany_modern", config) == "Germany_Modern"
 
     def test_map_unknown_name_stays_unchanged(self):
         """Should return unchanged name if not in config."""
@@ -540,7 +540,7 @@ class TestCampaignNameMapping:
 
         # Input is already lowercase from normalize_campaign_name
         # Config names are mixed case, should still match
-        assert map_campaign_name("gcw_modern", config) == "germany_modern"
+        assert map_campaign_name("gcw_modern", config) == "Germany_Modern"
 
     def test_map_empty_config(self):
         """Should return unchanged name when config has no campaigns."""
@@ -596,7 +596,7 @@ class TestCampaignDetectionReport:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = ["foothold_afghanistan.lua", "foothold_afghanistan_storage.csv"]
+        files = ["foothold_Afghanistan.lua", "foothold_Afghanistan_storage.csv"]
 
         report = create_campaign_report(files, config)
 
@@ -616,8 +616,8 @@ class TestCampaignDetectionReport:
         )
 
         files = [
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
             "FootHold_CA.lua",
             "FootHold_CA_CTLD_FARPS.csv",
         ]
@@ -656,7 +656,7 @@ class TestCampaignDetectionReport:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = ["foothold_afghanistan.lua", "README.txt", "foothold.status", ".hidden_file"]
+        files = ["foothold_Afghanistan.lua", "README.txt", "foothold.status", ".hidden_file"]
 
         report = create_campaign_report(files, config)
 
@@ -697,7 +697,7 @@ class TestCampaignDetectionReport:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        files = ["foothold_afghanistan.lua", "Foothold_Ranks.lua"]  # Shared file
+        files = ["foothold_Afghanistan.lua", "Foothold_Ranks.lua"]  # Shared file
 
         report = create_campaign_report(files, config)
 
@@ -719,14 +719,14 @@ class TestCampaignDetectionReport:
 
         files = [
             # Afghanistan: 4 files
-            "foothold_afghanistan.lua",
-            "foothold_afghanistan_storage.csv",
-            "foothold_afghanistan_CTLD_FARPS.csv",
-            "foothold_afghanistan_CTLD_Save.csv",
+            "foothold_Afghanistan.lua",
+            "foothold_Afghanistan_storage.csv",
+            "foothold_Afghanistan_CTLD_FARPS.csv",
+            "foothold_Afghanistan_CTLD_Save.csv",
             # CA: 1 file
             "FootHold_CA.lua",
             # Syria: 2 files
-            "foothold_syria.lua",
+            "foothold_Syria.lua",
             "foothold_syria_storage.csv",
         ]
 
@@ -756,7 +756,7 @@ class TestRenameCampaignFile:
         renamed = rename_campaign_file(original, config)
 
         # map_campaign_name returns lowercase by design
-        assert renamed == "FootHold_germany_modern.lua"
+        assert renamed == "FootHold_Germany_Modern.lua"
 
     def test_rename_lua_file_with_version_suffix(self):
         """Should rename .lua file with version suffix."""
@@ -779,7 +779,7 @@ class TestRenameCampaignFile:
         renamed = rename_campaign_file(original, config)
 
         # Should remove version suffix and use current name
-        assert renamed == "FootHold_germany_modern.lua"
+        assert renamed == "FootHold_Germany_Modern.lua"
 
     def test_rename_storage_csv_file(self):
         """Should rename _storage.csv file with current campaign name."""
@@ -797,7 +797,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_storage.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_germany_modern_storage.csv"
+        assert renamed == "FootHold_Germany_Modern_storage.csv"
 
     def test_rename_ctld_farps_csv_file(self):
         """Should rename _CTLD_FARPS.csv file with current campaign name."""
@@ -815,7 +815,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_CTLD_FARPS.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_germany_modern_CTLD_FARPS.csv"
+        assert renamed == "FootHold_Germany_Modern_CTLD_FARPS.csv"
 
     def test_rename_ctld_save_csv_file(self):
         """Should rename _CTLD_Save.csv file with current campaign name."""
@@ -833,7 +833,7 @@ class TestRenameCampaignFile:
         original = "FootHold_GCW_Modern_CTLD_Save.csv"
         renamed = rename_campaign_file(original, config)
 
-        assert renamed == "FootHold_germany_modern_CTLD_Save.csv"
+        assert renamed == "FootHold_Germany_Modern_CTLD_Save.csv"
 
     def test_rename_unchanged_campaign_name(self):
         """Should keep filename unchanged if campaign name hasn't evolved."""
@@ -848,11 +848,11 @@ class TestRenameCampaignFile:
             campaigns={"Afghanistan": ["afghanistan"]},
         )
 
-        original = "foothold_afghanistan.lua"
+        original = "foothold_Afghanistan.lua"
         renamed = rename_campaign_file(original, config)
 
         # Name hasn't changed, should stay the same
-        assert renamed == "foothold_afghanistan.lua"
+        assert renamed == "foothold_Afghanistan.lua"
 
     def test_rename_campaign_not_in_config(self):
         """Should keep filename unchanged if campaign not found in config."""
@@ -927,8 +927,8 @@ class TestRenameCampaignFile:
         )
 
         # Old name → current name
-        assert rename_campaign_file("foothold_syria_extended.lua", config) == "foothold_syria.lua"
+        assert rename_campaign_file("foothold_syria_extended.lua", config) == "foothold_Syria.lua"
         # Middle name → current name
-        assert rename_campaign_file("foothold_syria_modern.lua", config) == "foothold_syria.lua"
+        assert rename_campaign_file("foothold_syria_modern.lua", config) == "foothold_Syria.lua"
         # Current name → stays same
-        assert rename_campaign_file("foothold_syria.lua", config) == "foothold_syria.lua"
+        assert rename_campaign_file("foothold_Syria.lua", config) == "foothold_Syria.lua"

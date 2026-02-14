@@ -15,7 +15,10 @@
       "Bash(poetry run pytest:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(poetry run black:*)"
+      "Bash(poetry run black:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git apply:*)",
+      "Bash(git stash drop:*)"
     ]
   }
 }

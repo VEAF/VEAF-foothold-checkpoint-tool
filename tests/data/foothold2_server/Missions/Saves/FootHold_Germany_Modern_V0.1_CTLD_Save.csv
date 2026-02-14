@@ -1,0 +1,7 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+STATIC,-499070,245,-934339,50 of everything,iso_container,Static,1,10000,'none',Cargos,iso_container,none
+STATIC,-437843,494,-947905,Zone supplies C-130J,iso_container_small,Static,1,5000,'none',Cargos,iso_container_small,none
+STATIC,-437843,494,-947908,Zone supplies C-130J,iso_container_small,Static,1,5000,'none',Cargos,iso_container_small,none
+STATIC,-437276,495,-947502,50 of everything,iso_container,Static,1,10000,'none',Cargos,iso_container,none
+STATIC,-437272,495,-947497,50 of everything,iso_container,Static,1,10000,'none',Cargos,iso_container,none
+STATIC,-437280,495,-947505,25 of everything,iso_container_small,Static,1,6000,'none',Cargos,iso_container_small,none

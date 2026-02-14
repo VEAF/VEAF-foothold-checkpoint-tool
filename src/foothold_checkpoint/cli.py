@@ -245,10 +245,19 @@ def save_command(
 
             if not _quiet_mode:
                 console.print("\n[cyan]Available servers:[/cyan]")
-                for srv in available_servers:
-                    console.print(f"  - {srv}")
+                for idx, srv in enumerate(available_servers, 1):
+                    console.print(f"  {idx}. {srv}")
 
-            server = Prompt.ask("\nSelect server", choices=available_servers)
+            # Accept both number and server name
+            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
+            selection = Prompt.ask(
+                "\nSelect server (number or name)", choices=choices, default="1"
+            )
+            # Convert number to server name if needed
+            if selection.isdigit():
+                server = available_servers[int(selection) - 1]
+            else:
+                server = selection
 
         # Validate server exists
         if server not in config.servers:
@@ -258,11 +267,16 @@ def save_command(
             raise typer.Exit(1)
 
         server_config = config.servers[server]
-        mission_dir = Path(server_config.path)
+        # Add Missions/Saves to server path (DCS standard directory structure)
+        mission_dir = Path(server_config.path) / "Missions" / "Saves"
 
         # Validate mission directory exists
         if not mission_dir.exists():
-            console.print(f"[red]Error:[/red] Mission directory does not exist: {mission_dir}")
+            console.print(
+                f"[red]Error:[/red] Mission saves directory does not exist: {mission_dir}\n"
+                f"[yellow]Hint:[/yellow] Server path should point to the DCS server root directory.\n"
+                f"       The tool automatically looks in 'Missions/Saves' subdirectory."
+            )
             raise typer.Exit(1)
 
         # Step 2: Detect campaigns in mission directory
@@ -293,14 +307,29 @@ def save_command(
             # Prompt for campaign selection
             if not _quiet_mode:
                 console.print("\n[cyan]Detected campaigns:[/cyan]")
-                for camp in campaigns:
+                campaign_list = list(campaigns.keys())
+                for idx, camp in enumerate(campaign_list, 1):
                     file_count = len(campaigns[camp])
-                    console.print(f"  - {camp} ({file_count} file{'s' if file_count > 1 else ''})")
+                    console.print(f"  {idx}. {camp} ({file_count} file{'s' if file_count > 1 else ''})")
+                console.print(f"  [bold]A[/bold]. [yellow]all[/yellow] (save all campaigns)")
 
-            campaign_choices = list(campaigns.keys()) + ["all"]
-            selected = Prompt.ask("\nSelect campaign (or 'all')", choices=campaign_choices)
+            # Accept numbers (1-N), campaign names, 'A' or 'all'
+            campaign_list = list(campaigns.keys())
+            number_choices = [str(i) for i in range(1, len(campaign_list) + 1)]
+            campaign_choices = number_choices + campaign_list + ["A", "a", "all"]
+            selected = Prompt.ask(
+                "\nSelect campaign (number, name, or 'A' for all)",
+                choices=campaign_choices,
+                default="1"
+            )
 
-            campaigns_to_save = list(campaigns.keys()) if selected == "all" else [selected]
+            # Convert selection to campaign name(s)
+            if selected.upper() in ["A", "ALL"]:
+                campaigns_to_save = campaign_list
+            elif selected.isdigit():
+                campaigns_to_save = [campaign_list[int(selected) - 1]]
+            else:
+                campaigns_to_save = [selected]
 
         # Step 4: Get optional name and comment (prompt if not provided as flags)
         checkpoint_name = name
@@ -507,9 +536,20 @@ def restore_command(
                 raise typer.Exit(1)
 
             if not _quiet_mode:
-                console.print(f"[cyan]Available servers:[/cyan] {', '.join(available_servers)}")
+                console.print("\n[cyan]Available servers:[/cyan]")
+                for idx, srv in enumerate(available_servers, 1):
+                    console.print(f"  {idx}. {srv}")
 
-            server = Prompt.ask("Select target server", choices=available_servers)
+            # Accept both number and server name
+            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
+            selection = Prompt.ask(
+                "\nSelect target server (number or name)", choices=choices, default="1"
+            )
+            # Convert number to server name if needed
+            if selection.isdigit():
+                server = available_servers[int(selection) - 1]
+            else:
+                server = selection
 
         # Validate server exists in config
         if server not in config.servers:
@@ -520,7 +560,8 @@ def restore_command(
             raise typer.Exit(1)
 
         # Get target directory from server config
-        target_dir = config.servers[server].path
+        # Add Missions/Saves to server path (DCS standard directory structure)
+        target_dir = Path(config.servers[server].path) / "Missions" / "Saves"
 
         # Step 4: Restore checkpoint with progress display
         if not _quiet_mode:
@@ -955,12 +996,19 @@ def import_command(
 
             if not _quiet_mode:
                 console.print("\n[cyan]Available servers:[/cyan]")
-                for s in available_servers:
-                    console.print(f"  - {s}")
+                for idx, s in enumerate(available_servers, 1):
+                    console.print(f"  {idx}. {s}")
 
-            server_name = Prompt.ask(
-                "\nSelect target server", choices=available_servers, default=available_servers[0]
+            # Accept both number and server name
+            choices = [str(i) for i in range(1, len(available_servers) + 1)] + available_servers
+            selection = Prompt.ask(
+                "\nSelect target server (number or name)", choices=choices, default="1"
             )
+            # Convert number to server name if needed
+            if selection.isdigit():
+                server_name = available_servers[int(selection) - 1]
+            else:
+                server_name = selection
         else:
             server_name = server
             # Validate server exists

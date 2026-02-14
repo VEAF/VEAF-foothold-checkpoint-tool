@@ -239,25 +239,26 @@ def group_campaign_files(filenames: Sequence[str | Path]) -> dict[str, list[str]
 
 
 def map_campaign_name(campaign_name: str, config: "Config") -> str:
-    """Map a campaign name to its current name using config mappings.
+    """Map a campaign name to its canonical campaign ID using config mappings.
 
     Uses the configuration's campaign mappings to translate historical campaign
-    names to their current names. The last name in each campaign's list is
-    considered the current name.
+    names to their canonical campaign ID (the key in the config). This preserves
+    the intended capitalization from the configuration.
 
     Args:
         campaign_name: The normalized campaign name to map (lowercase).
         config: Configuration object containing campaign mappings.
 
     Returns:
-        str: The current (mapped) campaign name, or the original name if not found in config.
+        str: The canonical campaign ID from config, or the original name if not found.
 
     Examples:
         >>> # Config: Germany_Modern: [GCW_Modern, Germany_Modern]
         >>> map_campaign_name("gcw_modern", config)
-        'germany_modern'
-        >>> map_campaign_name("germany_modern", config)
-        'germany_modern'
+        'Germany_Modern'
+        >>> # Config: Caucasus: [CA]
+        >>> map_campaign_name("ca", config)
+        'Caucasus'
         >>> map_campaign_name("unknown", config)
         'unknown'
     """
@@ -268,8 +269,8 @@ def map_campaign_name(campaign_name: str, config: "Config") -> str:
 
         # If the campaign name matches any name in the list
         if campaign_name in normalized_names:
-            # Return the last name (current name), normalized to lowercase
-            return name_list[-1].lower()
+            # Return the campaign ID (preserves capitalization from config)
+            return campaign_id
 
     # If not found in config, return unchanged
     return campaign_name
