@@ -1579,3 +1579,364 @@ class TestListCheckpoints:
             # Should return only the valid checkpoint
             assert len(result) == 1
             assert result[0]["campaign"] == "valid"
+
+
+class TestDeleteCheckpoint:
+    """Test suite for delete_checkpoint function."""
+
+    def test_delete_checkpoint_removes_existing_file(self):
+        """delete_checkpoint should delete an existing checkpoint file."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create a campaign file
+            (source_dir / "foothold_test.lua").write_text("-- test campaign")
+
+            # Save a checkpoint
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Verify file exists
+            assert checkpoint_path.exists()
+
+            # Delete the checkpoint
+            delete_checkpoint(checkpoint_path, force=True)
+
+            # Verify file is gone
+            assert not checkpoint_path.exists()
+
+    def test_delete_checkpoint_accepts_string_path(self):
+        """delete_checkpoint should accept checkpoint path as string."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Delete using string path
+            delete_checkpoint(str(checkpoint_path), force=True)
+
+            assert not checkpoint_path.exists()
+
+    def test_delete_checkpoint_raises_error_if_file_not_exists(self):
+        """delete_checkpoint should raise FileNotFoundError if checkpoint doesn't exist."""
+        from foothold_checkpoint.core.storage import delete_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+            non_existent = checkpoint_dir / "nonexistent.zip"
+
+            with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
+                delete_checkpoint(non_existent, force=True)
+
+    def test_delete_checkpoint_raises_error_if_not_a_zip(self):
+        """delete_checkpoint should raise ValueError if file is not a ZIP."""
+        from foothold_checkpoint.core.storage import delete_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create a non-ZIP file
+            not_zip = checkpoint_dir / "notazip.txt"
+            not_zip.write_text("not a zip file")
+
+            with pytest.raises(ValueError, match="Not a valid checkpoint file"):
+                delete_checkpoint(not_zip, force=True)
+
+    def test_delete_checkpoint_raises_error_if_zip_missing_metadata(self):
+        """delete_checkpoint should raise ValueError if ZIP lacks metadata.json."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import delete_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create a ZIP without metadata.json
+            invalid_zip = checkpoint_dir / "invalid.zip"
+            with zipfile.ZipFile(invalid_zip, "w") as zf:
+                zf.writestr("some_file.txt", "content")
+
+            with pytest.raises(ValueError, match="Not a valid checkpoint.*missing metadata"):
+                delete_checkpoint(invalid_zip, force=True)
+
+    def test_delete_checkpoint_returns_metadata_dict(self):
+        """delete_checkpoint should return checkpoint metadata dict before deletion."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+                name="Test Checkpoint",
+                comment="Test comment",
+            )
+
+            metadata = delete_checkpoint(checkpoint_path, force=True)
+
+            # Should return metadata dict
+            assert isinstance(metadata, dict)
+            assert metadata["campaign_name"] == "test"
+            assert metadata["server_name"] == "test-server"
+            assert metadata["name"] == "Test Checkpoint"
+            assert metadata["comment"] == "Test comment"
+            assert "created_at" in metadata
+
+    def test_delete_checkpoint_handles_corrupted_metadata_gracefully(self):
+        """delete_checkpoint should allow deletion even with corrupted metadata in force mode."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import delete_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create a ZIP with corrupted metadata
+            corrupted_zip = checkpoint_dir / "corrupted.zip"
+            with zipfile.ZipFile(corrupted_zip, "w") as zf:
+                zf.writestr("metadata.json", "invalid json {{{")
+
+            # Should raise error even in force mode (cannot validate it's a checkpoint)
+            with pytest.raises(ValueError, match="Cannot read checkpoint metadata"):
+                delete_checkpoint(corrupted_zip, force=True)
+
+    def test_delete_checkpoint_handles_permission_error(self):
+        """delete_checkpoint should raise PermissionError if file is read-only."""
+        import os
+        import stat
+
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Make file read-only
+            os.chmod(checkpoint_path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+
+            try:
+                with pytest.raises(PermissionError):
+                    delete_checkpoint(checkpoint_path, force=True)
+            finally:
+                # Restore permissions for cleanup
+                try:
+                    os.chmod(
+                        checkpoint_path,
+                        stat.S_IRUSR
+                        | stat.S_IWUSR
+                        | stat.S_IRGRP
+                        | stat.S_IWGRP
+                        | stat.S_IROTH,
+                    )
+                except (OSError, FileNotFoundError):
+                    pass
+
+    def test_delete_checkpoint_force_mode_skips_confirmation(self):
+        """delete_checkpoint with force=True should delete immediately without confirmation."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Force mode should delete immediately
+            delete_checkpoint(checkpoint_path, force=True)
+
+            assert not checkpoint_path.exists()
+
+    def test_delete_checkpoint_without_force_requires_confirmation_callback(self):
+        """delete_checkpoint without force should require a confirmation callback."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Without force and without confirmation callback should raise error
+            with pytest.raises(
+                ValueError, match="Confirmation callback required when force=False"
+            ):
+                delete_checkpoint(checkpoint_path, force=False)
+
+    def test_delete_checkpoint_calls_confirmation_callback(self):
+        """delete_checkpoint should call confirmation callback and respect its result."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Confirmation callback returns False (user cancels)
+            def confirm_no(metadata):
+                return False
+
+            result = delete_checkpoint(
+                checkpoint_path, force=False, confirm_callback=confirm_no
+            )
+
+            # File should still exist
+            assert checkpoint_path.exists()
+            # Should return None when cancelled
+            assert result is None
+
+    def test_delete_checkpoint_confirmation_callback_receives_metadata(self):
+        """delete_checkpoint should pass metadata dict to confirmation callback."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+                name="Test Name",
+            )
+
+            received_metadata = {}
+
+            def confirm_yes(metadata):
+                received_metadata.update(metadata)
+                return True
+
+            delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes)
+
+            # Callback should have received metadata
+            assert received_metadata["campaign_name"] == "test"
+            assert received_metadata["server_name"] == "test-server"
+            assert received_metadata["name"] == "Test Name"
+
+    def test_delete_checkpoint_deletes_on_confirmation_yes(self):
+        """delete_checkpoint should delete file when confirmation callback returns True."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            def confirm_yes(metadata):
+                return True
+
+            delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes)
+
+            # File should be deleted
+            assert not checkpoint_path.exists()
+
+    def test_delete_checkpoint_raises_error_on_oserror(self):
+        """delete_checkpoint should propagate OSError during deletion."""
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+
+            checkpoint_path = save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Mock Path.unlink to raise OSError
+            with patch.object(Path, "unlink", side_effect=OSError("File in use")):
+                with pytest.raises(OSError, match="File in use"):
+                    delete_checkpoint(checkpoint_path, force=True)

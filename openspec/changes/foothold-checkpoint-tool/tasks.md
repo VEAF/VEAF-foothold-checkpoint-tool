@@ -108,18 +108,18 @@
 
 ## 8. Checkpoint Deletion (core/storage.py)
 
-- [ ] 8.1 Implement delete_checkpoint function
-- [ ] 8.2 Write tests for delete_checkpoint (basic deletion)
-- [ ] 8.3 Implement checkpoint validation before deletion
-- [ ] 8.4 Write tests for validation (exists, is ZIP, has metadata)
-- [ ] 8.5 Implement metadata display before confirmation
-- [ ] 8.6 Write tests for metadata display
-- [ ] 8.7 Implement confirmation prompt
-- [ ] 8.8 Write tests for confirmation (accept, cancel)
-- [ ] 8.9 Implement force deletion (--force flag)
-- [ ] 8.10 Write tests for force deletion
-- [ ] 8.11 Implement deletion error handling (in use, permissions)
-- [ ] 8.12 Write tests for error scenarios
+- [x] 8.1 Implement delete_checkpoint function
+- [x] 8.2 Write tests for delete_checkpoint (basic deletion)
+- [x] 8.3 Implement checkpoint validation before deletion
+- [x] 8.4 Write tests for validation (exists, is ZIP, has metadata)
+- [x] 8.5 Implement metadata display before confirmation
+- [x] 8.6 Write tests for metadata display
+- [x] 8.7 Implement confirmation prompt
+- [x] 8.8 Write tests for confirmation (accept, cancel)
+- [x] 8.9 Implement force deletion (--force flag)
+- [x] 8.10 Write tests for force deletion
+- [x] 8.11 Implement deletion error handling (in use, permissions)
+- [x] 8.12 Write tests for error scenarios
 
 ## 9. Checkpoint Import (core/storage.py)
 
