@@ -16,12 +16,14 @@ class TestImportCommandWithFlags:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -31,12 +33,11 @@ class TestImportCommandWithFlags:
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             mock_import.return_value = checkpoint_path
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "afghanistan"],
+                input="y\n",
+            )
 
         assert result.exit_code == 0
         assert "success" in result.stdout.lower() or "imported" in result.stdout.lower()
@@ -55,12 +56,14 @@ class TestImportCommandWithFlags:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -70,14 +73,22 @@ class TestImportCommandWithFlags:
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             mock_import.return_value = checkpoint_path
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan",
-                "--name", "Test Import",
-                "--comment", "Test comment"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                [
+                    "import",
+                    str(source_dir),
+                    "--server",
+                    "test-server",
+                    "--campaign",
+                    "afghanistan",
+                    "--name",
+                    "Test Import",
+                    "--comment",
+                    "Test comment",
+                ],
+                input="y\n",
+            )
 
         assert result.exit_code == 0
         call_args = mock_import.call_args
@@ -98,12 +109,14 @@ class TestImportCommandPrompts:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock(), "prod-1": Mock()}
             mock_load.return_value = mock_config
 
@@ -114,11 +127,11 @@ class TestImportCommandPrompts:
             mock_import.return_value = checkpoint_path
 
             # Provide server choice and accept import
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--campaign", "afghanistan"
-            ], input="test-server\ny\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--campaign", "afghanistan"],
+                input="test-server\ny\n",
+            )
 
         assert result.exit_code == 0
 
@@ -132,30 +145,30 @@ class TestImportCommandPrompts:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
             # Mock multiple campaigns detected
             mock_group.return_value = {
                 "afghanistan": ["foothold_afghanistan.lua"],
-                "syria": ["foothold_syria.lua"]
+                "syria": ["foothold_syria.lua"],
             }
 
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             mock_import.return_value = checkpoint_path
 
             # Select campaign 1 (afghanistan), select server, accept import
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server"
-            ], input="1\ny\n")
+            result = runner.invoke(
+                app, ["import", str(source_dir), "--server", "test-server"], input="1\ny\n"
+            )
 
         assert result.exit_code == 0
 
@@ -169,12 +182,14 @@ class TestImportCommandPrompts:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -185,11 +200,9 @@ class TestImportCommandPrompts:
             mock_import.return_value = checkpoint_path
 
             # Just confirm import (no campaign prompt expected)
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server"
-            ], input="y\n")
+            result = runner.invoke(
+                app, ["import", str(source_dir), "--server", "test-server"], input="y\n"
+            )
 
         assert result.exit_code == 0
         call_args = mock_import.call_args
@@ -209,12 +222,14 @@ class TestImportCommandConfirmation:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -223,12 +238,11 @@ class TestImportCommandConfirmation:
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             mock_import.return_value = checkpoint_path
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "afghanistan"],
+                input="y\n",
+            )
 
         assert result.exit_code == 0
         # Summary should show campaign and server
@@ -245,24 +259,25 @@ class TestImportCommandConfirmation:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
             mock_group.return_value = {"afghanistan": ["foothold_afghanistan.lua"]}
 
             # User cancels
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="n\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "afghanistan"],
+                input="n\n",
+            )
 
         assert result.exit_code == 0
         assert "cancel" in result.stdout.lower() or "aborted" in result.stdout.lower()
@@ -282,12 +297,14 @@ class TestImportCommandProgressAndWarnings:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -296,16 +313,15 @@ class TestImportCommandProgressAndWarnings:
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             warnings = [
                 "Missing storage file: foothold_afghanistan_storage.csv",
-                "Ranks file not found: Foothold_Ranks.lua"
+                "Ranks file not found: Foothold_Ranks.lua",
             ]
             mock_import.return_value = (checkpoint_path, warnings)
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "afghanistan"],
+                input="y\n",
+            )
 
         assert result.exit_code == 0
         # Warnings should be displayed in yellow
@@ -321,12 +337,14 @@ class TestImportCommandProgressAndWarnings:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -336,12 +354,11 @@ class TestImportCommandProgressAndWarnings:
             # Return just path (no warnings)
             mock_import.return_value = checkpoint_path
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "afghanistan"],
+                input="y\n",
+            )
 
         assert result.exit_code == 0
         assert "success" in result.stdout.lower()
@@ -359,15 +376,21 @@ class TestImportCommandErrors:
         runner = CliRunner()
         with patch("foothold_checkpoint.cli.load_config") as mock_load:
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
-            result = runner.invoke(app, [
-                "import",
-                str(tmp_path / "nonexistent"),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                [
+                    "import",
+                    str(tmp_path / "nonexistent"),
+                    "--server",
+                    "test-server",
+                    "--campaign",
+                    "afghanistan",
+                ],
+                input="y\n",
+            )
 
         assert result.exit_code != 0
         assert "not found" in result.stdout.lower() or "error" in result.stdout.lower()
@@ -382,22 +405,20 @@ class TestImportCommandErrors:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
             # No campaigns detected
             mock_group.return_value = {}
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server"
-            ])
+            result = runner.invoke(app, ["import", str(source_dir), "--server", "test-server"])
 
         assert result.exit_code != 0
         assert "no campaign" in result.stdout.lower() or "not found" in result.stdout.lower()
@@ -412,22 +433,23 @@ class TestImportCommandErrors:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
             mock_import.side_effect = ValueError("No campaign files found for campaign 'invalid'")
 
-            result = runner.invoke(app, [
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "invalid"
-            ], input="y\n")
+            result = runner.invoke(
+                app,
+                ["import", str(source_dir), "--server", "test-server", "--campaign", "invalid"],
+                input="y\n",
+            )
 
         assert result.exit_code != 0
         assert "not found" in result.stdout.lower() or "error" in result.stdout.lower()
@@ -446,12 +468,14 @@ class TestImportCommandQuietMode:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -461,13 +485,18 @@ class TestImportCommandQuietMode:
             mock_import.return_value = checkpoint_path
 
             # No input needed in quiet mode
-            result = runner.invoke(app, [
-                "--quiet",
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "--quiet",
+                    "import",
+                    str(source_dir),
+                    "--server",
+                    "test-server",
+                    "--campaign",
+                    "afghanistan",
+                ],
+            )
 
         assert result.exit_code == 0
         mock_import.assert_called_once()
@@ -482,12 +511,14 @@ class TestImportCommandQuietMode:
         source_dir.mkdir()
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import, \
-             patch("foothold_checkpoint.cli.group_campaign_files") as mock_group:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
+            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
 
@@ -496,13 +527,18 @@ class TestImportCommandQuietMode:
             checkpoint_path = tmp_path / "checkpoints" / "afghanistan_2024-02-14.zip"
             mock_import.return_value = checkpoint_path
 
-            result = runner.invoke(app, [
-                "--quiet",
-                "import",
-                str(source_dir),
-                "--server", "test-server",
-                "--campaign", "afghanistan"
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "--quiet",
+                    "import",
+                    str(source_dir),
+                    "--server",
+                    "test-server",
+                    "--campaign",
+                    "afghanistan",
+                ],
+            )
 
         assert result.exit_code == 0
         assert checkpoint_path.name in result.stdout

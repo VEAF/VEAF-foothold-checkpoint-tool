@@ -14,7 +14,7 @@ import pytest
 @pytest.fixture
 def real_foothold_data() -> Path:
     """Path to real Foothold campaign test data."""
-    return Path(__file__).parent / "data" / "foothold"
+    return Path(__file__).parent / "data" / "foothold1_server" / "Missions" / "Saves"
 
 
 @pytest.fixture
@@ -47,11 +47,13 @@ def temp_test_env(tmp_path: Path, real_foothold_data: Path) -> dict[str, Path]:
 
 def test_real_foothold_data_exists(real_foothold_data: Path) -> None:
     """Verify real Foothold test data is available."""
-    assert real_foothold_data.exists(), "tests/data/foothold/ directory should exist"
+    assert (
+        real_foothold_data.exists()
+    ), "tests/data/foothold1_server/Missions/Saves/ directory should exist"
 
     # Check for expected campaign files
     files = list(real_foothold_data.glob("*"))
-    assert files, "tests/data/foothold/ should contain campaign files"
+    assert files, "tests/data/foothold1_server/Missions/Saves/ should contain campaign files"
 
     # Should have at least one .lua file
     lua_files = list(real_foothold_data.glob("*.lua"))
@@ -72,13 +74,8 @@ def test_campaign_detection_with_real_data(real_foothold_data: Path) -> None:
     # Create minimal config for campaign detection
     config = Config(
         checkpoints_dir=Path("~/.foothold-checkpoints"),
-        servers={
-            "test": ServerConfig(
-                path=real_foothold_data,
-                description="Test server"
-            )
-        },
-        campaigns={}
+        servers={"test": ServerConfig(path=real_foothold_data, description="Test server")},
+        campaigns={},
     )
 
     # Get list of files in the test data directory

@@ -15,25 +15,23 @@ class TestDeleteCommandBasic:
         checkpoint_file = "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock deleted checkpoint metadata
             mock_delete.return_value = {
                 "campaign_name": "afghanistan",
                 "server_name": "test-server",
-                "created_at": "2024-02-14T10:30:00"
+                "created_at": "2024-02-14T10:30:00",
             }
 
-            result = runner.invoke(app, [
-                "delete",
-                checkpoint_file,
-                "--force"
-            ])
+            result = runner.invoke(app, ["delete", checkpoint_file, "--force"])
 
         assert result.exit_code == 0
         assert "deleted" in result.stdout.lower() or "success" in result.stdout.lower()
@@ -51,18 +49,20 @@ class TestDeleteCommandBasic:
         checkpoint_file = "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock metadata and deletion
             mock_delete.return_value = {
                 "campaign_name": "afghanistan",
                 "server_name": "test-server",
-                "created_at": "2024-02-14T10:30:00"
+                "created_at": "2024-02-14T10:30:00",
             }
 
             # Simulate user accepting deletion
@@ -83,11 +83,13 @@ class TestDeleteCommandBasic:
         checkpoint_file = "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock delete returning None (user cancelled)
@@ -110,12 +112,14 @@ class TestDeleteCommandInteractive:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = [
@@ -134,7 +138,7 @@ class TestDeleteCommandInteractive:
             mock_delete.return_value = {
                 "campaign_name": "afghanistan",
                 "server_name": "test-server",
-                "created_at": "2024-02-14T10:30:00"
+                "created_at": "2024-02-14T10:30:00",
             }
 
             # Select checkpoint 1 and accept deletion
@@ -151,11 +155,13 @@ class TestDeleteCommandInteractive:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_list.return_value = []
@@ -178,13 +184,15 @@ class TestDeleteCommandMetadataDisplay:
         checkpoint_file = "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete, \
-             patch("pathlib.Path.exists", return_value=True), \
-             patch("zipfile.ZipFile") as mock_zipfile:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+            patch("pathlib.Path.exists", return_value=True),
+            patch("zipfile.ZipFile") as mock_zipfile,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             # Mock reading metadata from ZIP
@@ -195,7 +203,7 @@ class TestDeleteCommandMetadataDisplay:
             mock_delete.return_value = {
                 "campaign_name": "afghanistan",
                 "server_name": "test-server",
-                "created_at": "2024-02-14T10:30:00"
+                "created_at": "2024-02-14T10:30:00",
             }
 
             result = runner.invoke(app, ["delete", checkpoint_file], input="y\n")
@@ -215,11 +223,13 @@ class TestDeleteCommandErrors:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = FileNotFoundError("Checkpoint file not found")
@@ -236,11 +246,13 @@ class TestDeleteCommandErrors:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = ValueError("Not a valid checkpoint file")
@@ -278,17 +290,19 @@ class TestDeleteCommandQuietMode:
         checkpoint_file = "afghanistan_2024-02-14_10-30-00.zip"
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.return_value = {
                 "campaign_name": "afghanistan",
                 "server_name": "test-server",
-                "created_at": "2024-02-14T10:30:00"
+                "created_at": "2024-02-14T10:30:00",
             }
 
             result = runner.invoke(app, ["--quiet", "delete", checkpoint_file])
@@ -305,11 +319,13 @@ class TestDeleteCommandQuietMode:
         from foothold_checkpoint.cli import app
 
         runner = CliRunner()
-        with patch("foothold_checkpoint.cli.load_config") as mock_load, \
-             patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete:
+        with (
+            patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.delete_checkpoint") as mock_delete,
+        ):
 
             mock_config = Mock()
-            mock_config.checkpoints_directory = tmp_path / "checkpoints"
+            mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
             mock_delete.side_effect = FileNotFoundError("Checkpoint file not found")

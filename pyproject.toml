@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "foothold-checkpoint"
-version = "0.1.0"
+version = "1.0.0"
 description = "CLI tool for managing DCS Foothold campaign checkpoints with integrity verification"
 authors = ["VEAF <contact@veaf.org>"]
 license = "MIT"
@@ -10,7 +10,7 @@ repository = "https://github.com/VEAF/VEAF-foothold-checkpoint-tool"
 documentation = "https://github.com/VEAF/VEAF-foothold-checkpoint-tool#readme"
 keywords = ["dcs", "foothold", "backup", "checkpoint", "cli"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
@@ -128,3 +128,6 @@ strict_concatenate = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+warn_return_any = false

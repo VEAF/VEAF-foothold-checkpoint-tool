@@ -20,8 +20,8 @@ class TestCheckpointMetadata:
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             files={
                 "foothold_afghanistan.lua": "abc123...",
-                "foothold_afghanistan_storage.csv": "def456..."
-            }
+                "foothold_afghanistan_storage.csv": "def456...",
+            },
         )
 
         assert metadata.campaign_name == "afghanistan"
@@ -39,7 +39,7 @@ class TestCheckpointMetadata:
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             files={"foothold_afghanistan.lua": "abc123..."},
             name="Before major update",
-            comment="Checkpoint created before implementing new features"
+            comment="Checkpoint created before implementing new features",
         )
 
         assert metadata.name == "Before major update"
@@ -53,7 +53,7 @@ class TestCheckpointMetadata:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files={"foothold_afghanistan.lua": "abc123..."}
+            files={"foothold_afghanistan.lua": "abc123..."},
         )
 
         assert metadata.name is None
@@ -84,7 +84,7 @@ class TestCheckpointMetadata:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files={}
+            files={},
         )
 
         assert metadata.files == {}
@@ -97,7 +97,7 @@ class TestCheckpointMetadata:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files={"foothold_afghanistan.lua": "abc123..."}
+            files={"foothold_afghanistan.lua": "abc123..."},
         )
 
         with pytest.raises(ValidationError):
@@ -110,14 +110,14 @@ class TestCheckpointMetadata:
         files = {
             "foothold_afghanistan.lua": "sha256:abc123def456...",
             "foothold_afghanistan_storage.csv": "sha256:789012abc345...",
-            "foothold_afghanistan_CTLD_FARPS.csv": "sha256:def789ghi012..."
+            "foothold_afghanistan_CTLD_FARPS.csv": "sha256:def789ghi012...",
         }
 
         metadata = CheckpointMetadata(
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files=files
+            files=files,
         )
 
         assert metadata.files == files
@@ -134,7 +134,7 @@ class TestCheckpointMetadata:
                 campaign_name="",  # Empty string
                 server_name="production-1",
                 created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-                files={"foothold_afghanistan.lua": "abc123..."}
+                files={"foothold_afghanistan.lua": "abc123..."},
             )
 
         assert "campaign_name" in str(exc_info.value)
@@ -150,7 +150,7 @@ class TestCheckpointMetadata:
                 campaign_name="afghanistan",
                 server_name="",  # Empty string
                 created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-                files={"foothold_afghanistan.lua": "abc123..."}
+                files={"foothold_afghanistan.lua": "abc123..."},
             )
 
         assert "server_name" in str(exc_info.value)
@@ -165,7 +165,7 @@ class TestCheckpointMetadata:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=utc_time,
-            files={"foothold_afghanistan.lua": "abc123..."}
+            files={"foothold_afghanistan.lua": "abc123..."},
         )
 
         assert metadata.created_at == utc_time
@@ -304,10 +304,10 @@ class TestMetadataSerialization:
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             files={
                 "foothold_afghanistan.lua": "sha256:abc123...",
-                "foothold_afghanistan_storage.csv": "sha256:def456..."
+                "foothold_afghanistan_storage.csv": "sha256:def456...",
             },
             name="Before major update",
-            comment="Checkpoint created before implementing new features"
+            comment="Checkpoint created before implementing new features",
         )
 
         json_file = tmp_path / "metadata.json"
@@ -318,7 +318,8 @@ class TestMetadataSerialization:
 
         # Verify JSON content
         import json
-        with open(json_file, encoding='utf-8') as f:
+
+        with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
 
         assert data["campaign_name"] == "afghanistan"
@@ -326,7 +327,7 @@ class TestMetadataSerialization:
         assert data["created_at"] == "2024-01-15T10:30:00Z"
         assert data["files"] == {
             "foothold_afghanistan.lua": "sha256:abc123...",
-            "foothold_afghanistan_storage.csv": "sha256:def456..."
+            "foothold_afghanistan_storage.csv": "sha256:def456...",
         }
         assert data["name"] == "Before major update"
         assert data["comment"] == "Checkpoint created before implementing new features"
@@ -339,14 +340,15 @@ class TestMetadataSerialization:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+            files={"foothold_afghanistan.lua": "sha256:abc123..."},
         )
 
         json_file = tmp_path / "metadata.json"
         save_metadata(metadata, json_file)
 
         import json
-        with open(json_file, encoding='utf-8') as f:
+
+        with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
 
         assert data["name"] is None
@@ -363,14 +365,15 @@ class TestMetadataSerialization:
             "created_at": "2024-01-15T10:30:00Z",
             "files": {
                 "foothold_afghanistan.lua": "sha256:abc123...",
-                "foothold_afghanistan_storage.csv": "sha256:def456..."
+                "foothold_afghanistan_storage.csv": "sha256:def456...",
             },
             "name": "Before major update",
-            "comment": "Test checkpoint"
+            "comment": "Test checkpoint",
         }
 
         import json
-        with open(json_file, 'w', encoding='utf-8') as f:
+
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(json_content, f)
 
         metadata = load_metadata(json_file)
@@ -380,7 +383,7 @@ class TestMetadataSerialization:
         assert metadata.created_at == datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
         assert metadata.files == {
             "foothold_afghanistan.lua": "sha256:abc123...",
-            "foothold_afghanistan_storage.csv": "sha256:def456..."
+            "foothold_afghanistan_storage.csv": "sha256:def456...",
         }
         assert metadata.name == "Before major update"
         assert metadata.comment == "Test checkpoint"
@@ -396,11 +399,12 @@ class TestMetadataSerialization:
             "created_at": "2024-01-15T10:30:00Z",
             "files": {"foothold_afghanistan.lua": "sha256:abc123..."},
             "name": None,
-            "comment": None
+            "comment": None,
         }
 
         import json
-        with open(json_file, 'w', encoding='utf-8') as f:
+
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(json_content, f)
 
         metadata = load_metadata(json_file)
@@ -422,10 +426,10 @@ class TestMetadataSerialization:
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             files={
                 "foothold_afghanistan.lua": "sha256:abc123...",
-                "foothold_afghanistan_storage.csv": "sha256:def456..."
+                "foothold_afghanistan_storage.csv": "sha256:def456...",
             },
             name="Test checkpoint",
-            comment="Roundtrip test"
+            comment="Roundtrip test",
         )
 
         json_file = tmp_path / "metadata.json"
@@ -449,7 +453,9 @@ class TestMetadataSerialization:
         with pytest.raises(ValueError) as exc_info:
             load_metadata(json_file)
 
-        assert "invalid json" in str(exc_info.value).lower() or "json" in str(exc_info.value).lower()
+        assert (
+            "invalid json" in str(exc_info.value).lower() or "json" in str(exc_info.value).lower()
+        )
 
     def test_deserialize_missing_required_field_raises_error(self, tmp_path):
         """Should raise error when required fields are missing."""
@@ -462,7 +468,8 @@ class TestMetadataSerialization:
         }
 
         import json
-        with open(json_file, 'w', encoding='utf-8') as f:
+
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(json_content, f)
 
         with pytest.raises(ValidationError):
@@ -485,14 +492,15 @@ class TestMetadataSerialization:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc),
-            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+            files={"foothold_afghanistan.lua": "sha256:abc123..."},
         )
 
         json_file = tmp_path / "metadata.json"
         save_metadata(metadata, json_file)
 
         import json
-        with open(json_file, encoding='utf-8') as f:
+
+        with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Should be in ISO 8601 format
@@ -506,7 +514,7 @@ class TestMetadataSerialization:
             campaign_name="afghanistan",
             server_name="production-1",
             created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
-            files={"foothold_afghanistan.lua": "sha256:abc123..."}
+            files={"foothold_afghanistan.lua": "sha256:abc123..."},
         )
 
         json_file = str(tmp_path / "metadata.json")
@@ -596,16 +604,24 @@ class TestFilenameGeneration:
 
         # Extract timestamp from filename
         # Format: afghanistan_2024-01-15_10-30-45.zip
-        timestamp_part = filename[len("afghanistan_"):-len(".zip")]
+        timestamp_part = filename[len("afghanistan_") : -len(".zip")]
         year, month, day, hour, minute, second = (
-            timestamp_part[:4], timestamp_part[5:7], timestamp_part[8:10],
-            timestamp_part[11:13], timestamp_part[14:16], timestamp_part[17:19]
+            timestamp_part[:4],
+            timestamp_part[5:7],
+            timestamp_part[8:10],
+            timestamp_part[11:13],
+            timestamp_part[14:16],
+            timestamp_part[17:19],
         )
 
         file_time = datetime(
-            int(year), int(month), int(day),
-            int(hour), int(minute), int(second),
-            tzinfo=timezone.utc
+            int(year),
+            int(month),
+            int(day),
+            int(hour),
+            int(minute),
+            int(second),
+            tzinfo=timezone.utc,
         )
 
         # File timestamp should be within the time window (compare without microseconds)
@@ -646,20 +662,22 @@ class TestZIPCreation:
         source_dir = tmp_path / "source"
         source_dir.mkdir()
         (source_dir / "foothold_afghanistan.lua").write_text("-- Lua content", encoding="utf-8")
-        (source_dir / "foothold_afghanistan_storage.csv").write_text("data1,data2", encoding="utf-8")
+        (source_dir / "foothold_afghanistan_storage.csv").write_text(
+            "data1,data2", encoding="utf-8"
+        )
 
         # Create checkpoint
         output_dir = tmp_path / "checkpoints"
         campaign_files = [
             source_dir / "foothold_afghanistan.lua",
-            source_dir / "foothold_afghanistan_storage.csv"
+            source_dir / "foothold_afghanistan_storage.csv",
         ]
 
         zip_path = create_checkpoint(
             campaign_name="afghanistan",
             server_name="production-1",
             campaign_files=campaign_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
         # Verify ZIP was created
@@ -667,7 +685,7 @@ class TestZIPCreation:
         assert zip_path.suffix == ".zip"
 
         # Verify ZIP contents
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             names = zf.namelist()
             assert "foothold_afghanistan.lua" in names
             assert "foothold_afghanistan_storage.csv" in names
@@ -687,17 +705,17 @@ class TestZIPCreation:
         output_dir = tmp_path / "checkpoints"
         campaign_files = [
             source_dir / "foothold_afghanistan.lua",
-            source_dir / "Foothold_Ranks.lua"
+            source_dir / "Foothold_Ranks.lua",
         ]
 
         zip_path = create_checkpoint(
             campaign_name="afghanistan",
             server_name="production-1",
             campaign_files=campaign_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             names = zf.namelist()
             assert "Foothold_Ranks.lua" in names
 
@@ -718,10 +736,10 @@ class TestZIPCreation:
             campaign_name="afghanistan",
             server_name="production-1",
             campaign_files=campaign_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             names = zf.namelist()
             assert "Foothold_Ranks.lua" not in names
 
@@ -742,15 +760,16 @@ class TestZIPCreation:
             campaign_name="afghanistan",
             server_name="production-1",
             campaign_files=campaign_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
         # Extract and verify metadata
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             metadata_json = zf.read("metadata.json").decode("utf-8")
 
         # Parse metadata
         import json
+
         metadata_dict = json.loads(metadata_json)
 
         assert metadata_dict["campaign_name"] == "afghanistan"
@@ -778,10 +797,10 @@ class TestZIPCreation:
             campaign_files=campaign_files,
             output_dir=output_dir,
             name="Before update",
-            comment="Test checkpoint"
+            comment="Test checkpoint",
         )
 
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             metadata_dict = json.loads(zf.read("metadata.json").decode("utf-8"))
 
         assert metadata_dict["name"] == "Before update"
@@ -804,7 +823,7 @@ class TestZIPCreation:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            created_at=timestamp
+            created_at=timestamp,
         )
 
         assert zip_path.name == "afghanistan_2024-01-15_10-30-45.zip"
@@ -826,7 +845,7 @@ class TestZIPCreation:
             campaign_name="afghanistan",
             server_name="production-1",
             campaign_files=campaign_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
         assert output_dir.exists()
@@ -844,7 +863,7 @@ class TestZIPCreation:
                 campaign_name="afghanistan",
                 server_name="production-1",
                 campaign_files=[non_existent],
-                output_dir=output_dir
+                output_dir=output_dir,
             )
 
 
@@ -863,7 +882,7 @@ class TestProgressTracking:
         output_dir = tmp_path / "checkpoints"
         campaign_files = [
             source_dir / "foothold_afghanistan.lua",
-            source_dir / "foothold_afghanistan_storage.csv"
+            source_dir / "foothold_afghanistan_storage.csv",
         ]
 
         # Track progress calls
@@ -877,7 +896,7 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
 
         # Should have been called at least once
@@ -895,7 +914,7 @@ class TestProgressTracking:
         output_dir = tmp_path / "checkpoints"
         campaign_files = [
             source_dir / "foothold_afghanistan.lua",
-            source_dir / "foothold_afghanistan_storage.csv"
+            source_dir / "foothold_afghanistan_storage.csv",
         ]
 
         progress_calls = []
@@ -908,7 +927,7 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
 
         # Should report checksum computation progress
@@ -929,7 +948,7 @@ class TestProgressTracking:
         campaign_files = [
             source_dir / "foothold_afghanistan.lua",
             source_dir / "foothold_afghanistan_storage.csv",
-            source_dir / "foothold_afghanistan_CTLD_FARPS.csv"
+            source_dir / "foothold_afghanistan_CTLD_FARPS.csv",
         ]
 
         progress_calls = []
@@ -942,7 +961,7 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
 
         # Total should be 3 files
@@ -969,11 +988,15 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
 
         # Should report ZIP creation
-        zip_calls = [call for call in progress_calls if "zip" in call[0].lower() or "archive" in call[0].lower()]
+        zip_calls = [
+            call
+            for call in progress_calls
+            if "zip" in call[0].lower() or "archive" in call[0].lower()
+        ]
         assert len(zip_calls) > 0
 
     def test_progress_callback_optional(self, tmp_path):
@@ -993,7 +1016,7 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=None
+            progress_callback=None,
         )
 
         assert zip_path.exists()
@@ -1017,7 +1040,7 @@ class TestProgressTracking:
         campaign_files = [
             source_dir / "foothold_test_file1.lua",
             source_dir / "foothold_test_file2.lua",
-            source_dir / "foothold_test_file3.lua"
+            source_dir / "foothold_test_file3.lua",
         ]
 
         progress_calls = []
@@ -1030,7 +1053,7 @@ class TestProgressTracking:
             server_name="production-1",
             campaign_files=campaign_files,
             output_dir=output_dir,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
 
         # Should have calls with current: 1, 2, 3

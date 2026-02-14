@@ -1,0 +1,9 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_CARGO_NasamsSite-56664#001,-31360,691,355155,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,12403.916000
+CTLD_CARGO_AmmoTruck-63473#001,-31297,694,355171,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,12873.390000
+CTLD_CARGO_AmmoTruck-65652#001,-141706,997,289128,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,4613.028000
+CTLD_CARGO_NasamsSite-21104#001,-602,637,182134,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,17283.496000
+CTLD_CARGO_AmmoTruck-67715#001,-558,634,182036,Ammo Truck,{CTLD_CARGO_AmmoTruck;},Vehicle,2,800,M 818==1;,Cargos,uh1h_cargo,none,17413.386000
+CTLD_TROOPS_AA-61999#001,-9555,709,174052,Anti-Air Soldiers,{CTLD_TROOPS_AA;},Troops,5,80,Stinger comm==1;Soldier stinger==4;,Cargos,container_cargo,none,17921.757000
+CTLD_CARGO_NasamsSite-99731#001,6805,268,88372,Nasam Site,{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,16365.238000
+CTLD_CARGO_GMLRS_HE-83529#001,-111090,317,29082,HIMARS GMLRRS HE GUIDED,{CTLD_CARGO_GMLRS_HE;},Vehicle,2,3500,CHAP_M142_GMLRS_M31==1;,Cargos,uh1h_cargo,none,5321.354000

@@ -16,8 +16,7 @@ class TestServerConfig:
         from foothold_checkpoint.core.config import ServerConfig
 
         config = ServerConfig(
-            path=Path("D:/Servers/DCS-Production/Missions/Saves"),
-            description="Production server"
+            path=Path("D:/Servers/DCS-Production/Missions/Saves"), description="Production server"
         )
 
         assert config.path == Path("D:/Servers/DCS-Production/Missions/Saves")
@@ -27,10 +26,7 @@ class TestServerConfig:
         """ServerConfig path field should convert strings to Path."""
         from foothold_checkpoint.core.config import ServerConfig
 
-        config = ServerConfig(
-            path="D:/Servers/DCS-Test/Missions/Saves",
-            description="Test server"
-        )
+        config = ServerConfig(path="D:/Servers/DCS-Test/Missions/Saves", description="Test server")
 
         assert isinstance(config.path, Path)
         assert config.path == Path("D:/Servers/DCS-Test/Missions/Saves")
@@ -53,10 +49,7 @@ class TestServerConfig:
         """ServerConfig should be frozen (immutable)."""
         from foothold_checkpoint.core.config import ServerConfig
 
-        config = ServerConfig(
-            path=Path("D:/Servers/DCS/Missions/Saves"),
-            description="Test"
-        )
+        config = ServerConfig(path=Path("D:/Servers/DCS/Missions/Saves"), description="Test")
 
         with pytest.raises(ValidationError, match="frozen"):
             config.path = Path("D:/Other/Path")
@@ -74,13 +67,13 @@ class TestConfig:
             servers={
                 "production-1": ServerConfig(
                     path=Path("D:/Servers/DCS-Production/Missions/Saves"),
-                    description="Production server"
+                    description="Production server",
                 )
             },
             campaigns={
                 "Afghanistan": ["afghanistan"],
                 "Caucasus": ["CA"],
-            }
+            },
         )
 
         # checkpoints_dir with ~ should be automatically expanded
@@ -95,30 +88,21 @@ class TestConfig:
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError, match="checkpoints_dir"):
-            Config(
-                servers={},
-                campaigns={}
-            )
+            Config(servers={}, campaigns={})
 
     def test_config_requires_servers(self):
         """Config should raise ValidationError if servers is missing."""
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError, match="servers"):
-            Config(
-                checkpoints_dir=Path("~/.foothold-checkpoints"),
-                campaigns={}
-            )
+            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), campaigns={})
 
     def test_config_requires_campaigns(self):
         """Config should raise ValidationError if campaigns is missing."""
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError, match="campaigns"):
-            Config(
-                checkpoints_dir=Path("~/.foothold-checkpoints"),
-                servers={}
-            )
+            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), servers={})
 
     def test_config_campaigns_values_must_be_lists(self):
         """Config campaigns values should be lists of strings."""
@@ -127,15 +111,8 @@ class TestConfig:
         # Valid: list of strings
         config = Config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={
-                "test": ServerConfig(
-                    path=Path("D:/Test"),
-                    description="Test"
-                )
-            },
-            campaigns={
-                "Germany": ["GCW", "Germany_Modern"]
-            }
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Germany": ["GCW", "Germany_Modern"]},
         )
 
         assert isinstance(config.campaigns["Germany"], list)
@@ -148,15 +125,8 @@ class TestConfig:
         with pytest.raises(ValidationError, match="empty name list"):
             Config(
                 checkpoints_dir=Path("~/.foothold-checkpoints"),
-                servers={
-                    "test": ServerConfig(
-                        path=Path("D:/Test"),
-                        description="Test"
-                    )
-                },
-                campaigns={
-                    "Afghanistan": []  # Empty list should fail
-                }
+                servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+                campaigns={"Afghanistan": []},  # Empty list should fail
             )
 
     def test_config_is_immutable(self):
@@ -165,13 +135,8 @@ class TestConfig:
 
         config = Config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={
-                "test": ServerConfig(
-                    path=Path("D:/Test"),
-                    description="Test"
-                )
-            },
-            campaigns={"Afghanistan": ["afghanistan"]}
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
         with pytest.raises(ValidationError, match="frozen"):
@@ -186,20 +151,20 @@ class TestLoadConfig:
         from foothold_checkpoint.core.config import load_config
 
         # Create a temporary YAML file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump({
-                'checkpoints_dir': '~/.foothold-checkpoints',
-                'servers': {
-                    'production-1': {
-                        'path': 'D:/Servers/DCS-Production/Missions/Saves',
-                        'description': 'Production server'
-                    }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(
+                {
+                    "checkpoints_dir": "~/.foothold-checkpoints",
+                    "servers": {
+                        "production-1": {
+                            "path": "D:/Servers/DCS-Production/Missions/Saves",
+                            "description": "Production server",
+                        }
+                    },
+                    "campaigns": {"Afghanistan": ["afghanistan"], "Caucasus": ["CA"]},
                 },
-                'campaigns': {
-                    'Afghanistan': ['afghanistan'],
-                    'Caucasus': ['CA']
-                }
-            }, f)
+                f,
+            )
             temp_path = Path(f.name)
 
         try:
@@ -225,7 +190,7 @@ class TestLoadConfig:
         from foothold_checkpoint.core.config import load_config
 
         # Create a file with invalid YAML syntax
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: syntax: here:\n  - broken")
             temp_path = Path(f.name)
 
@@ -240,11 +205,8 @@ class TestLoadConfig:
         from foothold_checkpoint.core.config import load_config
 
         # Create YAML without required 'campaigns' field
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump({
-                'checkpoints_dir': '~/.foothold-checkpoints',
-                'servers': {}
-            }, f)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump({"checkpoints_dir": "~/.foothold-checkpoints", "servers": {}}, f)
             temp_path = Path(f.name)
 
         try:
@@ -258,19 +220,15 @@ class TestLoadConfig:
         from foothold_checkpoint.core.config import load_config
 
         # Create YAML with empty campaign list
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump({
-                'checkpoints_dir': '~/.foothold-checkpoints',
-                'servers': {
-                    'test': {
-                        'path': 'D:/Test',
-                        'description': 'Test'
-                    }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(
+                {
+                    "checkpoints_dir": "~/.foothold-checkpoints",
+                    "servers": {"test": {"path": "D:/Test", "description": "Test"}},
+                    "campaigns": {"Afghanistan": []},  # Empty list should fail
                 },
-                'campaigns': {
-                    'Afghanistan': []  # Empty list should fail
-                }
-            }, f)
+                f,
+            )
             temp_path = Path(f.name)
 
         try:
@@ -284,19 +242,20 @@ class TestLoadConfig:
         from foothold_checkpoint.core.config import load_config
 
         # YAML with string paths
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump({
-                'checkpoints_dir': 'D:/Checkpoints',
-                'servers': {
-                    'test': {
-                        'path': 'D:/Servers/Test/Missions/Saves',
-                        'description': 'Test server'
-                    }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(
+                {
+                    "checkpoints_dir": "D:/Checkpoints",
+                    "servers": {
+                        "test": {
+                            "path": "D:/Servers/Test/Missions/Saves",
+                            "description": "Test server",
+                        }
+                    },
+                    "campaigns": {"Germany": ["GCW", "Germany_Modern"]},
                 },
-                'campaigns': {
-                    'Germany': ['GCW', 'Germany_Modern']
-                }
-            }, f)
+                f,
+            )
             temp_path = Path(f.name)
 
         try:
@@ -344,14 +303,14 @@ class TestCreateDefaultConfig:
             config_path = Path(temp_dir) / "config.yaml"
 
             # Create a file with custom content
-            config_path.write_text("existing: content", encoding='utf-8')
-            original_content = config_path.read_text(encoding='utf-8')
+            config_path.write_text("existing: content", encoding="utf-8")
+            original_content = config_path.read_text(encoding="utf-8")
 
             # Try to create default config (should not overwrite)
             create_default_config(config_path)
 
             # Content should remain unchanged
-            assert config_path.read_text(encoding='utf-8') == original_content
+            assert config_path.read_text(encoding="utf-8") == original_content
 
     def test_create_default_config_creates_valid_yaml(self):
         """create_default_config should create a valid YAML file."""
@@ -363,13 +322,13 @@ class TestCreateDefaultConfig:
             create_default_config(config_path)
 
             # Should be valid YAML
-            with open(config_path, encoding='utf-8') as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             assert isinstance(data, dict)
-            assert 'checkpoints_dir' in data
-            assert 'servers' in data
-            assert 'campaigns' in data
+            assert "checkpoints_dir" in data
+            assert "servers" in data
+            assert "campaigns" in data
 
     def test_create_default_config_loadable_by_load_config(self):
         """Config created by create_default_config should be loadable by load_config."""
@@ -399,13 +358,8 @@ class TestPathExpansion:
 
         config = Config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={
-                "test": ServerConfig(
-                    path=Path("D:/Test"),
-                    description="Test"
-                )
-            },
-            campaigns={"Afghanistan": ["afghanistan"]}
+            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+            campaigns={"Afghanistan": ["afghanistan"]},
         )
 
         # ~ should be expanded to actual home directory
@@ -418,10 +372,7 @@ class TestPathExpansion:
 
         from foothold_checkpoint.core.config import ServerConfig
 
-        config = ServerConfig(
-            path=Path("~/DCS/Missions/Saves"),
-            description="Home server"
-        )
+        config = ServerConfig(path=Path("~/DCS/Missions/Saves"), description="Home server")
 
         # ~ should be expanded
         expected_path = Path.home() / "DCS" / "Missions" / "Saves"
@@ -440,13 +391,8 @@ class TestPathExpansion:
         try:
             config = Config(
                 checkpoints_dir=Path("$FOOTHOLD_TEST_DIR/backups"),
-                servers={
-                    "test": ServerConfig(
-                        path=Path("D:/Test"),
-                        description="Test"
-                    )
-                },
-                campaigns={"Afghanistan": ["afghanistan"]}
+                servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+                campaigns={"Afghanistan": ["afghanistan"]},
             )
 
             # Environment variable should be expanded
@@ -465,10 +411,7 @@ class TestPathExpansion:
         os.environ["DCS_ROOT"] = "D:/Servers/DCS"
 
         try:
-            config = ServerConfig(
-                path=Path("$DCS_ROOT/Missions/Saves"),
-                description="DCS server"
-            )
+            config = ServerConfig(path=Path("$DCS_ROOT/Missions/Saves"), description="DCS server")
 
             # Environment variable should be expanded
             assert config.path == Path("D:/Servers/DCS/Missions/Saves")
@@ -487,10 +430,7 @@ class TestPathExpansion:
 
         try:
             # Start with tilde, followed by env var
-            config = ServerConfig(
-                path=Path("~/DCS/$MISSIONS_SUBDIR/Saves"),
-                description="Combined"
-            )
+            config = ServerConfig(path=Path("~/DCS/$MISSIONS_SUBDIR/Saves"), description="Combined")
 
             # Both should be expanded
             expected_path = Path.home() / "DCS" / "Missions" / "Saves"
@@ -508,19 +448,20 @@ class TestPathExpansion:
         os.environ["TEST_CHECKPOINT_DIR"] = "C:/TestCheckpoints"
 
         # Create YAML with unexpanded paths
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            yaml.dump({
-                'checkpoints_dir': '~/.foothold-checkpoints',
-                'servers': {
-                    'test-server': {
-                        'path': '$TEST_CHECKPOINT_DIR/Saves',
-                        'description': 'Test server with env var'
-                    }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(
+                {
+                    "checkpoints_dir": "~/.foothold-checkpoints",
+                    "servers": {
+                        "test-server": {
+                            "path": "$TEST_CHECKPOINT_DIR/Saves",
+                            "description": "Test server with env var",
+                        }
+                    },
+                    "campaigns": {"Afghanistan": ["afghanistan"]},
                 },
-                'campaigns': {
-                    'Afghanistan': ['afghanistan']
-                }
-            }, f)
+                f,
+            )
             temp_path = Path(f.name)
 
         try:
@@ -547,8 +488,7 @@ class TestPathExpansion:
         try:
             # Windows style: %USERPROFILE%
             config = ServerConfig(
-                path=Path("%USERPROFILE%/DCS/Missions/Saves"),
-                description="Windows style"
+                path=Path("%USERPROFILE%/DCS/Missions/Saves"), description="Windows style"
             )
 
             # Should be expanded
@@ -569,10 +509,7 @@ class TestErrorMessages:
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
-            Config(
-                servers={},
-                campaigns={}
-            )
+            Config(servers={}, campaigns={})
 
         # Error should mention the missing field
         error_str = str(exc_info.value)
@@ -588,10 +525,7 @@ class TestErrorMessages:
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
-            Config(
-                checkpoints_dir=Path("~/.foothold-checkpoints"),
-                campaigns={}
-            )
+            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), campaigns={})
 
         # Error should mention the missing field
         error_str = str(exc_info.value)
@@ -607,10 +541,7 @@ class TestErrorMessages:
         from foothold_checkpoint.core.config import Config
 
         with pytest.raises(ValidationError) as exc_info:
-            Config(
-                checkpoints_dir=Path("~/.foothold-checkpoints"),
-                servers={}
-            )
+            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), servers={})
 
         # Error should mention the missing field
         error_str = str(exc_info.value)
@@ -628,20 +559,13 @@ class TestErrorMessages:
         with pytest.raises(ValidationError) as exc_info:
             Config(
                 checkpoints_dir=Path("~/.foothold-checkpoints"),
-                servers={
-                    "test": ServerConfig(
-                        path=Path("D:/Test"),
-                        description="Test"
-                    )
-                },
-                campaigns={
-                    "Afghanistan": []  # Empty list
-                }
+                servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
+                campaigns={"Afghanistan": []},  # Empty list
             )
 
         # Error should be clear about the problem
         error_str = str(exc_info.value)
-        assert ("empty" in error_str.lower() or "at least 1" in error_str.lower())
+        assert "empty" in error_str.lower() or "at least 1" in error_str.lower()
 
     def test_invalid_yaml_error_message(self):
         """load_config should provide clear error for invalid YAML syntax."""
@@ -652,7 +576,7 @@ class TestErrorMessages:
         from foothold_checkpoint.core.config import load_config
 
         # Create a file with invalid YAML
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: syntax:\n  broken: [unclosed")
             temp_path = Path(f.name)
 

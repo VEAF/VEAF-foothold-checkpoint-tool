@@ -3,9 +3,10 @@
 import hashlib
 import json
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -40,28 +41,25 @@ class CheckpointMetadata(BaseModel):
     """
 
     campaign_name: str = Field(
-        ...,
-        description="Campaign name (normalized, lowercase). Must not be empty."
+        ..., description="Campaign name (normalized, lowercase). Must not be empty."
     )
     server_name: str = Field(
-        ...,
-        description="Server name where checkpoint was created. Must not be empty."
+        ..., description="Server name where checkpoint was created. Must not be empty."
     )
     created_at: datetime = Field(
         ...,
-        description="Timestamp when checkpoint was created. Should be timezone-aware (UTC recommended)."
+        description="Timestamp when checkpoint was created. Should be timezone-aware (UTC recommended).",
     )
     files: dict[str, str] = Field(
         ...,
-        description="Dictionary mapping filenames to their SHA-256 checksums. Format: {'filename': 'sha256:checksum', ...}"
+        description="Dictionary mapping filenames to their SHA-256 checksums. Format: {'filename': 'sha256:checksum', ...}",
     )
     name: str | None = Field(
         None,
-        description="Optional user-provided name for the checkpoint (e.g., 'Before major update')"
+        description="Optional user-provided name for the checkpoint (e.g., 'Before major update')",
     )
     comment: str | None = Field(
-        None,
-        description="Optional user-provided comment or description for the checkpoint"
+        None, description="Optional user-provided comment or description for the checkpoint"
     )
 
     model_config = {"frozen": True}
@@ -165,10 +163,10 @@ def save_metadata(metadata: CheckpointMetadata, json_path: str | Path) -> None:
 
     # Serialize metadata to dict with proper JSON handling
     # mode='json' ensures datetime is serialized to ISO 8601 string
-    data = metadata.model_dump(mode='json')
+    data = metadata.model_dump(mode="json")
 
     # Write to JSON file with pretty formatting
-    with open(path, 'w', encoding='utf-8') as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -203,7 +201,7 @@ def load_metadata(json_path: str | Path) -> CheckpointMetadata:
 
     # Read and parse JSON
     try:
-        with open(path, encoding='utf-8') as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in metadata file: {e}")
@@ -252,12 +250,12 @@ def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None
 def create_checkpoint(
     campaign_name: str,
     server_name: str,
-    campaign_files: list[str | Path],
+    campaign_files: Sequence[str | Path],
     output_dir: str | Path,
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
-    progress_callback: Callable[[str, int, int], None] | None = None
+    progress_callback: Callable[[str, int, int], None] | None = None,
 ) -> Path:
     """Create a checkpoint ZIP archive with campaign files and metadata.
 
@@ -305,9 +303,11 @@ def create_checkpoint(
 
     # Convert paths to Path objects
     output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
-    campaign_files = [
-        Path(f) if isinstance(f, str) else f for f in campaign_files
-    ]
+    # Convert all campaign files to Path objects (str -> Path, leave Path as-is)
+    # We need to cast because mypy can't infer that all items become Path after the comprehension
+    campaign_files = cast(
+        list[Path], [Path(f) if isinstance(f, str) else f for f in campaign_files]
+    )
 
     # Validate that all source files exist
     for file_path in campaign_files:
@@ -334,7 +334,7 @@ def create_checkpoint(
         created_at=created_at,
         files=files_checksums,
         name=name,
-        comment=comment
+        comment=comment,
     )
 
     # Generate ZIP filename
@@ -351,14 +351,14 @@ def create_checkpoint(
         progress_callback("Creating ZIP archive", total_files, total_files)
 
     # Create ZIP archive
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         # Add all campaign files
         for file_path in campaign_files:
             # Add file with just its name (not full path)
             zf.write(file_path, arcname=file_path.name)
 
         # Create and add metadata.json
-        metadata_json = metadata.model_dump(mode='json')
+        metadata_json = metadata.model_dump(mode="json")
         metadata_str = json.dumps(metadata_json, indent=2, ensure_ascii=False)
         zf.writestr("metadata.json", metadata_str)
 

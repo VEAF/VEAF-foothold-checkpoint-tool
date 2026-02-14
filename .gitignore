@@ -55,6 +55,8 @@ desktop.ini
 
 # User configuration (example is tracked)
 config.yaml
+config-test.yaml
+test-checkpoints/
 
 # Session tracking files (personal development notes)
 SESSION_STATE.md
