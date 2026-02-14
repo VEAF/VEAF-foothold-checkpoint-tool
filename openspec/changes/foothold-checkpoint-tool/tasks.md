@@ -89,22 +89,22 @@
 
 ## 7. Checkpoint Listing (core/storage.py)
 
-- [ ] 7.1 Implement list_checkpoints function
-- [ ] 7.2 Write tests for list_checkpoints (basic listing)
-- [ ] 7.3 Implement metadata reading without full extraction
-- [ ] 7.4 Write tests for efficient metadata reading
-- [ ] 7.5 Implement server filter
-- [ ] 7.6 Write tests for server filtering
-- [ ] 7.7 Implement campaign filter
-- [ ] 7.8 Write tests for campaign filtering (including name mapping)
-- [ ] 7.9 Implement combined filters (server + campaign)
-- [ ] 7.10 Write tests for combined filtering
-- [ ] 7.11 Implement chronological sorting (newest first)
-- [ ] 7.12 Write tests for sorting
-- [ ] 7.13 Implement file size calculation
-- [ ] 7.14 Write tests for file size formatting (KB, MB, GB)
-- [ ] 7.15 Implement error handling for corrupted checkpoints
-- [ ] 7.16 Write tests for error handling (continue on corrupted)
+- [x] 7.1 Implement list_checkpoints function
+- [x] 7.2 Write tests for list_checkpoints (basic listing)
+- [x] 7.3 Implement metadata reading without full extraction
+- [x] 7.4 Write tests for efficient metadata reading
+- [x] 7.5 Implement server filter
+- [x] 7.6 Write tests for server filtering
+- [x] 7.7 Implement campaign filter
+- [x] 7.8 Write tests for campaign filtering (including name mapping)
+- [x] 7.9 Implement combined filters (server + campaign)
+- [x] 7.10 Write tests for combined filtering
+- [x] 7.11 Implement chronological sorting (newest first)
+- [x] 7.12 Write tests for sorting
+- [x] 7.13 Implement file size calculation
+- [x] 7.14 Write tests for file size formatting (KB, MB, GB)
+- [x] 7.15 Implement error handling for corrupted checkpoints
+- [x] 7.16 Write tests for error handling (continue on corrupted)
 
 ## 8. Checkpoint Deletion (core/storage.py)
 

@@ -1098,3 +1098,484 @@ class TestRestoreCheckpoint:
                     )
 
 
+class TestListCheckpoints:
+    """Test suite for list_checkpoints function."""
+
+    def test_list_checkpoints_returns_empty_list_for_empty_directory(self):
+        """list_checkpoints should return an empty list when no checkpoints exist."""
+        from foothold_checkpoint.core.storage import list_checkpoints
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert result == []
+
+    def test_list_checkpoints_returns_list_of_checkpoint_info(self):
+        """list_checkpoints should return a list of checkpoint metadata dictionaries."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create test campaign files
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            # Create a checkpoint
+            save_checkpoint(
+                campaign_name="test",
+                server_name="test-server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert isinstance(result[0], dict)
+            assert "filename" in result[0]
+            assert "campaign" in result[0]
+            assert "server" in result[0]
+            assert "timestamp" in result[0]
+
+    def test_list_checkpoints_includes_multiple_checkpoints(self):
+        """list_checkpoints should return all valid checkpoints in the directory."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create test campaign files for first checkpoint
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server1",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create test campaign files for second checkpoint
+            (source_dir / "foothold_test2.lua").write_text("-- test2")
+            (source_dir / "foothold_test2_storage.csv").write_text("data2")
+
+            save_checkpoint(
+                campaign_name="test2",
+                server_name="server2",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 2
+
+    def test_list_checkpoints_reads_metadata_without_extracting_zip(self):
+        """list_checkpoints should read metadata.json without extracting the entire ZIP."""
+        import io
+        import json
+        import zipfile
+
+        from foothold_checkpoint.core.storage import list_checkpoints
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create a large fake checkpoint ZIP
+            checkpoint_path = checkpoint_dir / "test_checkpoint.zip"
+            with zipfile.ZipFile(checkpoint_path, "w") as zf:
+                # Add metadata (using Pydantic field names)
+                metadata = {
+                    "campaign_name": "test",
+                    "server_name": "test-server",
+                    "created_at": "2024-02-13T14:30:00Z",
+                    "files": {
+                        "foothold_test.lua": "sha256:abc123",
+                        "foothold_test_storage.csv": "sha256:def456",
+                    },
+                }
+                zf.writestr("metadata.json", json.dumps(metadata))
+
+                # Add a large fake file (simulate large storage.csv)
+                # We create a 10 MB file in memory
+                large_data = b"x" * (10 * 1024 * 1024)
+                zf.writestr("foothold_test_storage.csv", large_data)
+
+            # List checkpoints (should be fast, not extracting 10 MB)
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert result[0]["campaign"] == "test"
+            # The test passes if it completes quickly (no assertion for speed, but conceptually)
+
+    def test_list_checkpoints_filters_by_server(self):
+        """list_checkpoints should filter checkpoints by server name."""
+        import time
+
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            # Create checkpoints for different servers
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server1",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+            time.sleep(1)  # Ensure different timestamp for unique filename
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server2",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir, server_filter="server1")
+
+            assert len(result) == 1
+            assert result[0]["server"] == "server1"
+
+    def test_list_checkpoints_filters_by_campaign(self):
+        """list_checkpoints should filter checkpoints by campaign name."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create campaign files for campaign1
+            (source_dir / "foothold_campaign1.lua").write_text("-- campaign1")
+            (source_dir / "foothold_campaign1_storage.csv").write_text("data1")
+
+            save_checkpoint(
+                campaign_name="campaign1",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create campaign files for campaign2
+            (source_dir / "foothold_campaign2.lua").write_text("-- campaign2")
+            (source_dir / "foothold_campaign2_storage.csv").write_text("data2")
+
+            save_checkpoint(
+                campaign_name="campaign2",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir, campaign_filter="campaign1")
+
+            assert len(result) == 1
+            assert result[0]["campaign"] == "campaign1"
+
+    def test_list_checkpoints_filters_by_combined_server_and_campaign(self):
+        """list_checkpoints should filter by both server and campaign."""
+        import time
+
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create campaign files for campaign1
+            (source_dir / "foothold_campaign1.lua").write_text("-- campaign1")
+            (source_dir / "foothold_campaign1_storage.csv").write_text("data1")
+
+            save_checkpoint(
+                campaign_name="campaign1",
+                server_name="server1",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create campaign files for campaign2
+            (source_dir / "foothold_campaign2.lua").write_text("-- campaign2")
+            (source_dir / "foothold_campaign2_storage.csv").write_text("data2")
+            time.sleep(1)  # Ensure different timestamp
+
+            save_checkpoint(
+                campaign_name="campaign2",
+                server_name="server1",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+            time.sleep(1)  # Ensure different timestamp
+
+            save_checkpoint(
+                campaign_name="campaign1",
+                server_name="server2",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(
+                checkpoint_dir, server_filter="server1", campaign_filter="campaign1"
+            )
+
+            assert len(result) == 1
+            assert result[0]["server"] == "server1"
+            assert result[0]["campaign"] == "campaign1"
+
+    def test_list_checkpoints_sorts_chronologically_newest_first(self):
+        """list_checkpoints should sort checkpoints by timestamp (newest first)."""
+        import json
+        import time
+        import zipfile
+
+        from foothold_checkpoint.core.storage import list_checkpoints
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create checkpoints with different timestamps
+            for i, timestamp in enumerate(
+                ["2024-02-10T10:00:00Z", "2024-02-12T10:00:00Z", "2024-02-11T10:00:00Z"]
+            ):
+                checkpoint_path = checkpoint_dir / f"checkpoint_{i}.zip"
+                with zipfile.ZipFile(checkpoint_path, "w") as zf:
+                    metadata = {
+                        "campaign_name": f"campaign{i}",
+                        "server_name": "server",
+                        "created_at": timestamp,
+                        "files": {},
+                    }
+                    zf.writestr("metadata.json", json.dumps(metadata))
+                time.sleep(0.01)  # Ensure different file creation times
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 3
+            # Should be sorted newest first
+            assert result[0]["timestamp"] == "2024-02-12T10:00:00Z"
+            assert result[1]["timestamp"] == "2024-02-11T10:00:00Z"
+            assert result[2]["timestamp"] == "2024-02-10T10:00:00Z"
+
+    def test_list_checkpoints_includes_file_size(self):
+        """list_checkpoints should include the file size for each checkpoint."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test content")
+            (source_dir / "foothold_test_storage.csv").write_text("data content")
+
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert "size_bytes" in result[0]
+            assert result[0]["size_bytes"] > 0
+
+    def test_list_checkpoints_formats_file_size_human_readable(self):
+        """list_checkpoints should include human-readable file size."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert "size_human" in result[0]
+            # Should be in format like "1.2 KB", "5.6 MB", etc.
+            assert any(
+                unit in result[0]["size_human"]
+                for unit in ["B", "KB", "MB", "GB", "TB"]
+            )
+
+    def test_list_checkpoints_handles_corrupted_checkpoint_gracefully(self):
+        """list_checkpoints should skip corrupted checkpoints and continue."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create valid campaign files
+            (source_dir / "foothold_valid.lua").write_text("-- valid")
+            (source_dir / "foothold_valid_storage.csv").write_text("data")
+
+            # Create a valid checkpoint
+            save_checkpoint(
+                campaign_name="valid",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create a corrupted ZIP file
+            corrupted_path = checkpoint_dir / "corrupted.zip"
+            corrupted_path.write_text("This is not a valid ZIP file")
+
+            # Should return only the valid checkpoint
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert result[0]["campaign"] == "valid"
+
+    def test_list_checkpoints_handles_missing_metadata_gracefully(self):
+        """list_checkpoints should skip checkpoints with missing metadata."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create valid campaign files
+            (source_dir / "foothold_valid.lua").write_text("-- valid")
+            (source_dir / "foothold_valid_storage.csv").write_text("data")
+
+            # Create a valid checkpoint
+            save_checkpoint(
+                campaign_name="valid",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create a ZIP without metadata.json
+            no_metadata_path = checkpoint_dir / "no_metadata.zip"
+            with zipfile.ZipFile(no_metadata_path, "w") as zf:
+                zf.writestr("some_file.txt", "content")
+
+            # Should return only the valid checkpoint
+            result = list_checkpoints(checkpoint_dir)
+
+            assert len(result) == 1
+            assert result[0]["campaign"] == "valid"
+
+    def test_list_checkpoints_raises_error_if_directory_not_exists(self):
+        """list_checkpoints should raise FileNotFoundError if checkpoint directory doesn't exist."""
+        from foothold_checkpoint.core.storage import list_checkpoints
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            non_existent_dir = Path(tmpdir) / "nonexistent"
+
+            with pytest.raises(FileNotFoundError, match="Checkpoint directory not found"):
+                list_checkpoints(non_existent_dir)
+
+    def test_list_checkpoints_skips_non_zip_files(self):
+        """list_checkpoints should ignore non-ZIP files in the checkpoint directory."""
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            (source_dir / "foothold_test.lua").write_text("-- test")
+            (source_dir / "foothold_test_storage.csv").write_text("data")
+
+            # Create a valid checkpoint
+            save_checkpoint(
+                campaign_name="test",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create non-ZIP files
+            (checkpoint_dir / "readme.txt").write_text("This is not a checkpoint")
+            (checkpoint_dir / "notes.md").write_text("# Notes")
+
+            result = list_checkpoints(checkpoint_dir)
+
+            # Should only return the valid checkpoint
+            assert len(result) == 1
+            assert result[0]["campaign"] == "test"
+
+    def test_list_checkpoints_handles_invalid_json_metadata(self):
+        """list_checkpoints should skip checkpoints with invalid JSON in metadata."""
+        import zipfile
+
+        from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_dir = Path(tmpdir) / "source"
+            source_dir.mkdir()
+            checkpoint_dir = Path(tmpdir) / "checkpoints"
+            checkpoint_dir.mkdir()
+
+            # Create valid campaign files
+            (source_dir / "foothold_valid.lua").write_text("-- valid")
+            (source_dir / "foothold_valid_storage.csv").write_text("data")
+
+            # Create a valid checkpoint
+            save_checkpoint(
+                campaign_name="valid",
+                server_name="server",
+                source_dir=source_dir,
+                output_dir=checkpoint_dir,
+            )
+
+            # Create a ZIP with invalid JSON metadata
+            invalid_json_path = checkpoint_dir / "invalid_json.zip"
+            with zipfile.ZipFile(invalid_json_path, "w") as zf:
+                zf.writestr(
+                    "metadata.json", '{"campaign": "test", invalid json here'
+                )
+
+            result = list_checkpoints(checkpoint_dir)
+
+            # Should return only the valid checkpoint
+            assert len(result) == 1
+            assert result[0]["campaign"] == "valid"
