@@ -33,10 +33,10 @@
 - [x] 3.6 Write tests for file grouping (complete, incomplete, mixed case)
 - [x] 3.7 Implement Foothold_Ranks.lua recognition as shared file
 - [x] 3.8 Write tests for shared file identification
-- [ ] 3.9 Implement campaign name mapping using config
-- [ ] 3.10 Write tests for name mapping (historical names, current names, unknown)
-- [ ] 3.11 Implement campaign detection report (name, file count)
-- [ ] 3.12 Write tests for detection reporting
+- [x] 3.9 Implement campaign name mapping using config
+- [x] 3.10 Write tests for name mapping (historical names, current names, unknown)
+- [x] 3.11 Implement campaign detection report (name, file count)
+- [x] 3.12 Write tests for detection reporting
 
 ## 4. Checkpoint Storage (core/checkpoint.py)
 
