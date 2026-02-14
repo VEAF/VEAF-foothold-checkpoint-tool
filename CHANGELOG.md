@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - TBD
+## [1.0.0] - 2026-02-14
 
 Initial release of the VEAF Foothold Checkpoint Tool.
 
@@ -48,6 +48,12 @@ Initial release of the VEAF Foothold Checkpoint Tool.
 - Comprehensive error messages with actionable guidance
 - Progress indicators for long operations
 - Tab completion support
+- **Numeric selection** for restore and delete commands (e.g., `restore 1` or `restore 1,3,5`)
+- **Case-insensitive** server and campaign matching
+- Interactive command menu when no command specified
+- Comment column display in list command
+- Multiple checkpoint selection for batch operations
+- Auto-clearing progress spinners with proper lifecycle management
 
 #### Plugin System
 - DCSServerBot plugin integration
@@ -55,7 +61,7 @@ Initial release of the VEAF Foothold Checkpoint Tool.
 - Administrator-only access controls
 
 #### Quality & Testing
-- 350+ comprehensive tests with 94% code coverage
+- 347 comprehensive tests with 86% code coverage
 - Test-Driven Development (TDD) approach
 - Type checking with mypy (strict mode)
 - Code formatting with Black

@@ -47,7 +47,9 @@ def temp_test_env(tmp_path: Path, real_foothold_data: Path) -> dict[str, Path]:
 
 def test_real_foothold_data_exists(real_foothold_data: Path) -> None:
     """Verify real Foothold test data is available."""
-    assert real_foothold_data.exists(), "tests/data/foothold1_server/Missions/Saves/ directory should exist"
+    assert (
+        real_foothold_data.exists()
+    ), "tests/data/foothold1_server/Missions/Saves/ directory should exist"
 
     # Check for expected campaign files
     files = list(real_foothold_data.glob("*"))

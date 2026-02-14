@@ -402,6 +402,7 @@ def test_restore_permission_error_on_path() -> None:
     with (
         patch("foothold_checkpoint.cli.load_config", return_value=mock_config),
         patch("foothold_checkpoint.cli.Path.exists", return_value=True),
+        patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
         patch("foothold_checkpoint.cli.restore_checkpoint", mock_restore),
         patch("foothold_checkpoint.cli._quiet_mode", True),
     ):

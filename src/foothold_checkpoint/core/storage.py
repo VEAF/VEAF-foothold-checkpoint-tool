@@ -244,12 +244,73 @@ def save_all_campaigns(
     return results
 
 
+def check_restore_conflicts(
+    checkpoint_path: str | Path,
+    target_dir: str | Path,
+    restore_ranks: bool = False,
+) -> list[str]:
+    """Check which files would be overwritten during restoration.
+
+    Args:
+        checkpoint_path: Path to the checkpoint ZIP file.
+        target_dir: Path to the directory where files would be extracted.
+        restore_ranks: If True, include Foothold_Ranks.lua in check.
+
+    Returns:
+        List of filenames that already exist and would be overwritten.
+
+    Raises:
+        FileNotFoundError: If checkpoint_path or target_dir doesn't exist.
+        ValueError: If checkpoint is not a valid ZIP or metadata is missing.
+    """
+    import zipfile
+
+    checkpoint_path = Path(checkpoint_path)
+    target_dir = Path(target_dir)
+
+    # Validate checkpoint file exists
+    if not checkpoint_path.exists():
+        raise FileNotFoundError("Checkpoint file not found")
+
+    # Validate checkpoint is a valid ZIP
+    if not zipfile.is_zipfile(checkpoint_path):
+        raise ValueError("Invalid checkpoint file (not a valid ZIP archive)")
+
+    # Validate target directory exists
+    if not target_dir.exists():
+        raise FileNotFoundError("Target directory does not exist")
+
+    # Open ZIP and get file list
+    with zipfile.ZipFile(checkpoint_path, "r") as zf:
+        # Get list of files that would be restored
+        all_files_in_zip = [
+            name for name in zf.namelist() if name != "metadata.json" and not name.endswith("/")
+        ]
+
+        # Filter out Foothold_Ranks.lua if not requested
+        files_to_restore = []
+        for filename in all_files_in_zip:
+            if filename == "Foothold_Ranks.lua" and not restore_ranks:
+                continue
+            files_to_restore.append(filename)
+
+        # Check which files already exist
+        existing_files = []
+        for filename in files_to_restore:
+            target_file = target_dir / filename
+            if target_file.exists():
+                existing_files.append(filename)
+
+        return existing_files
+
+
 def restore_checkpoint(
     checkpoint_path: str | Path,
     target_dir: str | Path,
     restore_ranks: bool = False,
     progress_callback: Callable[[str, int, int], None] | None = None,
     config: "Config | None" = None,  # noqa: UP007
+    skip_overwrite_check: bool = False,
 ) -> list[Path]:
     """Restore a checkpoint to a target directory.
 
@@ -268,6 +329,9 @@ def restore_checkpoint(
             If provided, files will be renamed to use current campaign names
             (e.g., GCW_Modern → Germany_Modern). If None, original filenames
             are preserved (backward compatibility).
+        skip_overwrite_check: If True, skip checking for existing files and
+            confirmation prompt. Useful when confirmation was already done
+            externally (default: False).
 
     Returns:
         List of Path objects for the restored files (with potentially renamed paths).
@@ -333,16 +397,11 @@ def restore_checkpoint(
         if not files_to_restore:
             return []
 
-        # Verify checksums before extraction
-        if progress_callback:
-            progress_callback("Verifying checksums", 0, len(files_to_restore))
-
+        # Verify checksums before extraction (silently - progress during extraction only)
+        # This avoids spinner/progress interference with confirmation prompts
         file_checksums = metadata.get("files", {})
 
         for idx, filename in enumerate(files_to_restore, start=1):
-            if progress_callback:
-                progress_callback(f"Verifying {filename}", idx, len(files_to_restore))
-
             # Extract file to temp location for checksum verification
             file_data = zf.read(filename)
 
@@ -364,22 +423,26 @@ def restore_checkpoint(
                         f"expected {expected_checksum}, got {computed_checksum}"
                     )
 
-        # Check for existing files and prompt for confirmation
-        existing_files = []
-        for filename in files_to_restore:
-            target_file = target_dir / filename
-            if target_file.exists():
-                existing_files.append(filename)
+        # Check for existing files and prompt for confirmation (unless skipped)
+        if not skip_overwrite_check:
+            existing_files = []
+            for filename in files_to_restore:
+                target_file = target_dir / filename
+                if target_file.exists():
+                    existing_files.append(filename)
 
-        if existing_files:
-            # Prompt for confirmation
-            confirmation = input(
-                f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
-            )
-            if confirmation.lower() != "y":
-                raise RuntimeError("Restoration cancelled by user")
+            if existing_files:
+                # Prompt for confirmation
+                confirmation = input(
+                    f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
+                )
+                if confirmation.lower() != "y":
+                    raise RuntimeError("Restoration cancelled by user")
 
-        # Extract files
+        # Extract files (with progress updates)
+        if progress_callback:
+            progress_callback("Extracting files", 0, len(files_to_restore))
+
         restored_files: list[Path] = []
 
         for idx, filename in enumerate(files_to_restore, start=1):
@@ -483,10 +546,10 @@ def list_checkpoints(
                     # Skip if missing required fields
                     continue
 
-                # Apply filters
-                if server_filter and server != server_filter:
+                # Apply filters (case-insensitive)
+                if server_filter and server.lower() != server_filter.lower():
                     continue
-                if campaign_filter and campaign != campaign_filter:
+                if campaign_filter and campaign.lower() != campaign_filter.lower():
                     continue
 
                 # Calculate file size
@@ -726,7 +789,7 @@ def import_checkpoint(
         # Try case-insensitive match
         campaign_name_lower = campaign_name.lower()
         matching_campaign = None
-        for camp_name in grouped.keys():
+        for camp_name in grouped:
             if camp_name.lower() == campaign_name_lower:
                 matching_campaign = camp_name
                 break

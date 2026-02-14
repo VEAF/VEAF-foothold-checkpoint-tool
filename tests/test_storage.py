@@ -1,5 +1,6 @@
 """Tests for checkpoint storage operations."""
 
+import contextlib
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1102,11 +1103,12 @@ class TestRestoreCheckpoint:
 
     def test_restore_checkpoint_renames_files_with_evolved_campaign_names(self):
         """restore_checkpoint should rename files when campaign name has evolved."""
-        import zipfile
-        import json
         import hashlib
-        from foothold_checkpoint.core.storage import restore_checkpoint
+        import json
+        import zipfile
+
         from foothold_checkpoint.core.config import Config, ServerConfig
+        from foothold_checkpoint.core.storage import restore_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create config with campaign name evolution
@@ -1170,11 +1172,12 @@ class TestRestoreCheckpoint:
 
     def test_restore_checkpoint_keeps_files_unchanged_when_no_name_evolution(self):
         """restore_checkpoint should keep filenames unchanged when campaign name hasn't evolved."""
-        import zipfile
-        import json
         import hashlib
-        from foothold_checkpoint.core.storage import restore_checkpoint
+        import json
+        import zipfile
+
         from foothold_checkpoint.core.config import Config, ServerConfig
+        from foothold_checkpoint.core.storage import restore_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = Config(
@@ -1899,13 +1902,11 @@ class TestDeleteCheckpoint:
                     delete_checkpoint(checkpoint_path, force=True)
             finally:
                 # Restore permissions for cleanup
-                try:
+                with contextlib.suppress(OSError, FileNotFoundError):
                     os.chmod(
                         checkpoint_path,
                         stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH,
                     )
-                except (OSError, FileNotFoundError):
-                    pass
 
     def test_delete_checkpoint_force_mode_skips_confirmation(self):
         """delete_checkpoint with force=True should delete immediately without confirmation."""
@@ -2564,10 +2565,8 @@ class TestImportCheckpoint:
                     )
             finally:
                 # Restore permissions for cleanup
-                try:
+                with contextlib.suppress(OSError, PermissionError):
                     os.chmod(source_dir, stat.S_IRWXU)
-                except (OSError, PermissionError):
-                    pass
 
     def test_import_checkpoint_creates_output_directory_if_not_exists(self):
         """import_checkpoint should create output directory if it doesn't exist."""

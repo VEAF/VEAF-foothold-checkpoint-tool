@@ -1,0 +1,47 @@
+# Configuration de test pour tests manuels
+checkpoints_dir: ./test-checkpoints
+
+servers:
+  foothold1_server:
+    path: ./tests/data/foothold1_server
+    description: "Serveur Foothold 1"
+  foothold2_server:
+    path: ./tests/data/foothold2_server
+    description: "Serveur Foothold 2"
+
+campaigns:
+  Afghanistan_Modern:
+    - afghanistan
+
+  Syria_Modern:
+    - syria
+    - syria_extended
+    - sy_extended_modern
+    - sy_extended_ctld_modern
+
+  Caucasus_Modern:
+    - CA
+    - ca
+    - ca_modern
+
+  Caucasus_Coldwar:
+    - ca_coldwar
+
+  Germany_Modern:
+    - GCW_Modern
+    - Germany_Modern
+    - germany
+    - germany_modern
+
+  PersianGulf_Modern:
+    - persiangulf
+    - pg_modern
+
+  PersianGulf_Coldwar:
+    - pg_coldwar
+    - persiangulf_coldwar
+
+  Sinai_Modern:
+    - SI
+    - si
+    - sinai

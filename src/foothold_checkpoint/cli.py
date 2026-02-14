@@ -4,7 +4,7 @@ import signal
 import sys
 from pathlib import Path
 from types import FrameType
-from typing import Annotated, Optional  # noqa: UP035 - Required for Typer compatibility
+from typing import Annotated, Any, Optional  # noqa: UP035 - Required for Typer compatibility
 
 import typer
 from rich.console import Console
@@ -15,6 +15,7 @@ from foothold_checkpoint.core.campaign import detect_campaigns, group_campaign_f
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 from foothold_checkpoint.core.config import load_config
 from foothold_checkpoint.core.storage import (
+    check_restore_conflicts,
     delete_checkpoint,
     import_checkpoint,
     list_checkpoints,
@@ -37,6 +38,109 @@ app = typer.Typer(
     help="CLI tool for managing DCS Foothold campaign checkpoints with integrity verification",
     add_completion=False,
 )
+
+
+def find_key_case_insensitive(dictionary: dict[str, Any], key: str) -> str | None:
+    """Find a key in a dictionary using case-insensitive matching.
+
+    Also tries appending '_Modern' if exact match not found (Foothold convention).
+
+    Args:
+        dictionary: Dictionary to search in
+        key: Key to find (case-insensitive)
+
+    Returns:
+        The actual key from the dictionary if found, None otherwise
+    """
+    key_lower = key.lower()
+
+    # First pass: exact match
+    for dict_key in dictionary:
+        if dict_key.lower() == key_lower:
+            return str(dict_key)
+
+    # Second pass: try with '_Modern' suffix (Foothold default era)
+    key_with_modern = f"{key}_Modern"
+    key_with_modern_lower = key_with_modern.lower()
+    for dict_key in dictionary:
+        if dict_key.lower() == key_with_modern_lower:
+            return str(dict_key)
+
+    return None
+
+
+def is_numeric_selection(text: str) -> bool:
+    """Check if a string looks like a numeric selection (e.g., '1', '1,3,5', '1-3').
+
+    Args:
+        text: String to check
+
+    Returns:
+        True if text contains only digits, commas, hyphens, and spaces
+    """
+    # Remove whitespace and check if remaining chars are only digits, commas, hyphens
+    cleaned = text.replace(" ", "")
+    return bool(cleaned) and all(c in "0123456789,-" for c in cleaned)
+
+
+def parse_selection(selection: str, max_value: int) -> list[int]:
+    """Parse a multi-selection string into a list of indices.
+
+    Supports:
+    - Single numbers: "3" -> [3]
+    - Comma-separated: "1,3,5" -> [1, 3, 5]
+    - Ranges: "1-3" -> [1, 2, 3]
+    - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
+
+    Args:
+        selection: Selection string from user input
+        max_value: Maximum valid index value
+
+    Returns:
+        List of selected indices (sorted, no duplicates)
+
+    Raises:
+        ValueError: If selection format is invalid or values out of range
+    """
+    indices: set[int] = set()
+
+    # Split by comma
+    parts = selection.split(",")
+
+    for part in parts:
+        part = part.strip()
+
+        # Check if it's a range (e.g., "1-3")
+        if "-" in part:
+            try:
+                start, end = part.split("-", 1)
+                start_idx = int(start.strip())
+                end_idx = int(end.strip())
+
+                if start_idx < 1 or end_idx > max_value or start_idx > end_idx:
+                    raise ValueError(
+                        f"Invalid range: {part}. Must be between 1 and {max_value}, "
+                        f"with start <= end"
+                    )
+
+                indices.update(range(start_idx, end_idx + 1))
+            except ValueError as e:
+                if "invalid literal" in str(e):
+                    raise ValueError(f"Invalid range format: {part}. Use format like '1-3'") from e
+                raise
+        else:
+            # Single number
+            try:
+                idx = int(part)
+                if idx < 1 or idx > max_value:
+                    raise ValueError(f"Invalid selection: {idx}. Must be between 1 and {max_value}")
+                indices.add(idx)
+            except ValueError as e:
+                if "invalid literal" in str(e):
+                    raise ValueError(f"Invalid number: {part}") from e
+                raise
+
+    return sorted(indices)
 
 
 def config_callback(value: str | None) -> Path | None:
@@ -119,6 +223,7 @@ signal.signal(signal.SIGINT, interrupt_handler)
 
 @app.callback(invoke_without_command=True)
 def main_callback(
+    ctx: typer.Context,
     version: Annotated[
         bool,
         typer.Option(
@@ -160,6 +265,35 @@ def main_callback(
     # Handle quiet flag (reset to False if not provided)
     global _quiet_mode
     _quiet_mode = quiet
+
+    # If no subcommand was invoked and not in quiet mode, show interactive menu
+    if ctx.invoked_subcommand is None and not _quiet_mode:
+        console.print("[cyan]Foothold Checkpoint Tool[/cyan] - Select a command:\n")
+        console.print("  [cyan]1.[/cyan] Save checkpoint")
+        console.print("  [cyan]2.[/cyan] Restore checkpoint")
+        console.print("  [cyan]3.[/cyan] List checkpoints")
+        console.print("  [cyan]4.[/cyan] Delete checkpoint")
+        console.print("  [cyan]5.[/cyan] Import checkpoint")
+        console.print("  [cyan]Q.[/cyan] Quit\n")
+
+        choice = Prompt.ask("Select option", default="1")
+
+        if choice.upper() == "Q":
+            console.print("[yellow]Goodbye![/yellow]")
+            raise typer.Exit(0)
+        elif choice == "1":
+            ctx.invoke(save_command)
+        elif choice == "2":
+            ctx.invoke(restore_command)
+        elif choice == "3":
+            ctx.invoke(list_command)
+        elif choice == "4":
+            ctx.invoke(delete_command)
+        elif choice == "5":
+            ctx.invoke(import_command)
+        else:
+            console.print(f"[red]Invalid choice:[/red] '{choice}'")
+            raise typer.Exit(1)
 
 
 @app.command("save")
@@ -263,15 +397,20 @@ def save_command(
                     break
                 else:
                     console.print(f"[red]Invalid selection:[/red] '{selection}'")
-                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
+                    console.print(
+                        f"Please enter a number (1-{len(available_servers)}) or a server name"
+                    )
 
-        # Validate server exists
-        if server not in config.servers:
+        # Validate server exists (case-insensitive)
+        actual_server = find_key_case_insensitive(config.servers, server)
+        if actual_server is None:
             available = ", ".join(config.servers.keys())
             console.print(f"[red]Error:[/red] Server '{server}' not found in configuration")
             console.print(f"Available servers: {available}")
             raise typer.Exit(1)
 
+        # Use the actual server name from config
+        server = actual_server
         server_config = config.servers[server]
         # Add Missions/Saves to server path (DCS standard directory structure)
         mission_dir = Path(server_config.path) / "Missions" / "Saves"
@@ -300,14 +439,17 @@ def save_command(
             # Save all detected campaigns
             campaigns_to_save = list(campaigns.keys())
         elif campaign is not None:
-            # Save specific campaign
-            if campaign not in campaigns:
+            # Save specific campaign (case-insensitive)
+            actual_campaign = find_key_case_insensitive(campaigns, campaign)
+            if actual_campaign is None:
                 available = ", ".join(campaigns.keys())
                 console.print(
                     f"[red]Error:[/red] Campaign '{campaign}' not found in mission directory"
                 )
                 console.print(f"Available campaigns: {available}")
                 raise typer.Exit(1)
+            # Use the actual campaign name
+            campaign = actual_campaign
             campaigns_to_save = [campaign]
         else:
             # Prompt for campaign selection
@@ -316,8 +458,10 @@ def save_command(
                 console.print("\n[cyan]Detected campaigns:[/cyan]")
                 for idx, camp in enumerate(campaign_list, 1):
                     file_count = len(campaigns[camp])
-                    console.print(f"  {camp} ({idx}) - {file_count} file{'s' if file_count > 1 else ''}")
-                console.print(f"  [yellow]all[/yellow] (A) - save all campaigns")
+                    console.print(
+                        f"  {camp} ({idx}) - {file_count} file{'s' if file_count > 1 else ''}"
+                    )
+                console.print("  [yellow]all[/yellow] (A) - save all campaigns")
 
             # Accept numbers (1-N), campaign names, 'A' or 'all' (validate manually)
             while True:
@@ -332,13 +476,19 @@ def save_command(
                     if 1 <= idx <= len(campaign_list):
                         campaigns_to_save = [campaign_list[idx - 1]]
                         break
-                # Try as campaign name
-                elif selected in campaign_list:
-                    campaigns_to_save = [selected]
-                    break
+                # Try as campaign name (case-insensitive)
                 else:
-                    console.print(f"[red]Invalid selection:[/red] '{selected}'")
-                    console.print(f"Please enter a number (1-{len(campaign_list)}), campaign name, or 'A' for all")
+                    # Build dict for case-insensitive lookup
+                    campaign_dict = {c: c for c in campaign_list}
+                    actual_campaign = find_key_case_insensitive(campaign_dict, selected)
+                    if actual_campaign:
+                        campaigns_to_save = [actual_campaign]
+                        break
+                    else:
+                        console.print(f"[red]Invalid selection:[/red] '{selected}'")
+                        console.print(
+                            f"Please enter a number (1-{len(campaign_list)}), campaign name, or 'A' for all"
+                        )
 
         # Step 4: Get optional name and comment (prompt if not provided as flags)
         checkpoint_name = name
@@ -385,6 +535,7 @@ def save_command(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
                     console=console,
+                    transient=True,  # Auto-clear spinner when done
                 ) as progress:
                     task = progress.add_task(f"Creating checkpoint for {camp_name}...", total=None)
 
@@ -451,7 +602,7 @@ def restore_command(
     checkpoint_file: Annotated[
         Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Argument(
-            help="Path to checkpoint ZIP file to restore (or omit to select interactively)"
+            help="Checkpoint to restore: file path, number from list, or selection (e.g., '1', '1,3', '1-3'). Omit to select interactively."
         ),
     ] = None,
     server: Annotated[
@@ -474,7 +625,12 @@ def restore_command(
 ) -> None:
     """Restore a checkpoint to a target server directory.
 
-    If no checkpoint file is provided, lists available checkpoints for selection.
+    The checkpoint can be specified as:
+    - A file path: 'checkpoints/afghanistan_20240315.zip'
+    - A number from the list: '1' (restores the first checkpoint)
+    - Multiple selections: '1,3,5' or '1-3' (restores multiple checkpoints)
+    - Omitted for interactive selection
+
     If --server is not provided, prompts for server selection.
 
     The restore process verifies file integrity, excludes Foothold_Ranks.lua by
@@ -482,11 +638,17 @@ def restore_command(
 
     Examples:
 
-        # Restore specific checkpoint to a server
-        $ foothold-checkpoint restore afghanistan_2024-02-14.zip --server test-server
+        # Restore by number (from list command)
+        $ foothold-checkpoint restore 1 --server test-server
+
+        # Restore multiple checkpoints
+        $ foothold-checkpoint restore 1,3,5 --server test-server
+
+        # Restore specific checkpoint file by path
+        $ foothold-checkpoint restore afghanistan_checkpoint.zip --server test-server
 
         # Restore with ranks file included
-        $ foothold-checkpoint restore checkpoint.zip --server prod-1 --restore-ranks
+        $ foothold-checkpoint restore 1 --server prod-1 --restore-ranks
 
         # Interactive mode (select checkpoint and server)
         $ foothold-checkpoint restore
@@ -496,14 +658,43 @@ def restore_command(
         config_file = _config_path if _config_path else Path("config.yaml")
         config = load_config(config_file)
 
-        # Step 2: Get checkpoint file
-        checkpoint_path: Path
+        # Step 2: Get checkpoint file(s)
+        checkpoint_paths: list[Path]
         if checkpoint_file:
-            checkpoint_path = Path(checkpoint_file)
-            # Validate checkpoint file exists
-            if not checkpoint_path.exists():
-                console.print(f"[red]Error:[/red] Checkpoint file not found: {checkpoint_path}")
-                raise typer.Exit(1)
+            # Check if checkpoint_file is a numeric selection (e.g., "1", "1,3", "1-3")
+            if is_numeric_selection(checkpoint_file):
+                # Resolve numeric selection by listing checkpoints
+                checkpoints = list_checkpoints(config.checkpoints_dir)
+
+                if not checkpoints:
+                    console.print("[red]Error:[/red] No checkpoints found in checkpoint directory")
+                    raise typer.Exit(1)
+
+                try:
+                    selected_indices = parse_selection(checkpoint_file, len(checkpoints))
+                except ValueError as e:
+                    console.print(f"[red]Error:[/red] Invalid checkpoint selection: {e}")
+                    raise typer.Exit(1) from e
+
+                # Build list of checkpoint paths from indices
+                checkpoint_paths = [
+                    Path(config.checkpoints_dir) / checkpoints[idx - 1]["filename"]
+                    for idx in selected_indices
+                ]
+
+                # Show what was selected (helpful feedback)
+                if not _quiet_mode:
+                    console.print("[cyan]Selected checkpoint(s):[/cyan]")
+                    for idx in selected_indices:
+                        console.print(f"  {idx}. {checkpoints[idx - 1]['filename']}")
+            else:
+                # Treat as file path (existing behavior)
+                checkpoint_path = Path(checkpoint_file)
+                # Validate checkpoint file exists
+                if not checkpoint_path.exists():
+                    console.print(f"[red]Error:[/red] Checkpoint file not found: {checkpoint_path}")
+                    raise typer.Exit(1)
+                checkpoint_paths = [checkpoint_path]
         else:
             # Interactive mode: list and prompt for checkpoint selection
             if not _quiet_mode:
@@ -519,22 +710,40 @@ def restore_command(
             # Display checkpoints with numbering
             if not _quiet_mode:
                 for idx, cp in enumerate(checkpoints, start=1):
-                    console.print(
-                        f"  {idx}. {cp['filename']} "
-                        f"[dim](Campaign: {cp['campaign']}, Server: {cp['server']}, "
-                        f"Created: {cp['timestamp']})[/dim]"
-                    )
+                    # Build display string with optional name/comment
+                    display_parts = [
+                        f"  {idx}. {cp['filename']}",
+                        f"[dim](Campaign: {cp['campaign']}, Server: {cp['server']},",
+                        f"Created: {cp['timestamp']})",
+                    ]
 
-            # Prompt for selection
-            selection = Prompt.ask(
-                "Select checkpoint number", choices=[str(i) for i in range(1, len(checkpoints) + 1)]
-            )
+                    # Add name if present
+                    if cp.get("name"):
+                        display_parts.insert(2, f"[blue]Name: {cp['name']}[/blue],")
 
-            selected_index = int(selection) - 1
-            # Construct full path from checkpoint directory and filename
-            checkpoint_path = (
-                Path(config.checkpoints_dir) / checkpoints[selected_index]["filename"]
+                    # Add comment if present
+                    if cp.get("comment"):
+                        display_parts.insert(-1, f"[white]Comment: {cp['comment']}[/white],")
+
+                    console.print(" ".join(display_parts))
+
+            # Prompt for selection (supports multiple: "1,3,5" or "1-3")
+            console.print(
+                "\n[dim]Tip: You can select multiple checkpoints (e.g., '1,3,5' or '1-3')[/dim]"
             )
+            selection_str = Prompt.ask("\nSelect checkpoint number(s)", default="1")
+
+            try:
+                selected_indices = parse_selection(selection_str, len(checkpoints))
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1) from e
+
+            # Build list of checkpoint paths
+            checkpoint_paths = [
+                Path(config.checkpoints_dir) / checkpoints[idx - 1]["filename"]
+                for idx in selected_indices
+            ]
 
         # Step 3: Get target server
         if server is None:
@@ -562,65 +771,109 @@ def restore_command(
                     break
                 else:
                     console.print(f"[red]Invalid selection:[/red] '{selection}'")
-                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
+                    console.print(
+                        f"Please enter a number (1-{len(available_servers)}) or a server name"
+                    )
 
-        # Validate server exists in config
-        if server not in config.servers:
+        # Validate server exists in config (case-insensitive)
+        actual_server = find_key_case_insensitive(config.servers, server)
+        if actual_server is None:
             console.print(
                 f"[red]Error:[/red] Server '{server}' not found in configuration.\n"
                 f"Available servers: {', '.join(config.servers.keys())}"
             )
             raise typer.Exit(1)
 
+        # Use the actual server name from config
+        server = actual_server
+
         # Get target directory from server config
         # Add Missions/Saves to server path (DCS standard directory structure)
         target_dir = Path(config.servers[server].path) / "Missions" / "Saves"
 
-        # Step 4: Restore checkpoint with progress display
-        if not _quiet_mode:
-            console.print(f"\n[cyan]Restoring checkpoint to server:[/cyan] {server}")
-            console.print(f"[cyan]Target directory:[/cyan] {target_dir}")
-            console.print(f"[cyan]Include ranks file:[/cyan] {'Yes' if restore_ranks else 'No'}\n")
+        # Step 4: Restore checkpoint(s) with progress display
+        total_restored = 0
 
-            # Progress display with Rich
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Restoring checkpoint...", total=None)
+        for idx, checkpoint_path in enumerate(checkpoint_paths, 1):
+            if not _quiet_mode and len(checkpoint_paths) > 1:
+                console.print(f"\n[cyan]Restoring checkpoint {idx}/{len(checkpoint_paths)}[/cyan]")
 
-                def update_progress(
-                    message: str, current: int, total: int
-                ) -> None:  # noqa: B023 - task variable is safely captured
-                    """Update progress display with current status."""
-                    progress.update(task, description=f"{message} ({current}/{total})")
+            if not _quiet_mode:
+                console.print(f"[cyan]Checkpoint:[/cyan] {checkpoint_path.name}")
+                console.print(f"[cyan]Target server:[/cyan] {server}")
+                console.print(f"[cyan]Target directory:[/cyan] {target_dir}")
+                console.print(
+                    f"[cyan]Include ranks file:[/cyan] {'Yes' if restore_ranks else 'No'}\n"
+                )
 
-                # Restore with progress callback
+                # Check for file conflicts BEFORE opening Progress context
+                existing_files = check_restore_conflicts(
+                    checkpoint_path=checkpoint_path,
+                    target_dir=target_dir,
+                    restore_ranks=restore_ranks,
+                )
+
+                # Ask for confirmation if files would be overwritten
+                if existing_files:
+                    confirmation = input(
+                        f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
+                    )
+                    if confirmation.lower() != "y":
+                        console.print("[yellow]Restoration cancelled by user[/yellow]")
+                        raise typer.Exit(1)
+
+                # Progress display with Rich (after confirmation)
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                    transient=True,  # Auto-clear spinner when done
+                ) as progress:
+                    task = progress.add_task("Restoring checkpoint...", total=None)
+
+                    def update_progress(
+                        message: str, current: int, total: int
+                    ) -> None:  # noqa: B023 - task variable is safely captured
+                        """Update progress display with current status."""
+                        progress.update(task, description=f"{message} ({current}/{total})")
+
+                    # Restore with progress callback (skip overwrite check since we already confirmed)
+                    restored_files = restore_checkpoint(
+                        checkpoint_path=checkpoint_path,
+                        target_dir=target_dir,
+                        restore_ranks=restore_ranks,
+                        progress_callback=update_progress,
+                        skip_overwrite_check=True,
+                    )
+            else:
+                # Quiet mode: no progress display, no interactive confirmation
+                # In quiet mode, we assume user wants to overwrite (typical for automation)
                 restored_files = restore_checkpoint(
                     checkpoint_path=checkpoint_path,
                     target_dir=target_dir,
                     restore_ranks=restore_ranks,
-                    progress_callback=update_progress,
+                    progress_callback=None,
+                    skip_overwrite_check=True,  # No confirmation in quiet mode
                 )
-        else:
-            # Quiet mode: no progress display
-            restored_files = restore_checkpoint(
-                checkpoint_path=checkpoint_path,
-                target_dir=target_dir,
-                restore_ranks=restore_ranks,
-                progress_callback=None,
-            )
 
-        # Step 5: Display success message
-        if not _quiet_mode:
+            total_restored += len(restored_files)
+
+            # Display success for this checkpoint
+            if not _quiet_mode:
+                console.print(
+                    f"[green]✓ Restored {len(restored_files)} file(s) from {checkpoint_path.name}[/green]"
+                )
+            else:
+                # In quiet mode, just print the paths
+                for file_path in restored_files:
+                    console.print(str(file_path))
+
+        # Step 5: Display final summary
+        if not _quiet_mode and len(checkpoint_paths) > 1:
             console.print(
-                f"\n[green]✓ Success![/green] Restored {len(restored_files)} file(s) to {server}"
+                f"\n[green]✓ Success![/green] Restored {len(checkpoint_paths)} checkpoint(s) "
+                f"({total_restored} total files) to {server}"
             )
-        else:
-            # In quiet mode, just print the paths
-            for file_path in restored_files:
-                console.print(str(file_path))
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -699,41 +952,47 @@ def list_command(
                     console.print("[yellow]No checkpoints found[/yellow]")
             return
 
-        # Quiet mode: just print filenames
+        # Quiet mode: just print filenames with numbers
         if _quiet_mode:
-            for cp in checkpoints:
-                print(cp["filename"])
+            for idx, cp in enumerate(checkpoints, start=1):
+                print(f"{idx}. {cp['filename']}")
             return
 
         # Normal mode: display Rich table
         from rich.table import Table
 
         table = Table(title="Checkpoints", show_header=True, header_style="bold cyan")
+        table.add_column("#", style="dim", justify="right", width=4)
         table.add_column("Filename", style="white", no_wrap=True)
         table.add_column("Campaign", style="cyan")
         table.add_column("Server", style="green")
         table.add_column("Created", style="yellow")
         table.add_column("Size", style="magenta", justify="right")
         table.add_column("Name", style="blue")
+        table.add_column("Comment", style="dim")
 
         # Add rows for each checkpoint
-        for cp in checkpoints:
-            # Format timestamp for human readability
+        for idx, cp in enumerate(checkpoints, start=1):
+            # Format timestamp for human readability (remove microseconds)
             timestamp_str = cp["timestamp"]
-            # Convert ISO timestamp to more readable format
-            # "2024-02-14T10:30:00" -> "2024-02-14 10:30:00"
+            # "2024-02-14T10:30:00.123456" -> "2024-02-14 10:30:00"
+            if "." in timestamp_str:
+                timestamp_str = timestamp_str.split(".")[0]
             timestamp_display = timestamp_str.replace("T", " ")
 
-            # Get optional name
+            # Get optional name and comment
             name_display = cp.get("name") or ""
+            comment_display = cp.get("comment") or ""
 
             table.add_row(
+                str(idx),
                 cp["filename"],
                 cp["campaign"],
                 cp["server"],
                 timestamp_display,
                 cp["size_human"],
                 name_display,
+                comment_display,
             )
 
         console.print(table)
@@ -751,7 +1010,9 @@ def list_command(
 def delete_command(
     checkpoint_file: Annotated[
         Optional[str],  # noqa: UP007 - Typer requires Optional
-        typer.Argument(help="Checkpoint file to delete (optional if interactive)"),
+        typer.Argument(
+            help="Checkpoint to delete: filename, number, or selection (e.g., '1', '1,3', '1-3'). Omit for interactive mode."
+        ),
     ] = None,
     force: Annotated[
         bool,
@@ -765,13 +1026,25 @@ def delete_command(
     confirmation. In interactive mode (no checkpoint file specified), displays
     available checkpoints and prompts for selection.
 
+    The checkpoint can be specified as:
+    - A filename: 'afghanistan_checkpoint.zip'
+    - A number from the list: '1' (deletes the first checkpoint)
+    - Multiple selections: '1,3,5' or '1-3' (deletes multiple checkpoints)
+    - Omitted for interactive selection
+
     Args:
-        checkpoint_file: Optional checkpoint filename to delete
+        checkpoint_file: Optional checkpoint to delete (filename, number, or selection)
         force: If True, delete immediately without confirmation
 
     Examples:
-        # Delete with confirmation
-        foothold-checkpoint delete afghanistan_2024-02-14.zip
+        # Delete by number
+        foothold-checkpoint delete 1
+
+        # Delete multiple checkpoints
+        foothold-checkpoint delete 1,3,5 --force
+
+        # Delete with confirmation by filename
+        foothold-checkpoint delete afghanistan_checkpoint.zip
 
         # Force delete without confirmation
         foothold-checkpoint delete checkpoint.zip --force
@@ -780,7 +1053,7 @@ def delete_command(
         foothold-checkpoint delete
 
         # Quiet mode (automatic force, no prompts)
-        foothold-checkpoint --quiet delete checkpoint.zip
+        foothold-checkpoint --quiet delete 1
     """
     import json
     import zipfile
@@ -792,7 +1065,35 @@ def delete_command(
 
         # Step 1: Get checkpoint file (from argument or interactive selection)
         if checkpoint_file:
-            checkpoint_path = Path(config.checkpoints_dir) / checkpoint_file
+            # Check if checkpoint_file is a numeric selection (e.g., "1", "1,3", "1-3")
+            if is_numeric_selection(checkpoint_file):
+                # Resolve numeric selection by listing checkpoints
+                checkpoints = list_checkpoints(config.checkpoints_dir)
+
+                if not checkpoints:
+                    console.print("[yellow]No checkpoints found[/yellow]")
+                    raise typer.Exit(1)
+
+                try:
+                    selected_indices = parse_selection(checkpoint_file, len(checkpoints))
+                except ValueError as e:
+                    console.print(f"[red]Error:[/red] Invalid checkpoint selection: {e}")
+                    raise typer.Exit(1) from e
+
+                # Build list of checkpoint paths from indices
+                checkpoint_paths = [
+                    Path(config.checkpoints_dir) / checkpoints[idx - 1]["filename"]
+                    for idx in selected_indices
+                ]
+
+                # Show what was selected (helpful feedback)
+                if not _quiet_mode:
+                    console.print("[cyan]Selected checkpoint(s) for deletion:[/cyan]")
+                    for idx in selected_indices:
+                        console.print(f"  {idx}. {checkpoints[idx - 1]['filename']}")
+            else:
+                # Treat as filename (existing behavior)
+                checkpoint_paths = [Path(config.checkpoints_dir) / checkpoint_file]
         else:
             # Interactive mode: list checkpoints and prompt for selection
             checkpoints = list_checkpoints(config.checkpoints_dir)
@@ -806,75 +1107,124 @@ def delete_command(
                 console.print("\n[cyan]Available checkpoints:[/cyan]")
                 for idx, cp in enumerate(checkpoints, 1):
                     timestamp = cp["timestamp"].replace("T", " ")
+
+                    # Build display string with optional name/comment
+                    display_parts = [
+                        f"  {idx}. [white]{cp['filename']}[/white] -",
+                        f"[cyan]{cp['campaign']}[/cyan] on",
+                        f"[green]{cp['server']}[/green]",
+                        f"[yellow]({timestamp})[/yellow]",
+                    ]
+
+                    # Add name if present
+                    if cp.get("name"):
+                        display_parts.insert(-1, f"[blue]'{cp['name']}'[/blue]")
+
+                    # Add comment if present
+                    if cp.get("comment"):
+                        display_parts.append(f"[dim]- {cp['comment']}[/dim]")
+
+                    console.print(" ".join(display_parts))
+
+            # Prompt for selection (supports multiple: "1,3,5" or "1-3")
+            console.print(
+                "\n[dim]Tip: You can select multiple checkpoints (e.g., '1,3,5' or '1-3')[/dim]"
+            )
+            selection_str = Prompt.ask("\nSelect checkpoint number(s)", default="1")
+
+            try:
+                selected_indices = parse_selection(selection_str, len(checkpoints))
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1) from e
+
+            # Build list of checkpoint paths
+            checkpoint_paths = [
+                Path(config.checkpoints_dir) / checkpoints[idx - 1]["filename"]
+                for idx in selected_indices
+            ]
+
+        # Step 2: Delete checkpoints
+        deleted_count = 0
+        cancelled_count = 0
+
+        for checkpoint_path in checkpoint_paths:
+            # Read metadata for display (before deletion)
+            try:
+                with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                    metadata_content = zf.read("metadata.json")
+                    metadata = json.loads(metadata_content)
+            except (FileNotFoundError, zipfile.BadZipFile, KeyError):
+                # If we can't read metadata, proceed anyway (delete_checkpoint will validate)
+                metadata = None
+
+            # Step 3: Delete checkpoint with optional confirmation
+            # Quiet mode acts like force mode (no prompts)
+            use_force = force or _quiet_mode
+
+            if use_force:
+                # Force mode: no confirmation needed
+                result = delete_checkpoint(checkpoint_path, force=True, confirm_callback=None)
+                if result:
+                    deleted_count += 1
+            else:
+                # Interactive mode: display metadata and prompt for confirmation
+                if len(checkpoint_paths) > 1:
                     console.print(
-                        f"  {idx}. [white]{cp['filename']}[/white] - "
-                        f"[cyan]{cp['campaign']}[/cyan] on "
-                        f"[green]{cp['server']}[/green] "
-                        f"[yellow]({timestamp})[/yellow]"
+                        f"\n[cyan]Checkpoint {deleted_count + cancelled_count + 1}/{len(checkpoint_paths)}:[/cyan]"
                     )
 
-            # Prompt for selection
-            choices = [str(i) for i in range(1, len(checkpoints) + 1)]
-            selection = Prompt.ask("\nSelect checkpoint number", choices=choices, default="1")
-            selected_idx = int(selection) - 1
-            checkpoint_path = (
-                Path(config.checkpoints_dir) / checkpoints[selected_idx]["filename"]
-            )
+                if metadata:
+                    console.print("\n[yellow]About to delete checkpoint:[/yellow]")
+                    console.print(f"  Filename: [white]{checkpoint_path.name}[/white]")
+                    console.print(
+                        f"  Campaign: [cyan]{metadata.get('campaign_name', 'Unknown')}[/cyan]"
+                    )
+                    console.print(
+                        f"  Server: [green]{metadata.get('server_name', 'Unknown')}[/green]"
+                    )
+                    console.print(
+                        f"  Created: [yellow]{metadata.get('created_at', 'Unknown')}[/yellow]"
+                    )
 
-        # Step 2: Read metadata for display (before deletion)
-        try:
-            with zipfile.ZipFile(checkpoint_path, "r") as zf:
-                metadata_content = zf.read("metadata.json")
-                metadata = json.loads(metadata_content)
-        except (FileNotFoundError, zipfile.BadZipFile, KeyError):
-            # If we can't read metadata, proceed anyway (delete_checkpoint will validate)
-            metadata = None
+                    # Display name if present
+                    if metadata.get("name"):
+                        console.print(f"  Name: [blue]{metadata['name']}[/blue]")
 
-        # Step 3: Delete checkpoint with optional confirmation
-        # Quiet mode acts like force mode (no prompts)
-        use_force = force or _quiet_mode
+                    # Display comment if present
+                    if metadata.get("comment"):
+                        console.print(f"  Comment: [white]{metadata['comment']}[/white]")
 
-        if use_force:
-            # Force mode: no confirmation needed
-            result = delete_checkpoint(checkpoint_path, force=True, confirm_callback=None)
+                # Create confirmation callback
+                def confirm(meta: dict) -> bool:  # noqa: ARG001 - callback signature required
+                    """Prompt user for deletion confirmation."""
+                    response = Prompt.ask(
+                        "\n[yellow]Delete this checkpoint?[/yellow]",
+                        choices=["y", "n"],
+                        default="n",
+                    )
+                    return response.lower() == "y"
+
+                result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm)
+
+                if result is None:
+                    # User cancelled
+                    cancelled_count += 1
+                else:
+                    deleted_count += 1
+
+        # Step 4: Display final result
+        if not _quiet_mode:
+            if deleted_count > 0:
+                console.print(f"\n[green]✓ Success![/green] Deleted {deleted_count} checkpoint(s)")
+            if cancelled_count > 0:
+                console.print(f"[yellow]{cancelled_count} deletion(s) cancelled[/yellow]")
         else:
-            # Interactive mode: display metadata and prompt for confirmation
-            if metadata:
-                console.print("\n[yellow]About to delete checkpoint:[/yellow]")
-                console.print(
-                    f"  Campaign: [cyan]{metadata.get('campaign_name', 'Unknown')}[/cyan]"
-                )
-                console.print(f"  Server: [green]{metadata.get('server_name', 'Unknown')}[/green]")
-                console.print(
-                    f"  Created: [yellow]{metadata.get('created_at', 'Unknown')}[/yellow]"
-                )
-
-            # Create confirmation callback
-            def confirm(meta: dict) -> bool:  # noqa: ARG001 - callback signature required
-                """Prompt user for deletion confirmation."""
-                response = Prompt.ask(
-                    "\n[yellow]Delete this checkpoint?[/yellow]", choices=["y", "n"], default="n"
-                )
-                return response.lower() == "y"
-
-            result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm)
-
-        # Step 4: Display result
-        if result is None:
-            # User cancelled
-            if not _quiet_mode:
-                console.print("[yellow]Deletion cancelled[/yellow]")
-        else:
-            # Successfully deleted
-            if _quiet_mode:
-                # In quiet mode, just print the deleted filename
-                print(checkpoint_path.name)
-            else:
-                console.print(
-                    f"[green]✓ Success![/green] Deleted checkpoint "
-                    f"[cyan]{result['campaign_name']}[/cyan] from "
-                    f"[green]{result['server_name']}[/green]"
-                )
+            # In quiet mode, print deleted filenames
+            if deleted_count > 0:
+                for cp_path in checkpoint_paths:
+                    if not cp_path.exists():  # File was deleted
+                        print(cp_path.name)
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -1025,7 +1375,9 @@ def import_command(
                     break
                 else:
                     console.print(f"[red]Invalid selection:[/red] '{selection}'")
-                    console.print(f"Please enter a number (1-{len(available_servers)}) or a server name")
+                    console.print(
+                        f"Please enter a number (1-{len(available_servers)}) or a server name"
+                    )
         else:
             server_name = server
             # Validate server exists

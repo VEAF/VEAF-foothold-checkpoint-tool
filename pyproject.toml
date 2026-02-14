@@ -10,7 +10,7 @@ repository = "https://github.com/VEAF/VEAF-foothold-checkpoint-tool"
 documentation = "https://github.com/VEAF/VEAF-foothold-checkpoint-tool#readme"
 keywords = ["dcs", "foothold", "backup", "checkpoint", "cli"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",

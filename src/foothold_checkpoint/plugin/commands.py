@@ -17,10 +17,10 @@ from discord.ext import commands
 
 class FootholdCheckpointCog(commands.Cog):
     '''Foothold campaign checkpoint management commands.'''
-    
+
     def __init__(self, bot):
         self.bot = bot
-    
+
     @app_commands.command(name='checkpoint-save')
     @app_commands.checks.has_permissions(administrator=True)
     async def checkpoint_save(self, interaction, server: str, campaign: str):
@@ -29,13 +29,13 @@ class FootholdCheckpointCog(commands.Cog):
         # Call foothold_checkpoint.cli functions or subprocess
         # Report progress to Discord
         await interaction.followup.send('Checkpoint saved successfully!')
-    
+
     @app_commands.command(name='checkpoint-list')
     async def checkpoint_list(self, interaction, server: str = None):
         '''List available checkpoints.'''
         # Format list as Discord embed
         pass
-    
+
     @app_commands.command(name='checkpoint-restore')
     @app_commands.checks.has_permissions(administrator=True)
     async def checkpoint_restore(self, interaction, checkpoint: str, server: str):

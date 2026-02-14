@@ -26,6 +26,7 @@ class TestRestoreCommandWithFlags:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
@@ -46,9 +47,7 @@ class TestRestoreCommandWithFlags:
             )
 
         assert result.exit_code == 0
-        assert (
-            "restored successfully" in result.stdout.lower() or "success" in result.stdout.lower()
-        )
+        assert "restored" in result.stdout.lower()  # Success message shows "Restored N file(s)"
         mock_restore.assert_called_once()
 
     def test_restore_with_restore_ranks_flag(self, tmp_path):
@@ -70,6 +69,7 @@ class TestRestoreCommandWithFlags:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
@@ -178,6 +178,7 @@ class TestCheckpointSelectionPrompt:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
             patch("pathlib.Path.exists", return_value=True),
@@ -224,6 +225,7 @@ class TestCheckpointSelectionPrompt:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.list_checkpoints") as mock_list,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("foothold_checkpoint.cli.Prompt.ask", side_effect=["1", "test-server"]),
             patch("pathlib.Path.exists", return_value=True),
@@ -317,6 +319,7 @@ class TestServerPrompt:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
             patch("pathlib.Path.exists", return_value=True),
@@ -359,6 +362,7 @@ class TestServerPrompt:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("foothold_checkpoint.cli.Prompt.ask", return_value="test-server"),
             patch("pathlib.Path.exists", return_value=True),
@@ -402,6 +406,7 @@ class TestProgressDisplay:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
@@ -441,6 +446,7 @@ class TestProgressDisplay:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
@@ -484,6 +490,7 @@ class TestSuccessErrorMessages:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
@@ -582,6 +589,7 @@ class TestSuccessErrorMessages:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
+            patch("foothold_checkpoint.cli.check_restore_conflicts", return_value=[]),
             patch("foothold_checkpoint.cli.restore_checkpoint") as mock_restore,
             patch("pathlib.Path.exists", return_value=True),
         ):
