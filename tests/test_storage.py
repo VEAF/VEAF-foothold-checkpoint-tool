@@ -696,8 +696,9 @@ class TestRestoreCheckpoint:
 
     def test_restore_checkpoint_raises_error_if_metadata_missing(self):
         """restore_checkpoint should raise error if metadata.json is missing."""
-        from foothold_checkpoint.core.storage import restore_checkpoint
         import zipfile
+
+        from foothold_checkpoint.core.storage import restore_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a ZIP without metadata.json
@@ -713,8 +714,9 @@ class TestRestoreCheckpoint:
 
     def test_restore_checkpoint_raises_error_if_metadata_invalid_json(self):
         """restore_checkpoint should raise error if metadata.json has invalid JSON."""
-        from foothold_checkpoint.core.storage import restore_checkpoint
         import zipfile
+
+        from foothold_checkpoint.core.storage import restore_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a ZIP with invalid JSON in metadata
@@ -786,9 +788,9 @@ class TestRestoreCheckpoint:
 
     def test_restore_checkpoint_verifies_checksums(self):
         """restore_checkpoint should verify file checksums before extraction."""
-        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
         import zipfile
-        import json
+
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = Path(tmpdir) / "source"
@@ -1182,7 +1184,6 @@ class TestListCheckpoints:
 
     def test_list_checkpoints_reads_metadata_without_extracting_zip(self):
         """list_checkpoints should read metadata.json without extracting the entire ZIP."""
-        import io
         import json
         import zipfile
 
@@ -1435,7 +1436,6 @@ class TestListCheckpoints:
 
     def test_list_checkpoints_handles_corrupted_checkpoint_gracefully(self):
         """list_checkpoints should skip corrupted checkpoints and continue."""
-        import zipfile
 
         from foothold_checkpoint.core.storage import list_checkpoints, save_checkpoint
 
@@ -1918,8 +1918,9 @@ class TestDeleteCheckpoint:
 
     def test_delete_checkpoint_raises_error_on_oserror(self):
         """delete_checkpoint should propagate OSError during deletion."""
-        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
         from unittest.mock import patch
+
+        from foothold_checkpoint.core.storage import delete_checkpoint, save_checkpoint
 
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = Path(tmpdir) / "source"

@@ -232,56 +232,56 @@
 
 ## 16. CLI - Error Handling (cli.py)
 
-- [ ] 16.1 Implement user-friendly error messages for common scenarios
-- [ ] 16.2 Write tests for error messages (server not found, campaign not found)
-- [ ] 16.3 Implement file not found error handling
-- [ ] 16.4 Write tests for file errors
-- [ ] 16.5 Implement permission error handling
-- [ ] 16.6 Write tests for permission errors
-- [ ] 16.7 Implement validation for conflicting flags
-- [ ] 16.8 Write tests for flag validation
+- [x] 16.1 Implement user-friendly error messages for common scenarios
+- [x] 16.2 Write tests for error messages (server not found, campaign not found)
+- [x] 16.3 Implement file not found error handling
+- [x] 16.4 Write tests for file errors
+- [x] 16.5 Implement permission error handling
+- [x] 16.6 Write tests for permission errors
+- [x] 16.7 Implement validation for conflicting flags
+- [x] 16.8 Write tests for flag validation
 
 ## 17. Plugin Structure Preparation (plugin/)
 
-- [ ] 17.1 Create `plugin/` directory structure
-- [ ] 17.2 Create `plugin/__init__.py`
-- [ ] 17.3 Create `plugin/commands.py` with DCSServerBot plugin skeleton
-- [ ] 17.4 Document plugin integration points in README
-- [ ] 17.5 Add comments in plugin code referencing DCSServerBot architecture
+- [x] 17.1 Create `plugin/` directory structure
+- [x] 17.2 Create `plugin/__init__.py`
+- [x] 17.3 Create `plugin/commands.py` with DCSServerBot plugin skeleton
+- [x] 17.4 Document plugin integration points in README
+- [x] 17.5 Add comments in plugin code referencing DCSServerBot architecture
 
 ## 18. Documentation
 
-- [ ] 18.1 Write comprehensive README with installation instructions
-- [ ] 18.2 Add usage examples for all commands
-- [ ] 18.3 Document configuration file format and options
-- [ ] 18.4 Add troubleshooting section
-- [ ] 18.5 Document development setup (venv, testing)
-- [ ] 18.6 Add contributing guidelines
+- [x] 18.1 Write comprehensive README with installation instructions
+- [x] 18.2 Add usage examples for all commands
+- [x] 18.3 Document configuration file format and options
+- [x] 18.4 Add troubleshooting section
+- [x] 18.5 Document development setup (venv, testing)
+- [x] 18.6 Add contributing guidelines
 - [ ] 18.7 Update CHANGELOG.md with initial version
 
 ## 19. Integration Testing
 
-- [ ] 19.1 Create end-to-end test for save → list → restore workflow
-- [ ] 19.2 Create end-to-end test for import workflow
-- [ ] 19.3 Create end-to-end test for delete workflow
-- [ ] 19.4 Test with real data from `tests/data/foothold/`
-- [ ] 19.5 Test cross-server restoration
-- [ ] 19.6 Test all campaigns save/restore
-- [ ] 19.7 Test error scenarios (disk full, permissions)
-- [ ] 19.8 Test Windows-specific paths and behaviors
+- [x] 19.1 Create end-to-end test for save → list → restore workflow
+- [x] 19.2 Create end-to-end test for import workflow
+- [x] 19.3 Create end-to-end test for delete workflow
+- [x] 19.4 Test with real data from `tests/data/foothold/`
+- [x] 19.5 Test cross-server restoration
+- [x] 19.6 Test all campaigns save/restore
+- [x] 19.7 Test error scenarios (disk full, permissions)
+- [x] 19.8 Test Windows-specific paths and behaviors
 
 ## 20. Quality Assurance
 
-- [ ] 20.1 Run ruff linter and fix all issues
+- [x] 20.1 Run ruff linter and fix all issues
 - [ ] 20.2 Run black formatter on all Python files
 - [ ] 20.3 Run mypy type checker and resolve type errors
-- [ ] 20.4 Ensure all tests pass
-- [ ] 20.5 Achieve 100% test coverage for core modules
+- [x] 20.4 Ensure all tests pass
+- [x] 20.5 Achieve 100% test coverage for core modules
 - [ ] 20.6 Verify no VS Code errors or warnings
 - [ ] 20.7 Review and update CHANGELOG.md
 - [ ] 20.8 Perform manual testing of interactive mode
 - [ ] 20.9 Test quiet mode for automation
-- [ ] 20.10 Validate against development guidelines
+- [x] 20.10 Validate against development guidelines
 
 ## 21. Release Preparation
 

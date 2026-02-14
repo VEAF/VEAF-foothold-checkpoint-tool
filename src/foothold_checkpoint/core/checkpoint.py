@@ -3,10 +3,11 @@
 import hashlib
 import json
 import zipfile
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union, Callable
-from pydantic import BaseModel, Field, field_validator, ValidationError
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class CheckpointMetadata(BaseModel):
@@ -88,7 +89,7 @@ class CheckpointMetadata(BaseModel):
         return value
 
 
-def compute_file_checksum(file_path: Union[str, Path]) -> str:
+def compute_file_checksum(file_path: str | Path) -> str:
     """Compute SHA-256 checksum for a file.
 
     Reads the file in chunks to efficiently handle large files without
@@ -136,7 +137,7 @@ def compute_file_checksum(file_path: Union[str, Path]) -> str:
     return f"sha256:{sha256_hash.hexdigest()}"
 
 
-def save_metadata(metadata: CheckpointMetadata, json_path: Union[str, Path]) -> None:
+def save_metadata(metadata: CheckpointMetadata, json_path: str | Path) -> None:
     """Save checkpoint metadata to a JSON file.
 
     Serializes the metadata to JSON format with proper datetime handling
@@ -171,7 +172,7 @@ def save_metadata(metadata: CheckpointMetadata, json_path: Union[str, Path]) -> 
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def load_metadata(json_path: Union[str, Path]) -> CheckpointMetadata:
+def load_metadata(json_path: str | Path) -> CheckpointMetadata:
     """Load checkpoint metadata from a JSON file.
 
     Deserializes JSON file to a CheckpointMetadata object with validation.
@@ -202,7 +203,7 @@ def load_metadata(json_path: Union[str, Path]) -> CheckpointMetadata:
 
     # Read and parse JSON
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, encoding='utf-8') as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in metadata file: {e}")
@@ -251,8 +252,8 @@ def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None
 def create_checkpoint(
     campaign_name: str,
     server_name: str,
-    campaign_files: list[Union[str, Path]],
-    output_dir: Union[str, Path],
+    campaign_files: list[str | Path],
+    output_dir: str | Path,
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,

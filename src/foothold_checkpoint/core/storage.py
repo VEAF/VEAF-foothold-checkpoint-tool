@@ -606,7 +606,7 @@ def delete_checkpoint(
         raise PermissionError(
             f"Permission denied: cannot delete {checkpoint_path.name}"
         ) from e
-    except OSError as e:
+    except OSError:
         # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
         raise
 

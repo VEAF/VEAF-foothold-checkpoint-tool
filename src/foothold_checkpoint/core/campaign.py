@@ -1,9 +1,9 @@
 """Campaign detection and file pattern matching."""
 
 import re
-from pathlib import Path
-from typing import Union, TYPE_CHECKING
 from collections import defaultdict
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from foothold_checkpoint.core.config import Config
@@ -26,7 +26,7 @@ CAMPAIGN_FILE_PATTERN = re.compile(
 )
 
 
-def is_shared_file(filename: Union[str, Path]) -> bool:
+def is_shared_file(filename: str | Path) -> bool:
     """Check if a filename is the shared Foothold_Ranks.lua file.
 
     Foothold_Ranks.lua is a special file that is shared across all campaigns
@@ -57,7 +57,7 @@ def is_shared_file(filename: Union[str, Path]) -> bool:
     return filename.lower() == "foothold_ranks.lua"
 
 
-def is_campaign_file(filename: Union[str, Path]) -> bool:
+def is_campaign_file(filename: str | Path) -> bool:
     """Check if a filename matches the Foothold campaign file pattern.
 
     This function identifies files that belong to a Foothold campaign by matching
@@ -105,7 +105,7 @@ def is_campaign_file(filename: Union[str, Path]) -> bool:
     return bool(CAMPAIGN_FILE_PATTERN.match(filename))
 
 
-def normalize_campaign_name(filename: Union[str, Path]) -> str:
+def normalize_campaign_name(filename: str | Path) -> str:
     """Extract and normalize the campaign name from a filename.
 
     Removes the 'foothold_' prefix, version suffixes, and file type suffixes
@@ -170,7 +170,7 @@ def normalize_campaign_name(filename: Union[str, Path]) -> str:
     return name_normalized
 
 
-def group_campaign_files(filenames: list[Union[str, Path]]) -> dict[str, list[str]]:
+def group_campaign_files(filenames: list[str | Path]) -> dict[str, list[str]]:
     """Group campaign files by their normalized campaign name.
 
     Takes a list of filenames and groups them by campaign, using the normalized
@@ -272,7 +272,7 @@ def map_campaign_name(campaign_name: str, config: "Config") -> str:
     return campaign_name
 
 
-def detect_campaigns(filenames: list[Union[str, Path]], config: "Config") -> dict[str, list[str]]:
+def detect_campaigns(filenames: list[str | Path], config: "Config") -> dict[str, list[str]]:
     """Detect and group campaign files, applying name mapping from config.
 
     Combines file grouping with campaign name mapping to produce groups
@@ -310,7 +310,7 @@ def detect_campaigns(filenames: list[Union[str, Path]], config: "Config") -> dic
     return dict(mapped_groups)
 
 
-def create_campaign_report(filenames: list[Union[str, Path]], config: "Config") -> dict[str, int]:
+def create_campaign_report(filenames: list[str | Path], config: "Config") -> dict[str, int]:
     """Create a campaign detection report with file counts.
 
     Analyzes a list of filenames and generates a summary report showing

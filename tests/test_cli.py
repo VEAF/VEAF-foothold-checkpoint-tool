@@ -1,7 +1,5 @@
 """Tests for CLI module."""
 
-import sys
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -29,8 +27,9 @@ class TestVersionFlag:
 
     def test_version_flag_displays_version(self, capsys):
         """Test --version displays version information."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--version"])
@@ -41,8 +40,9 @@ class TestVersionFlag:
 
     def test_version_flag_exits_after_display(self):
         """Test --version exits immediately without running commands."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--version"])
@@ -55,8 +55,9 @@ class TestConfigFlag:
 
     def test_config_flag_with_valid_path(self, tmp_path):
         """Test --config loads custom config file."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         # Create custom config file
         config_file = tmp_path / "custom.yaml"
@@ -78,8 +79,9 @@ checkpoints_directory: /test/checkpoints
 
     def test_config_flag_with_nonexistent_path(self, tmp_path):
         """Test --config with non-existent file displays error."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         nonexistent = tmp_path / "nonexistent.yaml"
 
@@ -91,8 +93,9 @@ checkpoints_directory: /test/checkpoints
 
     def test_config_flag_uses_default_when_not_specified(self):
         """Test that default config path is used when --config not specified."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         # Should not error even if default config doesn't exist (commands will handle it)
@@ -106,8 +109,9 @@ class TestQuietFlag:
 
     def test_quiet_flag_accepted(self):
         """Test --quiet flag is accepted by CLI."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--quiet", "--help"])
@@ -116,8 +120,8 @@ class TestQuietFlag:
 
     def test_quiet_flag_affects_output(self):
         """Test --quiet flag reduces output verbosity."""
-        from foothold_checkpoint.cli import app, is_quiet_mode
-        from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import is_quiet_mode
 
         # Test that is_quiet_mode is accessible
         assert callable(is_quiet_mode)
@@ -135,7 +139,6 @@ class TestInterruptHandler:
 
     def test_interrupt_handler_registered(self):
         """Test that signal handler for SIGINT is registered."""
-        import signal
 
         from foothold_checkpoint.cli import interrupt_handler
 
@@ -196,8 +199,9 @@ class TestErrorMessages:
 
     def test_invalid_command_shows_helpful_message(self):
         """Test invalid command displays helpful error."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["invalid-command"])
@@ -211,8 +215,9 @@ class TestHelpOutput:
 
     def test_help_flag_displays_usage(self):
         """Test --help displays usage information."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--help"])
@@ -222,8 +227,9 @@ class TestHelpOutput:
 
     def test_help_includes_available_commands(self):
         """Test --help mentions available commands."""
-        from foothold_checkpoint.cli import app
         from typer.testing import CliRunner
+
+        from foothold_checkpoint.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--help"])
