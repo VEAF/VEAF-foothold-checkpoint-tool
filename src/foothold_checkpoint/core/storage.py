@@ -506,6 +506,113 @@ def list_checkpoints(
     return checkpoints
 
 
+def delete_checkpoint(
+    checkpoint_path: str | Path,
+    force: bool = False,
+    confirm_callback: Callable[[dict], bool] | None = None,
+) -> dict | None:
+    """Delete a checkpoint file from storage.
+
+    Validates that the file is a valid checkpoint (ZIP with metadata.json) before deletion.
+    In non-force mode, requires a confirmation callback to prompt the user.
+
+    Args:
+        checkpoint_path: Path to the checkpoint file to delete.
+        force: If True, delete immediately without confirmation. Default False.
+        confirm_callback: Callback function that receives metadata dict and returns bool.
+                         Required when force=False. Should return True to confirm deletion.
+
+    Returns:
+        Metadata dict if deletion successful, None if user cancelled.
+
+    Raises:
+        FileNotFoundError: If checkpoint file does not exist.
+        ValueError: If file is not a valid checkpoint (not a ZIP or missing metadata).
+        ValueError: If force=False and confirm_callback is not provided.
+        PermissionError: If user lacks permission to delete the file.
+        OSError: If deletion fails for other reasons (file in use, disk error, etc.).
+
+    Example:
+        >>> # Force delete without confirmation
+        >>> metadata = delete_checkpoint("afghan_2024-02-13_14-30-00.zip", force=True)
+        >>> print(f"Deleted {metadata['campaign_name']} checkpoint")
+
+        >>> # Interactive deletion with confirmation
+        >>> def confirm(meta):
+        ...     print(f"Delete {meta['campaign_name']} from {meta['server_name']}?")
+        ...     return input("(y/n): ").lower() == 'y'
+        >>> delete_checkpoint("checkpoint.zip", confirm_callback=confirm)
+    """
+    import json
+    import zipfile
+    from zipfile import BadZipFile
+
+    checkpoint_path = Path(checkpoint_path)
+
+    # Validate file exists
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(
+            f"Checkpoint file not found: {checkpoint_path.name}"
+        )
+
+    # Validate it's a ZIP file
+    if not zipfile.is_zipfile(checkpoint_path):
+        raise ValueError(
+            f"Not a valid checkpoint file: {checkpoint_path.name} is not a ZIP archive"
+        )
+
+    # Read and validate metadata
+    try:
+        with zipfile.ZipFile(checkpoint_path, "r") as zf:
+            metadata_content = zf.read("metadata.json")
+            metadata = json.loads(metadata_content)
+    except BadZipFile as e:
+        raise ValueError(
+            f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted"
+        ) from e
+    except KeyError as e:
+        raise ValueError(
+            f"Not a valid checkpoint (missing metadata): {checkpoint_path.name}"
+        ) from e
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Cannot read checkpoint metadata: {checkpoint_path.name} has invalid JSON"
+        ) from e
+
+    # Validate metadata has required fields
+    required_fields = ["campaign_name", "server_name", "created_at"]
+    missing_fields = [f for f in required_fields if f not in metadata]
+    if missing_fields:
+        raise ValueError(
+            f"Cannot read checkpoint metadata: missing fields {missing_fields}"
+        )
+
+    # Handle confirmation
+    if not force:
+        if confirm_callback is None:
+            raise ValueError(
+                "Confirmation callback required when force=False"
+            )
+
+        # Call confirmation callback with metadata
+        if not confirm_callback(metadata):
+            # User cancelled
+            return None
+
+    # Delete the checkpoint file
+    try:
+        checkpoint_path.unlink()
+    except PermissionError as e:
+        raise PermissionError(
+            f"Permission denied: cannot delete {checkpoint_path.name}"
+        ) from e
+    except OSError as e:
+        # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
+        raise
+
+    return metadata
+
+
 def _format_file_size(size_bytes: int) -> str:
     """Format file size in human-readable format.
 
