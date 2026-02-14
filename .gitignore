@@ -55,7 +55,11 @@ desktop.ini
 
 # User configuration (example is tracked)
 config.yaml
+
+# Session tracking files (personal development notes)
 SESSION_STATE.md
+session_state.md
+session_history.md
 test_data/foothold1_server/Missions/Saves/Foothold_CA_CTLD_FARPS_Coldwar.csv
 test_data/foothold1_server/Missions/Saves/Foothold_CA_CTLD_FARPS_Modern.csv
 test_data/foothold1_server/Missions/Saves/FootHold_CA_CTLD_Save_Coldwar.csv
