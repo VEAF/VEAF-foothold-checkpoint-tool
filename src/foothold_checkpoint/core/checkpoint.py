@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Union
 from pydantic import BaseModel, Field, field_validator, ValidationError
@@ -209,3 +209,39 @@ def load_metadata(json_path: Union[str, Path]) -> CheckpointMetadata:
     # Validate and create CheckpointMetadata object
     # Pydantic will automatically parse ISO 8601 datetime strings
     return CheckpointMetadata.model_validate(data)
+
+
+def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None = None) -> str:
+    """Generate a checkpoint filename with timestamp.
+
+    Creates a filename in the format: campaign_YYYY-MM-DD_HH-MM-SS.zip
+
+    The timestamp ensures uniqueness when multiple checkpoints are created
+    for the same campaign. Uses UTC timezone for consistency.
+
+    Args:
+        campaign_name: Name of the campaign (e.g., "afghanistan", "germany_modern").
+        created_at: Timestamp for the checkpoint. If None, uses current UTC time.
+
+    Returns:
+        str: Checkpoint filename (e.g., "afghanistan_2024-01-15_10-30-45.zip").
+
+    Examples:
+        >>> from datetime import datetime, timezone
+        >>> timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+        >>> generate_checkpoint_filename("afghanistan", timestamp)
+        'afghanistan_2024-01-15_10-30-45.zip'
+
+        >>> # Use current time if not provided
+        >>> generate_checkpoint_filename("syria")
+        'syria_2024-02-14_15-45-30.zip'  # Current timestamp
+    """
+    # Use current UTC time if not provided
+    if created_at is None:
+        created_at = datetime.now(timezone.utc)
+
+    # Format: campaign_YYYY-MM-DD_HH-MM-SS.zip
+    timestamp_str = created_at.strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{campaign_name}_{timestamp_str}.zip"
+
+    return filename

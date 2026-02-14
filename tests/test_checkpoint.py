@@ -507,3 +507,120 @@ class TestMetadataSerialization:
         save_metadata(metadata, json_file)
 
         assert Path(json_file).exists()
+
+
+class TestFilenameGeneration:
+    """Test suite for checkpoint filename generation."""
+
+    def test_generate_filename_with_datetime(self):
+        """Should generate filename in format campaign_YYYY-MM-DD_HH-MM-SS.zip."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        campaign_name = "afghanistan"
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+
+        filename = generate_checkpoint_filename(campaign_name, timestamp)
+
+        assert filename == "afghanistan_2024-01-15_10-30-45.zip"
+
+    def test_generate_filename_format_components(self):
+        """Should include all datetime components in correct format."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        timestamp = datetime(2024, 3, 7, 8, 5, 3, tzinfo=timezone.utc)
+        filename = generate_checkpoint_filename("syria", timestamp)
+
+        # Should zero-pad single digits
+        assert filename == "syria_2024-03-07_08-05-03.zip"
+
+    def test_generate_filename_different_timestamps(self):
+        """Should generate different filenames for different timestamps."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        campaign = "afghanistan"
+        time1 = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        time2 = datetime(2024, 1, 15, 10, 30, 1, tzinfo=timezone.utc)
+
+        filename1 = generate_checkpoint_filename(campaign, time1)
+        filename2 = generate_checkpoint_filename(campaign, time2)
+
+        assert filename1 != filename2
+        assert filename1 == "afghanistan_2024-01-15_10-30-00.zip"
+        assert filename2 == "afghanistan_2024-01-15_10-30-01.zip"
+
+    def test_generate_filename_same_timestamp(self):
+        """Should generate same filename for same timestamp."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        campaign = "afghanistan"
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+
+        filename1 = generate_checkpoint_filename(campaign, timestamp)
+        filename2 = generate_checkpoint_filename(campaign, timestamp)
+
+        assert filename1 == filename2
+
+    def test_generate_filename_with_underscores_in_campaign(self):
+        """Should handle campaign names with underscores."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        campaign = "germany_modern"
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+
+        filename = generate_checkpoint_filename(campaign, timestamp)
+
+        assert filename == "germany_modern_2024-01-15_10-30-45.zip"
+
+    def test_generate_filename_without_datetime_uses_now(self):
+        """Should use current time if datetime not provided."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+        from datetime import datetime
+
+        campaign = "afghanistan"
+
+        # Generate filename without providing datetime
+        before = datetime.now(timezone.utc)
+        filename = generate_checkpoint_filename(campaign)
+        after = datetime.now(timezone.utc)
+
+        # Filename should start with campaign name and end with .zip
+        assert filename.startswith("afghanistan_")
+        assert filename.endswith(".zip")
+
+        # Extract timestamp from filename
+        # Format: afghanistan_2024-01-15_10-30-45.zip
+        timestamp_part = filename[len("afghanistan_"):-len(".zip")]
+        year, month, day, hour, minute, second = (
+            timestamp_part[:4], timestamp_part[5:7], timestamp_part[8:10],
+            timestamp_part[11:13], timestamp_part[14:16], timestamp_part[17:19]
+        )
+
+        file_time = datetime(
+            int(year), int(month), int(day),
+            int(hour), int(minute), int(second),
+            tzinfo=timezone.utc
+        )
+
+        # File timestamp should be within the time window (compare without microseconds)
+        # Remove microseconds from before/after for fair comparison since filename has second precision
+        before_no_micro = before.replace(microsecond=0)
+        after_no_micro = after.replace(microsecond=0)
+        assert before_no_micro <= file_time <= after_no_micro
+
+    def test_generate_filename_extension_is_zip(self):
+        """Should always end with .zip extension."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+        filename = generate_checkpoint_filename("afghanistan", timestamp)
+
+        assert filename.endswith(".zip")
+
+    def test_generate_filename_no_spaces_in_output(self):
+        """Should not contain spaces in filename."""
+        from foothold_checkpoint.core.checkpoint import generate_checkpoint_filename
+
+        timestamp = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+        filename = generate_checkpoint_filename("afghanistan", timestamp)
+
+        assert " " not in filename
