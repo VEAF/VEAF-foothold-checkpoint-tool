@@ -8,6 +8,12 @@ from typing import Annotated, Optional  # noqa: UP035 - Required for Typer compa
 
 import typer
 from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.prompt import Prompt
+
+from foothold_checkpoint.core.campaign import detect_campaigns
+from foothold_checkpoint.core.checkpoint import create_checkpoint
+from foothold_checkpoint.core.config import load_config
 
 # Package version
 __version__ = "0.1.0"
@@ -116,7 +122,7 @@ def main_callback(
             help="Show version and exit",
         ),
     ] = False,
-    config: Annotated[
+    config: Annotated[  # noqa: ARG001 - handled by eager callback
         Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option(
             "--config",
@@ -149,6 +155,236 @@ def main_callback(
     if quiet:
         global _quiet_mode
         _quiet_mode = True
+
+
+@app.command("save")
+def save_command(
+    server: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--server",
+            "-s",
+            help="Server name from configuration",
+        ),
+    ] = None,
+    campaign: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--campaign",
+            "-c",
+            help="Campaign name to save",
+        ),
+    ] = None,
+    save_all: Annotated[
+        bool,
+        typer.Option(
+            "--all",
+            "-a",
+            is_flag=True,
+            flag_value=True,
+            help="Save all detected campaigns",
+        ),
+    ] = False,
+    name: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--name",
+            "-n",
+            help="Optional name for the checkpoint",
+        ),
+    ] = None,
+    comment: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--comment",
+            "-m",
+            help="Optional comment/description for the checkpoint",
+        ),
+    ] = None,
+) -> None:
+    """Save a campaign checkpoint.
+
+    Create a checkpoint (backup) of a Foothold campaign from a DCS server's mission directory.
+    The checkpoint includes all campaign files with integrity checksums.
+
+    Examples:
+        Save a specific campaign:
+        $ foothold-checkpoint save --server prod-1 --campaign afghanistan
+
+        Save all campaigns on a server:
+        $ foothold-checkpoint save --server prod-1 --all
+
+        Save with optional metadata:
+        $ foothold-checkpoint save --server prod-1 --campaign syria --name "Mission 5" --comment "Before update"
+
+    Interactive mode (prompts for missing information):
+        $ foothold-checkpoint save
+    """
+    try:
+        # Load configuration
+        config_file = _config_path if _config_path is not None else Path("config.yaml")
+        config = load_config(config_file)
+
+        # Step 1: Get server name (from flag or prompt)
+        if server is None:
+            available_servers = list(config.servers.keys())
+            if not available_servers:
+                console.print("[red]Error:[/red] No servers configured in config file")
+                raise typer.Exit(1)
+
+            if not _quiet_mode:
+                console.print("\n[cyan]Available servers:[/cyan]")
+                for srv in available_servers:
+                    console.print(f"  - {srv}")
+
+            server = Prompt.ask("\nSelect server", choices=available_servers)
+
+        # Validate server exists
+        if server not in config.servers:
+            available = ", ".join(config.servers.keys())
+            console.print(f"[red]Error:[/red] Server '{server}' not found in configuration")
+            console.print(f"Available servers: {available}")
+            raise typer.Exit(1)
+
+        server_config = config.servers[server]
+        mission_dir = Path(server_config.mission_directory)
+
+        # Validate mission directory exists
+        if not mission_dir.exists():
+            console.print(f"[red]Error:[/red] Mission directory does not exist: {mission_dir}")
+            raise typer.Exit(1)
+
+        # Step 2: Detect campaigns in mission directory
+        campaign_files = [f for f in mission_dir.iterdir() if f.is_file()]
+        campaigns = detect_campaigns([f.name for f in campaign_files], config)
+
+        if not campaigns:
+            console.print(f"[red]Error:[/red] No campaigns detected in {mission_dir}")
+            raise typer.Exit(1)
+
+        # Step 3: Determine which campaigns to save
+        campaigns_to_save: list[str] = []
+
+        if save_all:
+            # Save all detected campaigns
+            campaigns_to_save = list(campaigns.keys())
+        elif campaign is not None:
+            # Save specific campaign
+            if campaign not in campaigns:
+                available = ", ".join(campaigns.keys())
+                console.print(f"[red]Error:[/red] Campaign '{campaign}' not found in mission directory")
+                console.print(f"Available campaigns: {available}")
+                raise typer.Exit(1)
+            campaigns_to_save = [campaign]
+        else:
+            # Prompt for campaign selection
+            if not _quiet_mode:
+                console.print("\n[cyan]Detected campaigns:[/cyan]")
+                for camp in campaigns:
+                    file_count = len(campaigns[camp])
+                    console.print(f"  - {camp} ({file_count} file{'s' if file_count > 1 else ''})")
+
+            campaign_choices = list(campaigns.keys()) + ["all"]
+            selected = Prompt.ask("\nSelect campaign (or 'all')", choices=campaign_choices)
+
+            campaigns_to_save = list(campaigns.keys()) if selected == "all" else [selected]
+
+        # Step 4: Get optional name and comment (prompt if not provided as flags)
+        checkpoint_name = name
+        checkpoint_comment = comment
+
+        # Only prompt for name/comment in interactive mode:
+        # - Not quiet mode
+        # - Saving a single campaign (not --all)
+        # - Neither --campaign nor --all flags were provided (pure interactive mode)
+        in_interactive_mode = campaign is None and not save_all
+
+        if checkpoint_name is None and not _quiet_mode and not save_all and in_interactive_mode:
+            # Only prompt for name/comment if in full interactive mode
+            checkpoint_name = Prompt.ask("Checkpoint name (optional, press Enter to skip)", default="")
+            if checkpoint_name == "":
+                checkpoint_name = None
+
+        if checkpoint_comment is None and not _quiet_mode and not save_all and in_interactive_mode:
+            checkpoint_comment = Prompt.ask("Checkpoint comment (optional, press Enter to skip)", default="")
+            if checkpoint_comment == "":
+                checkpoint_comment = None
+
+        # Step 5: Create checkpoints
+        checkpoints_dir = Path(config.checkpoints_directory)
+        checkpoints_dir.mkdir(parents=True, exist_ok=True)
+
+        created_checkpoints: list[Path] = []
+
+        for camp_name in campaigns_to_save:
+            camp_files = campaigns[camp_name]
+            camp_file_paths = [mission_dir / fname for fname in camp_files]
+
+            if not _quiet_mode:
+                console.print(f"\n[cyan]Saving checkpoint for campaign:[/cyan] {camp_name}")
+
+            # Create progress callback for Rich progress display
+            progress_callback = None
+            if not _quiet_mode:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    task = progress.add_task(f"Creating checkpoint for {camp_name}...", total=None)
+
+                    def update_progress(message: str, current: int, total: int) -> None:
+                        progress.update(task, description=f"{message} ({current}/{total})")  # noqa: B023
+
+                    progress_callback = update_progress
+
+                    try:
+                        checkpoint_path = create_checkpoint(
+                            campaign_name=camp_name,
+                            server_name=server,
+                            campaign_files=camp_file_paths,
+                            output_dir=checkpoints_dir,
+                            name=checkpoint_name,
+                            comment=checkpoint_comment,
+                            progress_callback=progress_callback,
+                        )
+                        created_checkpoints.append(checkpoint_path)
+                    except FileNotFoundError as e:
+                        console.print(f"[red]Error:[/red] {e}")
+                        raise typer.Exit(1) from e
+            else:
+                # Quiet mode: no progress display
+                try:
+                    checkpoint_path = create_checkpoint(
+                        campaign_name=camp_name,
+                        server_name=server,
+                        campaign_files=camp_file_paths,
+                        output_dir=checkpoints_dir,
+                        name=checkpoint_name,
+                        comment=checkpoint_comment,
+                        progress_callback=None,
+                    )
+                    created_checkpoints.append(checkpoint_path)
+                except FileNotFoundError as e:
+                    console.print(f"[red]Error:[/red] {e}")
+                    raise typer.Exit(1) from e
+
+        # Step 6: Display success message
+        if not _quiet_mode:
+            console.print(f"\n[green]✓ Success![/green] Created {len(created_checkpoints)} checkpoint(s):")
+            for cp_path in created_checkpoints:
+                console.print(f"  - {cp_path.name}")
+        else:
+            # In quiet mode, just print the paths
+            for cp_path in created_checkpoints:
+                console.print(str(cp_path))
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
 
 
 def main() -> None:
