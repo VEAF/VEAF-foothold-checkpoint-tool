@@ -23,18 +23,18 @@ Complete guide for using the Foothold Checkpoint Tool to manage DCS Foothold cam
 - Windows (PowerShell)
 - DCS servers with Foothold campaigns
 
-### Install from PyPI (when available)
-
-```powershell
-pip install foothold-checkpoint
-```
-
 ### Install from Source
 
 ```powershell
 git clone https://github.com/VEAF/VEAF-foothold-checkpoint-tool.git
 cd VEAF-foothold-checkpoint-tool
-pip install .
+poetry install
+```
+
+## Running
+
+```powershell
+poetry run foothold-checkpoint
 ```
 
 ## Configuration
@@ -88,19 +88,19 @@ Create a checkpoint of a campaign's current state.
 #### Save a Single Campaign
 
 ```powershell
-foothold-checkpoint save --server production-1 --campaign afghanistan --name "Before Mission 5"
+poetry run foothold-checkpoint save --server production-1 --campaign afghanistan --name "Before Mission 5"
 ```
 
 #### Save All Campaigns
 
 ```powershell
-foothold-checkpoint save --server production-1 --all --name "End of Week Backup"
+poetry run foothold-checkpoint save --server production-1 --all --name "End of Week Backup"
 ```
 
 #### Interactive Mode
 
 ```powershell
-foothold-checkpoint save
+poetry run foothold-checkpoint save
 # The tool will prompt for:
 # - Server selection
 # - Campaign selection
@@ -121,7 +121,7 @@ Display all available checkpoints.
 #### List All Checkpoints
 
 ```powershell
-foothold-checkpoint list
+poetry run foothold-checkpoint list
 ```
 
 Output:
@@ -137,19 +137,19 @@ Output:
 #### Filter by Server
 
 ```powershell
-foothold-checkpoint list --server production-1
+poetry run foothold-checkpoint list --server production-1
 ```
 
 #### Filter by Campaign
 
 ```powershell
-foothold-checkpoint list --campaign afghanistan
+poetry run foothold-checkpoint list --campaign afghanistan
 ```
 
 #### Combined Filters
 
 ```powershell
-foothold-checkpoint list --server production-1 --campaign afghanistan
+poetry run foothold-checkpoint list --server production-1 --campaign afghanistan
 ```
 
 ### Restore Checkpoints
@@ -159,7 +159,7 @@ Restore a checkpoint to a server.
 #### Basic Restore
 
 ```powershell
-foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server
+poetry run foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server
 ```
 
 **Behavior:**
@@ -171,13 +171,13 @@ foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-se
 #### Restore with Ranks File
 
 ```powershell
-foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server --restore-ranks
+poetry run foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server --restore-ranks
 ```
 
 #### Interactive Mode
 
 ```powershell
-foothold-checkpoint restore
+poetry run foothold-checkpoint restore
 # The tool will:
 # 1. Display available checkpoints
 # 2. Let you select one
@@ -195,7 +195,7 @@ Remove old or unwanted checkpoints.
 #### Delete with Confirmation
 
 ```powershell
-foothold-checkpoint delete afghanistan_2024-02-13_14-30-00.zip
+poetry run foothold-checkpoint delete afghanistan_2024-02-13_14-30-00.zip
 ```
 
 The tool will:
@@ -206,7 +206,7 @@ The tool will:
 #### Force Delete (No Confirmation)
 
 ```powershell
-foothold-checkpoint delete afghanistan_2024-02-13_14-30-00.zip --force
+poetry run foothold-checkpoint delete afghanistan_2024-02-13_14-30-00.zip --force
 ```
 
 ⚠️ **Warning**: Deletion is permanent and cannot be undone.
@@ -214,7 +214,7 @@ foothold-checkpoint delete afghanistan_2024-02-13_14-30-00.zip --force
 #### Interactive Mode
 
 ```powershell
-foothold-checkpoint delete
+poetry run foothold-checkpoint delete
 # Select checkpoint from numbered list
 ```
 
@@ -225,7 +225,7 @@ Convert existing manual backups into proper checkpoints.
 #### Import from Directory
 
 ```powershell
-foothold-checkpoint import D:\Backups\Manual\2024-02-10 --server production-1 --campaign afghanistan --name "Old backup"
+poetry run foothold-checkpoint import D:\Backups\Manual\2024-02-10 --server production-1 --campaign afghanistan --name "Old backup"
 ```
 
 **Behavior:**
@@ -238,7 +238,7 @@ foothold-checkpoint import D:\Backups\Manual\2024-02-10 --server production-1 --
 #### Interactive Mode
 
 ```powershell
-foothold-checkpoint import D:\Backups\Manual\2024-02-10
+poetry run foothold-checkpoint import D:\Backups\Manual\2024-02-10
 # The tool will:
 # 1. Auto-detect campaigns in directory
 # 2. Let you select which campaign to import
@@ -251,36 +251,36 @@ foothold-checkpoint import D:\Backups\Manual\2024-02-10
 
 ```powershell
 # Friday evening: Save all campaigns
-foothold-checkpoint save --server production-1 --all --name "End of Week - Feb 16"
+poetry run foothold-checkpoint save --server production-1 --all --name "End of Week - Feb 16"
 
 # List recent backups
-foothold-checkpoint list --server production-1
+poetry run foothold-checkpoint list --server production-1
 
 # Test restore on test server
-foothold-checkpoint restore afghanistan_2024-02-16_18-00-00.zip --server test-server
+poetry run foothold-checkpoint restore afghanistan_2024-02-16_18-00-00.zip --server test-server
 ```
 
 ### Testing New Content
 
 ```powershell
 # Before testing: Create checkpoint
-foothold-checkpoint save --server test-server --campaign afghanistan --name "Before new mission test"
+poetry run foothold-checkpoint save --server test-server --campaign afghanistan --name "Before new mission test"
 
 # ... test the new mission ...
 
 # If broken: Restore previous state
-foothold-checkpoint restore afghanistan_2024-02-13_16-00-00.zip --server test-server
+poetry run foothold-checkpoint restore afghanistan_2024-02-13_16-00-00.zip --server test-server
 ```
 
 ### Cleanup Old Checkpoints
 
 ```powershell
 # List all checkpoints
-foothold-checkpoint list
+poetry run foothold-checkpoint list
 
 # Delete old ones
-foothold-checkpoint delete afghanistan_2024-01-15_10-00-00.zip
-foothold-checkpoint delete afghanistan_2024-01-18_14-30-00.zip
+poetry run foothold-checkpoint delete afghanistan_2024-01-15_10-00-00.zip
+poetry run foothold-checkpoint delete afghanistan_2024-01-18_14-30-00.zip
 ```
 
 ## Troubleshooting
@@ -339,7 +339,7 @@ checkpoints_dir: E:\VEAF\Checkpoints
 Suppress progress bars for automation:
 
 ```powershell
-foothold-checkpoint save --server prod-1 --campaign afghanistan --quiet
+poetry run foothold-checkpoint save --server prod-1 --campaign afghanistan --quiet
 ```
 
 Output: Just the checkpoint filename on success.
@@ -349,7 +349,7 @@ Output: Just the checkpoint filename on success.
 Get help for any command:
 
 ```powershell
-foothold-checkpoint --help
-foothold-checkpoint save --help
-foothold-checkpoint restore --help
+poetry run foothold-checkpoint --help
+poetry run foothold-checkpoint save --help
+poetry run foothold-checkpoint restore --help
 ```

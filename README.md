@@ -44,16 +44,19 @@ A CLI tool for managing DCS Foothold campaign checkpoints with integrity verific
 
 ```powershell
 # Installation (when available)
-pip install foothold-checkpoint
+poetry install
+
+# Fully interactive mode
+poetry run foothold-checkpoint
 
 # Save a checkpoint
-foothold-checkpoint save --server production-1 --campaign afghanistan
+poetry run foothold-checkpoint save --server production-1 --campaign afghanistan
 
 # List checkpoints
-foothold-checkpoint list
+poetry run foothold-checkpoint list
 
 # Restore a checkpoint
-foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server
+poetry run foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server
 ```
 
 See **[USERS.md](USERS.md)** for detailed usage instructions.
