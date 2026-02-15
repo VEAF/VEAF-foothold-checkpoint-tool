@@ -7,29 +7,37 @@ A CLI tool for managing DCS Foothold campaign checkpoints with integrity verific
 ## 🚀 Features
 
 - **Save checkpoints**: Create timestamped backups of Foothold campaign saves with SHA-256 integrity verification
-- **Restore checkpoints**: Restore campaigns with automatic integrity checks
+- **Restore checkpoints**: Restore campaigns with automatic integrity checks and auto-backup
+- **Auto-backup before restore**: Automatically creates a backup before overwriting files (new in v1.1.0)
+- **Automatic file renaming**: Transparently rename files when restoring old checkpoints (new in v1.1.0)
+- **Unknown file detection**: Helpful error messages with YAML snippets for unconfigured files (new in v1.1.0)
 - **Cross-server support**: Move checkpoints between different DCS servers
-- **Campaign evolution**: Automatically handle campaign name changes (e.g., `GCW` → `Germany_Modern`)
+- **Campaign evolution**: Automatically handle campaign name changes (e.g., `GCW_Modern` → `Germany_Modern`)
 - **Import**: Convert existing manual backups to checkpoint format
 - **Flexible CLI**: Use command-line flags or interactive prompts
-- **Rich terminal UI**: Progress bars, tables, and colored output
+- **Rich terminal UI**: Progress bars, tables, colored output, and `--details` flag for file lists
 
 ## 📋 Status
 
-🎉 **Version 1.0.0 Released!** - February 14, 2026
+🎉 **Version 1.1.0 Released!** - February 15, 2026
 
 **All Features Complete**:
 
 - ✅ All core features implemented and tested (save, restore, list, delete, import)
+- ✅ Explicit file list configuration with optional files support
+- ✅ Auto-backup and automatic file renaming on restore
+- ✅ Unknown file detection with helpful configuration suggestions
 - ✅ Complete CLI with error handling, interactive prompts, and quiet mode
-- ✅ 347 tests passing with 86% code coverage
+- ✅ 304 tests passing with 79% code coverage (100% on core modules)
 - ✅ Comprehensive documentation (user guide, contributing guide, release notes)
 - ✅ Real campaign data integration testing
 - ✅ Code quality checks (ruff, black, mypy)
-- ✅ Manual testing completed with user feedback
+- ✅ Cross-platform testing (Windows + Linux/WSL)
 - ✅ Ready for production use!
 
-**Features**: Numeric checkpoint selection, case-insensitive matching, batch operations, auto-clearing spinners, and more!
+**New in v1.1.0**: Structured campaign configuration, auto-backup protection, file renaming on restore, unknown file detection
+
+⚠️ **Breaking Change**: Configuration format changed in v1.1.0. See [CHANGELOG.md](CHANGELOG.md) for migration guide.
 
 ## 📖 Documentation
 

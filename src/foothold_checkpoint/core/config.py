@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def expand_path(path: Path) -> Path:
@@ -55,29 +55,194 @@ servers:
     path: D:\\Servers\\DCS-Test\\Missions\\Saves
     description: "Test and development server"
 
-# Campaign name mappings (historical evolution)
-# Format: campaign_id: [oldest_name, ..., newest_name]
-# The last name in the list is used when restoring checkpoints
+# Campaign configurations with explicit file lists
+# Each campaign defines all known file names for each file type
 campaigns:
-  Afghanistan:
-    - afghanistan
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:
+        - "foothold_afghanistan.lua"
+      ctld_save:
+        - "foothold_afghanistan_CTLD_Save.csv"
+      ctld_farps:
+        - "foothold_afghanistan_CTLD_FARPS.csv"
+      storage:
+        files:
+          - "foothold_afghanistan_storage.csv"
+        optional: true
 
-  Caucasus:
-    - CA
+  caucasus:
+    display_name: "Caucasus"
+    files:
+      persistence:
+        - "FootHold_CA_v0.2.lua"
+        - "Foothold_CA_CTLD_Save_Modern.csv"
+      ctld_save:
+        - "FootHold_CA_v0.2_CTLD_Save.csv"
+        - "FootHold_CA_CTLD_Save_Modern.csv"
+      ctld_farps:
+        - "FootHold_CA_v0.2_CTLD_FARPS.csv"
+        - "Foothold_CA_CTLD_FARPS_Modern.csv"
+      storage:
+        files:
+          - "FootHold_CA_v0.2_storage.csv"
+        optional: true
 
-  Germany_Modern:
-    - GCW_Modern
-    - Germany_Modern
+  germany_modern:
+    display_name: "Germany Modern"
+    files:
+      persistence:
+        - "FootHold_GCW_Modern.lua"
+        - "FootHold_Germany_Modern_V0.1.lua"
+      ctld_save:
+        - "FootHold_GCW_Modern_CTLD_Save.csv"
+        - "FootHold_Germany_Modern_V0.1_CTLD_Save.csv"
+      ctld_farps:
+        - "FootHold_GCW_Modern_CTLD_FARPS.csv"
+        - "FootHold_Germany_Modern_V0.1_CTLD_FARPS.csv"
+      storage:
+        files:
+          - "FootHold_GCW_Modern_storage.csv"
+          - "FootHold_Germany_Modern_V0.1_storage.csv"
+        optional: true
 
-  Sinai:
-    - SI
+  sinai:
+    display_name: "Sinai"
+    files:
+      persistence:
+        - "FootHold_SI_v0.3.lua"
+      ctld_save:
+        - "FootHold_SI_v0.3_CTLD_Save.csv"
+      ctld_farps:
+        - "FootHold_SI_v0.3_CTLD_FARPS.csv"
+      storage:
+        files:
+          - "FootHold_SI_v0.3_storage.csv"
+        optional: true
 
-  PersianGulf:
-    - persiangulf
+  persiangulf:
+    display_name: "Persian Gulf"
+    files:
+      persistence:
+        - "foothold_persiangulf.lua"
+      ctld_save:
+        - "FootHold_PG_CTLD_Save_Modern.csv"
+      ctld_farps:
+        - "Foothold_PG_CTLD_FARPS_Modern.csv"
+      storage:
+        optional: true
 
-  Syria:
-    - Syria_Extended
+  syria:
+    display_name: "Syria"
+    files:
+      persistence:
+        - "footholdSyria_Extended_0.1.lua"
+      ctld_save:
+        - "FootHold_SY_Extended_CTLD_Modern.csv"
+      ctld_farps:
+        - "Foothold_SY_Extended_CTLD_FARPS_Modern.csv"
+      storage:
+        optional: true
 """
+
+
+class CampaignFileType(BaseModel):
+    """Configuration for a specific file type in a campaign.
+
+    Defines the list of known file names for a file type (e.g., persistence, ctld_save)
+    and whether the file type is optional.
+
+    Attributes:
+        files: List of known file names for this type (historical and current)
+        optional: Whether this file type is optional (default: False)
+
+    Examples:
+        >>> # Required persistence files
+        >>> CampaignFileType(files=["foothold_afghanistan.lua"])
+
+        >>> # Optional storage files
+        >>> CampaignFileType(files=["foothold_afghanistan_storage.csv"], optional=True)
+    """
+
+    files: list[str] = Field(
+        default_factory=list,
+        description="List of known file names for this type (e.g., ['FootHold_CA_v0.2.lua', 'Foothold_CA.lua'])",
+    )
+    optional: bool = Field(
+        default=False, description="Whether this file type is optional (default: False)"
+    )
+
+    model_config = {"frozen": True}
+
+    @model_validator(mode="after")
+    def validate_file_list(self) -> "CampaignFileType":
+        """Validate that non-optional file types have at least one file."""
+        if not self.optional and not self.files:
+            raise ValueError("Required file types must have at least one file in the list")
+        return self
+
+
+class CampaignFileList(BaseModel):
+    """File lists for all file types in a campaign.
+
+    Defines the expected files for each file type (persistence, ctld_save, ctld_farps, storage).
+    Each file type can have multiple file names to support historical naming changes.
+
+    Attributes:
+        persistence: Main campaign persistence file (.lua)
+        ctld_save: CTLD save data file (_CTLD_Save.csv)
+        ctld_farps: CTLD FARP locations file (_CTLD_FARPS.csv)
+        storage: Campaign storage file (_storage.csv)
+
+    Examples:
+        >>> files = CampaignFileList(
+        ...     persistence=CampaignFileType(files=["foothold_afghan.lua"]),
+        ...     ctld_save=CampaignFileType(files=["foothold_afghan_CTLD_Save.csv"]),
+        ...     ctld_farps=CampaignFileType(files=["foothold_afghan_CTLD_FARPS.csv"]),
+        ...     storage=CampaignFileType(files=["foothold_afghan_storage.csv"], optional=True)
+        ... )
+    """
+
+    persistence: CampaignFileType = Field(..., description="Main campaign persistence file (.lua)")
+    ctld_save: CampaignFileType = Field(..., description="CTLD save data file (_CTLD_Save.csv)")
+    ctld_farps: CampaignFileType = Field(
+        ..., description="CTLD FARP locations file (_CTLD_FARPS.csv)"
+    )
+    storage: CampaignFileType = Field(..., description="Campaign storage file (_storage.csv)")
+
+    model_config = {"frozen": True}
+
+
+class CampaignConfig(BaseModel):
+    """Configuration for a campaign.
+
+    Defines the display name and all known file names for a campaign,
+    organized by file type.
+
+    Attributes:
+        display_name: User-friendly name for display in UI/messages
+        files: File lists organized by file type
+
+    Examples:
+        >>> config = CampaignConfig(
+        ...     display_name="Caucasus",
+        ...     files=CampaignFileList(
+        ...         persistence=CampaignFileType(files=["FootHold_CA_v0.2.lua"]),
+        ...         ctld_save=CampaignFileType(files=["FootHold_CA_v0.2_CTLD_Save.csv"]),
+        ...         ctld_farps=CampaignFileType(files=["FootHold_CA_v0.2_CTLD_FARPS.csv"]),
+        ...         storage=CampaignFileType(files=["FootHold_CA_v0.2_storage.csv"], optional=True)
+        ...     )
+        ... )
+    """
+
+    display_name: str = Field(
+        ...,
+        description="User-friendly name for display in UI/messages (e.g., 'Caucasus', 'Germany Modern')",
+    )
+    files: CampaignFileList = Field(..., description="File lists organized by file type")
+
+    model_config = {"frozen": True}
 
 
 class ServerConfig(BaseModel):
@@ -113,7 +278,7 @@ class Config(BaseModel):
     Attributes:
         checkpoints_dir: Directory where checkpoint ZIP files are stored
         servers: Map of server names to ServerConfig
-        campaigns: Map of campaign names to list of historical names (oldest→newest)
+        campaigns: Map of campaign IDs to CampaignConfig with display names and file lists
     """
 
     checkpoints_dir: Path = Field(
@@ -124,9 +289,9 @@ class Config(BaseModel):
         ...,
         description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields.",
     )
-    campaigns: dict[str, list[str]] = Field(
+    campaigns: dict[str, CampaignConfig] = Field(
         ...,
-        description="Map of campaign IDs to lists of historical names (oldest→newest). Example: {'Afghanistan': ['afghanistan'], 'Germany_Modern': ['GCW_Modern', 'Germany_Modern']}",
+        description="Map of campaign IDs to CampaignConfig with display name and file lists. Each campaign defines all known file names.",
     )
 
     model_config = {"frozen": True}
@@ -141,15 +306,13 @@ class Config(BaseModel):
 
     @field_validator("campaigns")
     @classmethod
-    def validate_campaign_names(cls, campaigns: dict[str, list[str]]) -> dict[str, list[str]]:
-        """Validate that campaign name lists are not empty."""
-        for campaign_id, names in campaigns.items():
-            if not names:
-                raise ValueError(
-                    f"Campaign '{campaign_id}' has an empty name list. "
-                    f"Each campaign must have at least one name. "
-                    f"Example: '{campaign_id}: [\"campaign_name\"]'"
-                )
+    def validate_campaigns(cls, campaigns: dict[str, CampaignConfig]) -> dict[str, CampaignConfig]:
+        """Validate that at least one campaign is configured."""
+        if not campaigns:
+            raise ValueError(
+                "At least one campaign must be configured. "
+                "Add campaign definitions to the 'campaigns' section in config.yaml."
+            )
         return campaigns
 
 
@@ -177,12 +340,68 @@ def load_config(path: Path) -> Config:
     servers_data = data.get("servers", {})
     servers = {name: ServerConfig(**server_config) for name, server_config in servers_data.items()}
 
+    # Parse campaigns section - convert dict to CampaignConfig objects
+    campaigns_data = data.get("campaigns", {})
+    campaigns: dict[str, CampaignConfig] = {}
+    for campaign_id, campaign_config in campaigns_data.items():
+        # Validate that campaign_config is a dictionary
+        if not isinstance(campaign_config, dict):
+            raise ValueError(
+                f"Campaign '{campaign_id}' must be a dictionary with 'display_name' and 'files' fields, "
+                f"got {type(campaign_config).__name__} instead"
+            )
+
+        # Parse files section for each campaign
+        files_data = campaign_config.get("files", {})
+        file_types: dict[str, Any] = {}
+
+        for file_type, file_spec in files_data.items():
+            # file_spec can be:
+            # 1. A list of files: ["file1.lua", "file2.lua"]
+            # 2. A dict with optional flag: {optional: true} or {optional: true, 0: ["file.lua"]}
+            # Note: YAML treats keys starting with numbers specially, so files might be under key 0
+            if isinstance(file_spec, list):
+                # Just a file list (required by default)
+                file_types[file_type] = CampaignFileType(files=file_spec, optional=False)
+            elif isinstance(file_spec, dict):
+                # Has optional flag and potentially file list under various keys
+                optional = file_spec.get("optional", False)
+                # Try to find file list under common keys
+                files_list = []
+                if "files" in file_spec:
+                    files_list = file_spec["files"] if isinstance(file_spec["files"], list) else []
+                elif 0 in file_spec:
+                    # YAML sometimes puts list items under numeric keys
+                    files_list = file_spec[0] if isinstance(file_spec[0], list) else [file_spec[0]]
+                # Allow empty file list only if optional
+                file_types[file_type] = CampaignFileType(files=files_list, optional=optional)
+            else:
+                raise ValueError(
+                    f"Invalid file type specification for campaign '{campaign_id}', "
+                    f"file type '{file_type}': expected list or dict with 'optional' flag"
+                )
+
+        campaigns[campaign_id] = CampaignConfig(
+            display_name=campaign_config.get("display_name", campaign_id),
+            files=CampaignFileList(**file_types),
+        )
+
+    # Get checkpoints_dir with type assertion
+    checkpoints_dir_raw = data.get("checkpoints_dir")
+    if checkpoints_dir_raw is None:
+        raise ValueError("Missing required field: checkpoints_dir")
+    checkpoints_dir = (
+        Path(checkpoints_dir_raw)
+        if not isinstance(checkpoints_dir_raw, Path)
+        else checkpoints_dir_raw
+    )
+
     # Create Config object with validated data
     # Pydantic will validate required fields and raise ValidationError if missing
     return Config(
-        checkpoints_dir=data.get("checkpoints_dir"),  # type: ignore[arg-type]
+        checkpoints_dir=checkpoints_dir,
         servers=servers,
-        campaigns=data.get("campaigns"),  # type: ignore[arg-type]
+        campaigns=campaigns,
     )
 
 

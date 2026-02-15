@@ -1,0 +1,7 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+CTLD_CARGO_NasamsSite,-191554,5,494906,Nasam Site (1cr) [750],{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,6352.606000
+CTLD_CARGO_NasamsSite,-130138,5,421208,Nasam Site (1cr) [750],{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,50768.458000
+CTLD_CARGO_NasamsSite,-124868,246,418667,Nasam Site (1cr) [750],{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,5421.619000
+CTLD_CARGO_NasamsSite,-318608,454,898379,Nasam Site (1cr) [750],{CTLD_CARGO_NasamsSite;},FOB,4,1900,NASAMS_LN_B==2;NASAMS_Command_Post==1;NASAMS_Radar_MPQ64F1==1;,Cargos,uh1h_cargo,none,7827.793000
+CTLD_CARGO_Bradly,-319463,464,903647,Bradly (2cr) [250],{CTLD_CARGO_Bradly;},Vehicle,2,1500,M-2 Bradley==1;,Cargos,uh1h_cargo,none,8097.825000
+CTLD_CARGO_Bradly,-319552,464,903603,Bradly (2cr) [250],{CTLD_CARGO_Bradly;},Vehicle,2,1500,M-2 Bradley==1;,Cargos,uh1h_cargo,none,9005.551000

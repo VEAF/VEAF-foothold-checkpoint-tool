@@ -1,7 +1,10 @@
 # Foothold Checkpoint Tool - Configuration Example
 #
-# Copy this file to ~/.foothold-checkpoint/config.yaml and customize for your setup.
-# The tool will auto-create this file with these defaults on first run.
+# Copy this file to config.yaml in your working directory or ~/.foothold-checkpoint/config.yaml
+# The tool will auto-create a default config file on first run.
+#
+# ⚠️ BREAKING CHANGE in v1.1.0: Campaign configuration now uses explicit file lists
+# instead of regex patterns. See migration guide below.
 
 # Directory where checkpoints are stored
 checkpoints_dir: ~/.foothold-checkpoints
@@ -20,32 +23,205 @@ servers:
     path: D:\Servers\DCS-Test\Missions\Saves
     description: "Test and development server"
 
-# Campaign name mappings (historical evolution)
-# Format: campaign_id: [oldest_name, ..., newest_name]
-# The last name in the list is used when restoring checkpoints
+# Campaign configurations with explicit file lists
+# 
+# Each campaign defines all known file names for each file type:
+#   - persistence: Main Lua file(s) - REQUIRED (at least one file)
+#   - ctld_save: CTLD save CSV file(s) - optional
+#   - ctld_farps: CTLD FARPs CSV file(s) - optional  
+#   - storage: Storage CSV file(s) - optional
+#
+# Campaign File Naming Evolution:
+# When a campaign's file names change over time (e.g., "FootHold_GCW_Modern.lua" → "FootHold_Germany_Modern.lua"),
+# list ALL accepted names for each file. The FIRST name in the list is the "canonical" (current) name:
+#   - On restore: old checkpoint files are automatically renamed to the first (canonical) name
+#   - On save: files matching any name in the list will be included
+#
+# Optional Files:
+# Mark file types as optional with `optional: true`. The tool will skip them if not present
+# without generating warnings. Required file types (like persistence) must have at least one file.
+
 campaigns:
-  Afghanistan:
-    - afghanistan
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:
+        - "foothold_afghanistan.lua"
+      ctld_save:
+        files:
+          - "foothold_afghanistan_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "foothold_afghanistan_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "foothold_afghanistan_storage.csv"
+        optional: true
 
-  Caucasus:
-    - CA
+  caucasus:
+    display_name: "Caucasus"
+    files:
+      persistence:
+        - "FootHold_CA_v0.2.lua"
+      ctld_save:
+        files:
+          - "FootHold_CA_v0.2_CTLD_Save.csv"
+          - "FootHold_CA_CTLD_Save_Modern.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_CA_v0.2_CTLD_FARPS.csv"
+          - "Foothold_CA_CTLD_FARPS_Modern.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_CA_v0.2_storage.csv"
+        optional: true
 
-  Germany_Modern:
-    - GCW_Modern
-    - Germany_Modern
+  # Example with campaign name evolution (old names still accepted)
+  germany_modern:
+    display_name: "Germany Modern"
+    files:
+      persistence:
+        # First name = canonical (current) name used on restore
+        - "FootHold_Germany_Modern_V0.1.lua"
+        # Additional accepted names (historical/legacy)
+        - "FootHold_GCW_Modern.lua"
+      ctld_save:
+        files:
+          - "FootHold_Germany_Modern_V0.1_CTLD_Save.csv"
+          - "FootHold_GCW_Modern_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Germany_Modern_V0.1_CTLD_FARPS.csv"
+          - "FootHold_GCW_Modern_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Germany_Modern_V0.1_storage.csv"
+          - "FootHold_GCW_Modern_storage.csv"
+        optional: true
 
-  Germany_ColdWar:
-    - GCW_ColdWar
-    - Germany_ColdWar
+  germany_coldwar:
+    display_name: "Germany Cold War"
+    files:
+      persistence:
+        - "FootHold_Germany_ColdWar_V0.1.lua"
+        - "FootHold_GCW_ColdWar.lua"
+      ctld_save:
+        files:
+          - "FootHold_Germany_ColdWar_V0.1_CTLD_Save.csv"
+          - "FootHold_GCW_ColdWar_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Germany_ColdWar_V0.1_CTLD_FARPS.csv"
+          - "FootHold_GCW_ColdWar_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Germany_ColdWar_V0.1_storage.csv"
+          - "FootHold_GCW_ColdWar_storage.csv"
+        optional: true
 
-  Sinai:
-    - SI
+  sinai:
+    display_name: "Sinai"
+    files:
+      persistence:
+        - "FootHold_SI_v0.3.lua"
+      ctld_save:
+        files:
+          - "FootHold_SI_v0.3_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_SI_v0.3_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_SI_v0.3_storage.csv"
+        optional: true
 
-  PersianGulf:
-    - persiangulf
+  persiangulf:
+    display_name: "Persian Gulf"
+    files:
+      persistence:
+        - "foothold_persiangulf.lua"
+      ctld_save:
+        files:
+          - "FootHold_PG_CTLD_Save_Modern.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "Foothold_PG_CTLD_FARPS_Modern.csv"
+        optional: true
+      storage:
+        files: []
+        optional: true
 
-  PersianGulf_ColdWar:
-    - persiangulf_Coldwar
+  persiangulf_coldwar:
+    display_name: "Persian Gulf Cold War"
+    files:
+      persistence:
+        - "foothold_persiangulf_Coldwar.lua"
+      ctld_save:
+        files:
+          - "Foothold_PG_CTLD_Save_Coldwar.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "Foothold_PG_CTLD_FARPS_Coldwar.csv"
+        optional: true
+      storage:
+        files: []
+        optional: true
 
-  Syria:
-    - Syria_Extended
+  syria:
+    display_name: "Syria"
+    files:
+      persistence:
+        - "footholdSyria_Extended_0.1.lua"
+      ctld_save:
+        files:
+          - "FootHold_SY_Extended_CTLD_Modern.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "Foothold_SY_Extended_CTLD_FARPS_Modern.csv"
+        optional: true
+      storage:
+        files: []
+        optional: true
+
+# Migration Guide from v1.0.x to v1.1.0:
+#
+# OLD format (v1.0.x):
+#   campaigns:
+#     Afghanistan: ["afghanistan"]
+# 
+# NEW format (v1.1.0):
+#   campaigns:
+#     afghanistan:         # Use lowercase ID for consistency
+#       display_name: "Afghanistan"
+#       files:
+#         persistence:
+#           - "foothold_afghanistan.lua"
+#         ctld_save:
+#           files: []
+#           optional: true
+#         ctld_farps:
+#           files: []
+#           optional: true
+#         storage:
+#           files: []
+#           optional: true
+#
+# Benefits of new format:
+#  ✓ Explicit: All files are listed, no regex guessing
+#  ✓ Optional files: Skip missing files without errors
+#  ✓ Name evolution: Support for renaming files over time
+#  ✓ Better errors: Shows exactly what's configured vs. what's found
+#  ✓ Auto-renaming: Old checkpoints restored with new file names

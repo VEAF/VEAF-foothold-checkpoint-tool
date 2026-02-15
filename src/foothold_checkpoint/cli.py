@@ -11,7 +11,11 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TaskID, TextColumn
 from rich.prompt import Prompt
 
-from foothold_checkpoint.core.campaign import detect_campaigns, group_campaign_files
+from foothold_checkpoint.core.campaign import (
+    detect_campaigns,
+    detect_unknown_files,
+    format_unknown_files_error,
+)
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 from foothold_checkpoint.core.config import load_config
 from foothold_checkpoint.core.storage import (
@@ -633,8 +637,16 @@ def restore_command(
 
     If --server is not provided, prompts for server selection.
 
-    The restore process verifies file integrity, excludes Foothold_Ranks.lua by
-    default, and prompts for confirmation if files will be overwritten.
+    IMPORTANT: An automatic backup is created before restoration. The current
+    campaign state is saved as an auto-backup checkpoint (timestamped) so you
+    can revert if needed. This happens automatically and cannot be disabled.
+
+    The restore process:
+    1. Creates auto-backup checkpoint of current state
+    2. Verifies checkpoint file integrity with SHA-256 checksums
+    3. Prompts for confirmation if files will be overwritten
+    4. Extracts files to server directory
+    5. Excludes Foothold_Ranks.lua by default (use --restore-ranks to include)
 
     Examples:
 
@@ -843,7 +855,10 @@ def restore_command(
                         target_dir=target_dir,
                         restore_ranks=restore_ranks,
                         progress_callback=update_progress,
+                        config=config,
                         skip_overwrite_check=True,
+                        server_name=server,
+                        auto_backup=True,
                     )
             else:
                 # Quiet mode: no progress display, no interactive confirmation
@@ -853,7 +868,10 @@ def restore_command(
                     target_dir=target_dir,
                     restore_ranks=restore_ranks,
                     progress_callback=None,
+                    config=config,
                     skip_overwrite_check=True,  # No confirmation in quiet mode
+                    server_name=server,
+                    auto_backup=True,
                 )
 
             total_restored += len(restored_files)
@@ -899,6 +917,10 @@ def list_command(
         Optional[str],  # noqa: UP007 - Typer requires Optional
         typer.Option("--campaign", "-c", help="Filter checkpoints by campaign name"),
     ] = None,
+    details: Annotated[
+        bool,
+        typer.Option("--details", "-d", help="Show detailed information including file lists"),
+    ] = False,
 ) -> None:
     """List available checkpoints with optional filters.
 
@@ -906,19 +928,25 @@ def list_command(
     by server and/or campaign name. Shows checkpoint metadata including filename,
     campaign, server, timestamp, and file size in a formatted table.
 
+    Use --details to show the list of files contained in each checkpoint.
+
     Args:
         server: Optional server name to filter checkpoints
         campaign: Optional campaign name to filter checkpoints
+        details: If True, show detailed information including file lists
 
     Examples:
         # List all checkpoints
         foothold-checkpoint list
 
+        # List with detailed information (including files)
+        foothold-checkpoint list --details
+
         # Filter by server
         foothold-checkpoint list --server prod-1
 
-        # Filter by campaign
-        foothold-checkpoint list --campaign afghanistan
+        # Filter by campaign with details
+        foothold-checkpoint list --campaign afghanistan --details
 
         # Filter by both
         foothold-checkpoint list --server prod-1 --campaign afghanistan
@@ -997,6 +1025,35 @@ def list_command(
 
         console.print(table)
         console.print(f"\n[cyan]Total:[/cyan] {len(checkpoints)} checkpoint(s)")
+
+        # Show detailed file lists if --details flag is set
+        if details:
+            console.print("\n[bold cyan]Checkpoint Details:[/bold cyan]\n")
+
+            for idx, cp in enumerate(checkpoints, start=1):
+                # Header for each checkpoint
+                console.print(f"[bold]{idx}. {cp['filename']}[/bold]")
+
+                # Show metadata
+                if cp.get("name"):
+                    console.print(f"   [blue]Name:[/blue] {cp['name']}")
+                if cp.get("comment"):
+                    console.print(f"   [dim]Comment:[/dim] {cp['comment']}")
+
+                # Show files contained in checkpoint
+                files = cp.get("files", [])
+                if files:
+                    console.print(f"   [cyan]Files ({len(files)}):[/cyan]")
+                    for file in sorted(files):
+                        # Check if it's a shared file
+                        if file.lower() == "foothold_ranks.lua":
+                            console.print(f"      • {file} [dim](shared)[/dim]")
+                        else:
+                            console.print(f"      • {file}")
+                else:
+                    console.print("   [yellow]No files found[/yellow]")
+
+                console.print()  # Empty line between checkpoints
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -1263,19 +1320,25 @@ def import_command(
     """Import campaign files from a directory and create a checkpoint.
 
     Scans the source directory for Foothold campaign files, creates a checkpoint
-    ZIP archive with proper metadata. Can auto-detect campaigns or prompt for
-    selection when multiple campaigns are found.
+    ZIP archive with proper metadata. Uses configuration-based campaign detection
+    to match files to campaigns. Unknown files are rejected with helpful guidance.
+
+    The command will:
+    - Detect campaigns based on explicit file lists in config.yaml
+    - Reject unknown files with configuration suggestions
+    - Auto-detect single campaigns or prompt for selection
+    - Validate that required campaign files are present
 
     Args:
         directory: Source directory path containing campaign files
         server: Server name for checkpoint metadata
-        campaign: Campaign name to import (auto-detected if omitted)
+        campaign: Campaign name (ID) to import (e.g., 'ca', 'afghan')
         name: Optional user-friendly name
         comment: Optional comment
 
     Examples:
-        # Import with all metadata
-        foothold-checkpoint import /path/to/backup --server prod-1 --campaign afghanistan
+        # Import with campaign ID from config
+        foothold-checkpoint import /path/to/backup --server prod-1 --campaign ca
 
         # Auto-detect campaign and prompt for server
         foothold-checkpoint import /path/to/backup
@@ -1308,10 +1371,22 @@ def import_command(
         # Step 2: Detect campaigns in source directory
         all_files = list(source_dir.iterdir())
         filenames = [f.name for f in all_files if f.is_file()]
-        campaigns_found = group_campaign_files(filenames)
+
+        # Check for unknown files
+        unknown_files = detect_unknown_files(filenames, config)
+        if unknown_files:
+            error_message = format_unknown_files_error(unknown_files, config)
+            console.print(error_message)
+            raise typer.Exit(1)
+
+        campaigns_found = detect_campaigns(filenames, config)
 
         if not campaigns_found:
-            console.print(f"[red]Error:[/red] No campaign files found in {source_dir}")
+            console.print(
+                f"[red]Error:[/red] No configured campaign files found in {source_dir}\n"
+                f"\nMake sure your campaign files are listed in config.yaml under 'campaigns'."
+                f"\nRun with files matching your configuration or update config.yaml to include them."
+            )
             raise typer.Exit(1)
 
         # Step 3: Get campaign name (from flag, auto-detect, or prompt)
@@ -1326,23 +1401,41 @@ def import_command(
                 if matching:
                     campaign_name = matching[0]
                 else:
-                    available = ", ".join(campaigns_found.keys())
+                    # Build helpful error with display names
+                    available_list = []
+                    for camp_id in campaigns_found:
+                        camp_config = config.campaigns.get(camp_id)
+                        if camp_config:
+                            display = camp_config.display_name
+                            available_list.append(f"{camp_id} ({display})")
+                        else:
+                            available_list.append(camp_id)
+
+                    available = ", ".join(available_list)
                     console.print(
-                        f"[red]Error:[/red] Campaign '{campaign}' not found. "
-                        f"Available: {available}"
+                        f"[red]Error:[/red] Campaign '{campaign}' not found in detected campaigns.\n"
+                        f"\n[cyan]Available campaigns:[/cyan] {available}\n"
+                        f"\n[dim]Hint: Use the campaign ID (e.g., 'ca', 'afghan') not the display name.[/dim]\n"
+                        f"[dim]Check your config.yaml for configured campaign IDs.[/dim]"
                     )
                     raise typer.Exit(1)
         elif len(campaigns_found) == 1:
             # Auto-detect single campaign
             campaign_name = list(campaigns_found.keys())[0]
+            camp_config = config.campaigns.get(campaign_name)
+            display_name = camp_config.display_name if camp_config else campaign_name
             if not _quiet_mode:
-                console.print(f"[cyan]Auto-detected campaign:[/cyan] {campaign_name}")
+                console.print(
+                    f"[cyan]Auto-detected campaign:[/cyan] {campaign_name} ({display_name})"
+                )
         else:
             # Multiple campaigns: prompt for selection
             if not _quiet_mode:
                 console.print("\n[cyan]Multiple campaigns found:[/cyan]")
-                for idx, camp in enumerate(campaigns_found.keys(), 1):
-                    console.print(f"  {idx}. [white]{camp}[/white]")
+                for idx, camp_id in enumerate(campaigns_found.keys(), 1):
+                    camp_config = config.campaigns.get(camp_id)
+                    display_name = camp_config.display_name if camp_config else camp_id
+                    console.print(f"  {idx}. [white]{camp_id}[/white] - {display_name}")
 
             choices = [str(i) for i in range(1, len(campaigns_found) + 1)]
             selection = Prompt.ask("\nSelect campaign number", choices=choices, default="1")
@@ -1413,6 +1506,7 @@ def import_command(
             campaign_name=campaign_name,
             server_name=server_name,
             output_dir=config.checkpoints_dir,
+            config=config,
             name=name,
             comment=comment,
             return_warnings=True,
