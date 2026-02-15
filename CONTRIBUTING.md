@@ -501,6 +501,74 @@ def process_files(files, output_dir):
     return checksums
 ```
 
+## Release Process
+
+### Version Management
+
+We follow [Semantic Versioning](https://semver.org/):
+- **Major (x.0.0)**: Breaking changes
+- **Minor (1.x.0)**: New features (backward compatible)
+- **Patch (1.0.x)**: Bug fixes
+
+### Release Workflow
+
+1. **Update CHANGELOG.md**
+   - Move changes from `[Unreleased]` to new version section
+   - Add release date: `## [1.1.0] - 2026-02-15`
+   - Add version comparison link at bottom
+
+2. **Update RELEASE_NOTES.md**
+   - **Important**: Add new version notes at the TOP of the file
+   - Keep previous versions for historical reference
+   - DO NOT create separate `RELEASE_NOTES_x.x.x.md` files
+   - Structure:
+     ```markdown
+     # Release Notes
+     
+     ## Version 1.1.0 - February 15, 2026
+     
+     [New release content here]
+     
+     ---
+     
+     ## Version 1.0.1 - February 14, 2026
+     
+     [Previous release content]
+     
+     ---
+     
+     ## Version 1.0.0 - February 14, 2026
+     
+     [Initial release content]
+     ```
+
+3. **Create Git tag**
+   ```powershell
+   git tag -a v1.1.0 -m "Version 1.1.0 - Brief description
+   
+   Major changes overview.
+   See CHANGELOG.md for details."
+   ```
+
+4. **Push tag**
+   ```powershell
+   git push origin v1.1.0
+   ```
+
+5. **Create GitHub Release**
+   - Use tag `v1.1.0`
+   - Title: `v1.1.0 - Release Name`
+   - Copy content from RELEASE_NOTES.md for this version
+   - Mark as pre-release if needed
+
+### Release Notes Best Practices
+
+- **User-focused**: Write for end users, not developers
+- **Highlights first**: Most important changes at the top
+- **Breaking changes**: Clearly marked with ⚠️
+- **Migration guides**: Link to detailed migration docs if needed
+- **Credits**: Acknowledge contributors
+
 ## Questions or Issues?
 
 - **Questions**: Open a [GitHub Discussion](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/discussions)
