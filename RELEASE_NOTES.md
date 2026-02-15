@@ -1,27 +1,223 @@
-# Release Notes - v1.0.0
+# Release Notes
 
-## 🎉 VEAF Foothold Checkpoint Tool v1.0.0
+## Version 1.1.0 - February 15, 2026
 
-**Release Date**: February 14, 2026
+### ⚠️ Breaking Changes
 
-We're excited to announce the first stable release of the VEAF Foothold Checkpoint Tool! This tool provides a robust, user-friendly way to manage DCS Foothold campaign checkpoints with integrity verification and cross-server restoration capabilities.
+**This release contains breaking changes.** Your configuration file requires migration.
 
-## ✨ Highlights
+See **[MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md)** for detailed upgrade instructions.
 
-### Complete Checkpoint Management
+### 🎯 What's New
+
+#### 🔧 Explicit File Configuration
+The most significant change in v1.1.0 is the new **structured file list** configuration format, replacing regex-based pattern matching:
+
+**Before (v1.0.x):**
+```yaml
+campaigns:
+  Afghanistan: ["afghanistan"]
+  Caucasus: ["CA"]
+```
+
+**After (v1.1.0):**
+```yaml
+campaigns:
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:
+        - "FootHold_afghanistan.lua"
+      ctld_save:
+        - "FootHold_afghanistan_CTLD_Save.csv"
+      storage:
+        files:
+          - "foothold_afghanistan_storage.csv"
+        optional: true
+```
+
+**Benefits:**
+- ✅ **Explicit control**: Define exactly which files belong to each campaign
+- ✅ **Optional files**: Mark storage/CTLD files as optional (no warnings if missing)
+- ✅ **Better errors**: See exactly what's configured vs. what's found
+- ✅ **File renaming support**: Handle campaign name evolution transparently
+- ✅ **No false positives**: No more regex guessing errors
+
+#### 🔍 Unknown File Detection
+Automatic detection and helpful error messages for unconfigured campaign files:
+
+```
+Error: Found 2 files that don't match any configured campaign:
+  - FootHold_new_campaign.lua
+  - FootHold_new_campaign_storage.csv
+
+Suggested configuration:
+────────────────────────────────────────
+  new_campaign:
+    display_name: "New Campaign"
+    files:
+      persistence:
+        - "FootHold_new_campaign.lua"
+      storage:
+        files:
+          - "FootHold_new_campaign_storage.csv"
+        optional: true
+────────────────────────────────────────
+```
+
+- 📋 Lists all unknown files found
+- 💡 Generates ready-to-use YAML configuration snippets
+- 🛡️ Prevents accidental data loss from untracked files
+
+#### 💾 Auto-Backup Before Restore
+Protects your data with automatic backups before any restore operation:
+
+```powershell
+# Enabled by default
+foothold-checkpoint restore checkpoint.zip --server prod-1
+
+# Creates: afghanistan_backup_2026-02-15_14-30-00.zip
+```
+
+- 🔄 Automatic backup creation with `--auto-backup` flag (default: enabled)
+- 📝 Backup filename includes full campaign name and timestamp
+- ⚙️ Can be disabled with `--no-auto-backup` if needed
+- 🛡️ Protects against accidental overwrites
+
+#### 🔄 Automatic File Renaming
+Transparent handling of campaign name evolution:
+
+- 🏷️ Files automatically renamed to canonical names from configuration
+- 📦 Preserves compatibility with old checkpoints
+- ✨ No user intervention needed
+- 🔀 Example: `FootHold_GCW_Modern.lua` → `FootHold_germany_modern.lua`
+
+The first name in your file list becomes the canonical name used during restore.
+
+#### 📊 Enhanced List Command
+New `--details` flag to inspect checkpoint contents:
+
+```powershell
+foothold-checkpoint list --details
+```
+
+Output:
+```
+Checkpoint: afghanistan_2026-02-15_10-30-00.zip
+  Server: production-1
+  Campaign: afghanistan
+  Files:
+    - FootHold_afghanistan.lua
+    - FootHold_afghanistan_CTLD_Save.csv
+    - foothold_afghanistan_storage.csv
+    - Foothold_Ranks.lua
+```
+
+- 📁 Shows all files contained in each checkpoint
+- 🔍 Helps verify checkpoint contents before restore
+- 🎨 Formatted output with proper indentation
+
+#### 💬 Improved Error Messages
+More helpful and actionable error messages throughout:
+
+- 🔧 Unknown file errors include YAML configuration snippets
+- 📍 Campaign/server not found errors list available options
+- ✅ Config validation errors show specific field locations
+- 🎯 Clearer guidance on how to fix issues
+
+### 🔒 Quality Assurance
+
+- ✅ **304 tests passing** (comprehensive test coverage)
+- ✅ **95% code coverage** on core modules
+- ✅ **Type-safe**: Full mypy compliance
+- ✅ **Cross-platform**: Windows, Linux, macOS support
+- ✅ **Code quality**: Black formatting, Ruff linting
+
+### 📦 Installation
+
+No changes to installation process:
+
+```powershell
+# From source
+git clone https://github.com/VEAF/VEAF-foothold-checkpoint-tool.git
+cd VEAF-foothold-checkpoint-tool
+poetry install
+```
+
+### 🚀 Upgrading from v1.0.x
+
+**Required:** Update your `config.yaml` file to the new format.
+
+See **[MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md)** for:
+- Step-by-step migration instructions
+- Configuration examples for each campaign
+- Automated migration helper tool
+- Common pitfalls and solutions
+
+### 📚 Documentation
+
+- **[Migration Guide](MIGRATION_v1.1.0.md)**: v1.0.x → v1.1.0 upgrade instructions
+- **[User Guide](USERS.md)**: Updated with new features
+- **[Changelog](CHANGELOG.md)**: Complete version history
+- **[Config Example](config.yaml.example)**: New configuration format
+
+### 🙏 Acknowledgments
+
+- **VEAF Team**: Testing and feedback on the new configuration format
+- **Contributors**: Bug reports and feature suggestions
+- **Community**: Patience during the breaking change
+
+---
+
+## Version 1.0.1 - February 14, 2026
+
+**Patch release** - Cross-platform compatibility fixes.
+
+### 🐛 Bug Fixes
+
+- **Campaign name mapping**: Fixed `map_campaign_name()` to correctly return the last (current) name from the campaign names list, ensuring files are restored with correct naming
+- **Linux/WSL compatibility**: 
+  - Marked Windows-specific tests appropriately
+  - Fixed path handling for Unix systems
+- **Code quality**: Fixed ruff linting error in campaign mapping
+
+### 📦 Installation
+
+```powershell
+git clone https://github.com/VEAF/VEAF-foothold-checkpoint-tool.git
+cd VEAF-foothold-checkpoint-tool
+git checkout v1.0.1
+poetry install
+```
+
+### 🔒 Quality Assurance
+
+- ✅ **350 tests passing** (3 skipped on Windows as expected)
+- ✅ **83% code coverage**
+- ✅ All quality checks pass
+
+---
+
+## Version 1.0.0 - February 14, 2026
+
+**Initial stable release** of the VEAF Foothold Checkpoint Tool.
+
+### ✨ Features
+
+#### Complete Checkpoint Management
 - **Save**: Create timestamped, verified backups of your Foothold campaigns
 - **Restore**: Restore checkpoints with automatic integrity verification
 - **List**: Browse checkpoints with beautiful table formatting
 - **Delete**: Safely remove old checkpoints with confirmation
 - **Import**: Convert existing manual backups to checkpoint format
 
-### Smart Features
+#### Smart Features
 - **SHA-256 Integrity Verification**: Every file is checksummed to ensure data integrity
 - **Campaign Evolution Tracking**: Automatically handles campaign name changes (e.g., GCW → Germany_Modern)
 - **Cross-Server Support**: Move checkpoints between different DCS servers seamlessly
 - **Shared File Management**: Intelligently handles Foothold_Ranks.lua
 
-### User-Friendly CLI
+#### User-Friendly CLI
 - **Interactive Mode**: Beautiful terminal UI with colors, progress bars, and tables
 - **Quiet Mode**: Perfect for automation and scripting
 - **Numeric Selection**: Use `restore 1` instead of typing long filenames
@@ -29,156 +225,8 @@ We're excited to announce the first stable release of the VEAF Foothold Checkpoi
 - **Case-Insensitive**: No more case sensitivity issues with server/campaign names
 - **Smart Prompts**: Interactive menus when you leave out required options
 
-### Quality Assurance
-- **347 Comprehensive Tests**: 86% code coverage ensures reliability
-- **Type-Safe**: Full mypy compliance for type safety
-- **Well-Documented**: Complete user and developer guides
-- **Professional Code**: Black formatting, Ruff linting
-
-## 📦 Installation
-
-### From Source (Development)
-```powershell
-# Clone the repository
-git clone https://github.com/VEAF/VEAF-foothold-checkpoint-tool.git
-cd VEAF-foothold-checkpoint-tool
-
-# Install with Poetry
-poetry install
-
-# Run the tool
-poetry run foothold-checkpoint --help
-```
-
-### Requirements
-- Python 3.10 or higher
-- Windows, Linux, or macOS
-
-## 🚀 Quick Start
-
-### 1. Create Configuration File
-```powershell
-# First run creates config.yaml with prompts
-foothold-checkpoint save
-```
-
-### 2. Save Your First Checkpoint
-```powershell
-# Interactive mode
-foothold-checkpoint save
-
-# Command-line flags
-foothold-checkpoint save --server my-server --campaign afghanistan
-```
-
-### 3. List Your Checkpoints
-```powershell
-# Beautiful table view
-foothold-checkpoint list
-
-# Filter by campaign
-foothold-checkpoint list --campaign afghanistan
-
-# Quiet mode for scripts
-foothold-checkpoint --quiet list
-```
-
-### 4. Restore a Checkpoint
-```powershell
-# By number (from list)
-foothold-checkpoint restore 1 --server my-server
-
-# By filename
-foothold-checkpoint restore checkpoint.zip --server my-server
-
-# Multiple checkpoints
-foothold-checkpoint restore 1,3,5 --server my-server
-```
-
-## 🎯 Use Cases
-
-### Regular Backups
-Create scheduled checkpoints before server restarts:
-```powershell
-foothold-checkpoint --quiet save --server prod-1 --campaign afghanistan --name "Pre-restart"
-```
-
-### Cross-Server Migration
-Move campaigns between test and production servers:
-```powershell
-# Save from test server
-foothold-checkpoint save --server test-1 --campaign afghanistan
-
-# List to get checkpoint number
-foothold-checkpoint list --server test-1
-
-# Restore to production (with verification)
-foothold-checkpoint restore 1 --server prod-1
-```
-
-### Campaign Updates
-Before updating Foothold, create a safety checkpoint:
-```powershell
-foothold-checkpoint save --server prod-1 --all --name "Before v1.2 update"
-```
-
-### Import Existing Backups
-Convert your manual backups to checkpoint format:
-```powershell
-foothold-checkpoint import /path/to/backup --server prod-1
-```
-
-## 📚 Documentation
-
-- **[User Guide](USERS.md)**: Complete usage instructions
-- **[Contributing Guide](CONTRIBUTING.md)**: How to contribute
-- **[Changelog](CHANGELOG.md)**: Detailed version history
-
-## 🔧 Configuration
-
-The tool uses a YAML configuration file (`config.yaml`):
-
-```yaml
-# Checkpoint storage directory
-checkpoints_directory: "~/foothold-checkpoints"
-
-# Server configurations
-servers:
-  production-1:
-    path: "C:/Users/Admin/Saved Games/DCS.openbeta_server/Missions/Saves"
-    
-  test-server:
-    path: "C:/Users/Admin/DCS Test Server/Missions/Saves"
-
-# Campaign name evolution tracking
-campaign_names:
-  GCW_Modern: Germany_Modern
-  GCW_Coldwar: Germany_Coldwar
-```
-
-## 🐛 Known Issues
-
-None! This is the first stable release with comprehensive testing.
-
-## 🤝 Contributing
-
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📝 License
-
-[License information to be added]
-
-## 🙏 Acknowledgments
-
-- **DCS Community**: For the amazing Foothold campaign
-- **VEAF Team**: For project support and testing
-- **Contributors**: Everyone who provided feedback and bug reports
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/issues)
-- **Discord**: [VEAF Discord Server](https://discord.gg/veaf)
-
----
-
-**Enjoy managing your Foothold campaigns!** 🎮✈️
+### 🔒 Quality Assurance
+- **347 tests passing**: 86% code coverage
+- **Type-safe**: Full mypy compliance
+- **Well-documented**: Complete user and developer guides
+- **Professional code**: Black formatting, Ruff linting
