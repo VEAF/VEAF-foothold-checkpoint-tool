@@ -77,7 +77,6 @@ campaigns:
     files:
       persistence:
         - "FootHold_CA_v0.2.lua"
-        - "Foothold_CA_CTLD_Save_Modern.csv"
       ctld_save:
         - "FootHold_CA_v0.2_CTLD_Save.csv"
         - "FootHold_CA_CTLD_Save_Modern.csv"
