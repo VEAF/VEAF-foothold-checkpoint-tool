@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-02-14
+
+### Fixed
+- **Cross-platform compatibility**: Fixed 3 tests that were failing under Linux/WSL
+  - `map_campaign_name()` now correctly returns the last (current) name from the campaign name list instead of the dictionary key, ensuring files are restored with the correct naming convention as documented
+  - Marked `test_path_expansion_with_windows_style_envvar` as Windows-only (Windows `%VAR%` syntax not supported on Linux)
+  - Marked `test_delete_checkpoint_handles_permission_error` as Windows-only (Linux allows deletion of read-only files when parent directory is writable)
+- **Campaign name restoration**: Files are now restored using the exact name specified as the last entry in the campaign names list (config.yaml), preserving case sensitivity as intended
+- **Code quality**: Fixed ruff linting error (unused loop variable)
+
 ## [1.0.0] - 2026-02-14
 
 Initial release of the VEAF Foothold Checkpoint Tool.

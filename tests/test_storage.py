@@ -1,6 +1,7 @@
 """Tests for checkpoint storage operations."""
 
 import contextlib
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1154,23 +1155,23 @@ class TestRestoreCheckpoint:
                 checkpoint_path=checkpoint_path, target_dir=target_dir, config=config
             )
 
-            # Files should be renamed to current campaign name
-            assert (target_dir / "FootHold_Germany_Modern.lua").exists()
-            assert (target_dir / "FootHold_Germany_Modern_storage.csv").exists()
+            # Files should be renamed to current campaign name (last in list: "germany_modern")
+            assert (target_dir / "FootHold_germany_modern.lua").exists()
+            assert (target_dir / "FootHold_germany_modern_storage.csv").exists()
 
             # Old names should NOT exist
             assert not (target_dir / "FootHold_GCW_Modern.lua").exists()
             assert not (target_dir / "FootHold_GCW_Modern_storage.csv").exists()
 
             # Content should be preserved
-            assert (target_dir / "FootHold_Germany_Modern.lua").read_bytes() == old_lua_content
+            assert (target_dir / "FootHold_germany_modern.lua").read_bytes() == old_lua_content
             assert (
-                target_dir / "FootHold_Germany_Modern_storage.csv"
+                target_dir / "FootHold_germany_modern_storage.csv"
             ).read_bytes() == old_csv_content
 
             # Returned paths should use new names
-            assert any(f.name == "FootHold_Germany_Modern.lua" for f in restored_files)
-            assert any(f.name == "FootHold_Germany_Modern_storage.csv" for f in restored_files)
+            assert any(f.name == "FootHold_germany_modern.lua" for f in restored_files)
+            assert any(f.name == "FootHold_germany_modern_storage.csv" for f in restored_files)
 
     def test_restore_checkpoint_keeps_files_unchanged_when_no_name_evolution(self):
         """restore_checkpoint should keep filenames unchanged when campaign name hasn't evolved."""
@@ -1878,8 +1879,8 @@ class TestDeleteCheckpoint:
                 delete_checkpoint(corrupted_zip, force=True)
 
     @pytest.mark.skipif(
-        __import__("sys").platform != "win32",
-        reason="Read-only file deletion behavior is Windows-specific",
+        sys.platform != "win32",
+        reason="Linux allows deletion of read-only files when parent dir is writable",
     )
     def test_delete_checkpoint_handles_permission_error(self):
         """delete_checkpoint should raise PermissionError if file is read-only."""
