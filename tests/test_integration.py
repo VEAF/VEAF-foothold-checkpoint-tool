@@ -66,16 +66,27 @@ def test_real_foothold_data_exists(real_foothold_data: Path) -> None:
 def test_campaign_detection_with_real_data(real_foothold_data: Path) -> None:
     """Test campaign detection with real Foothold files."""
     from foothold_checkpoint.core.campaign import detect_campaigns
-    from foothold_checkpoint.core.config import Config, ServerConfig
+    from tests.conftest import make_simple_campaign, make_test_config
 
     if not real_foothold_data.exists():
         pytest.skip("Real foothold data not available")
 
-    # Create minimal config for campaign detection
-    config = Config(
-        checkpoints_dir=Path("~/.foothold-checkpoints"),
-        servers={"test": ServerConfig(path=real_foothold_data, description="Test server")},
-        campaigns={},
+    # Create config with expected campaigns from test data
+    config = make_test_config(
+        campaigns={
+            "ca": make_simple_campaign(
+                "Caucasus",
+                ["FootHold_CA_v0.2.lua", "FootHold_CA_v0.2_Coldwar.lua"],
+            ),
+            "germany": make_simple_campaign(
+                "Germany",
+                ["FootHold_Germany_Modern_V0.1.lua"],
+            ),
+            "si": make_simple_campaign(
+                "South Island",
+                ["FootHold_SI_v0.3.lua"],
+            ),
+        },
     )
 
     # Get list of files in the test data directory
@@ -88,17 +99,10 @@ def test_campaign_detection_with_real_data(real_foothold_data: Path) -> None:
     # Check for expected campaigns (based on test data files)
     campaign_names = set(campaigns.keys())
 
-    # Should detect afghanistan if files exist
-    if any("foothold_afghanistan" in str(f).lower() for f in real_foothold_data.glob("*")):
-        assert "afghanistan" in campaign_names
-
-    # Should detect CA (Central Asia) if files exist - campaign names are lowercase
-    if any("foothold_ca" in str(f).lower() for f in real_foothold_data.glob("*")):
-        assert "ca" in campaign_names or any("ca_" in name for name in campaign_names)
-
-    # Should detect Germany_Modern if files exist
-    if any("germany_modern" in str(f).lower() for f in real_foothold_data.glob("*")):
-        assert "germany_modern" in campaign_names
+    # Should detect the campaigns we configured
+    assert "ca" in campaign_names, "Should detect Caucasus campaign"
+    assert "germany" in campaign_names, "Should detect Germany campaign"
+    assert "si" in campaign_names, "Should detect South Island campaign"
 
     # Verify each campaign has files
     for campaign_name, campaign_files in campaigns.items():

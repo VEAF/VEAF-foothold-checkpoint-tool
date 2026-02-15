@@ -61,28 +61,22 @@ class TestConfig:
 
     def test_valid_config(self):
         """Config should accept valid checkpoints_dir, servers, and campaigns."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
+        from tests.conftest import make_simple_campaign, make_test_config
 
-        config = Config(
+        config = make_test_config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={
-                "production-1": ServerConfig(
-                    path=Path("D:/Servers/DCS-Production/Missions/Saves"),
-                    description="Production server",
-                )
-            },
             campaigns={
-                "Afghanistan": ["afghanistan"],
-                "Caucasus": ["CA"],
+                "afghanistan": make_simple_campaign("Afghanistan", ["foothold_afghanistan.lua"]),
+                "caucasus": make_simple_campaign("Caucasus", ["FootHold_CA.lua"]),
             },
         )
 
         # checkpoints_dir with ~ should be automatically expanded
         assert config.checkpoints_dir == Path.home() / ".foothold-checkpoints"
-        assert "production-1" in config.servers
-        assert config.servers["production-1"].description == "Production server"
-        assert "Afghanistan" in config.campaigns
-        assert config.campaigns["Afghanistan"] == ["afghanistan"]
+        assert "test-server" in config.servers  # Using helper default
+        assert config.servers["test-server"].description == "Test server"
+        assert "afghanistan" in config.campaigns
+        assert config.campaigns["afghanistan"].display_name == "Afghanistan"
 
     def test_config_requires_checkpoints_dir(self):
         """Config should raise ValidationError if checkpoints_dir is missing."""
@@ -105,39 +99,37 @@ class TestConfig:
         with pytest.raises(ValidationError, match="campaigns"):
             Config(checkpoints_dir=Path("~/.foothold-checkpoints"), servers={})
 
-    def test_config_campaigns_values_must_be_lists(self):
-        """Config campaigns values should be lists of strings."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
+    def test_config_campaigns_values_must_be_campaign_configs(self):
+        """Config campaigns values should be CampaignConfig objects."""
+        from foothold_checkpoint.core.config import CampaignConfig
+        from tests.conftest import make_simple_campaign, make_test_config
 
-        # Valid: list of strings
-        config = Config(
-            checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Germany": ["GCW", "Germany_Modern"]},
+        config = make_test_config(
+            campaigns={"germany": make_simple_campaign("Germany", ["foothold_germany.lua"])}
         )
 
-        assert isinstance(config.campaigns["Germany"], list)
-        assert all(isinstance(name, str) for name in config.campaigns["Germany"])
+        assert isinstance(config.campaigns["germany"], CampaignConfig)
+        assert config.campaigns["germany"].display_name == "Germany"
 
-    def test_config_campaigns_empty_list_invalid(self):
-        """Config should raise ValidationError if campaign has empty name list."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
+    def test_config_campaigns_require_at_least_one_file_type(self):
+        """Config should validate that campaigns have proper file configuration."""
+        from tests.conftest import make_simple_campaign, make_test_config
 
-        with pytest.raises(ValidationError, match="empty name list"):
-            Config(
-                checkpoints_dir=Path("~/.foothold-checkpoints"),
-                servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-                campaigns={"Afghanistan": []},  # Empty list should fail
-            )
+        # This should succeed - campaign with files configured
+        config = make_test_config(
+            campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
+        )
+
+        assert "test" in config.campaigns
 
     def test_config_is_immutable(self):
         """Config should be frozen (immutable)."""
-        from foothold_checkpoint.core.config import Config, ServerConfig
+        from tests.conftest import make_simple_campaign, make_test_config
 
-        config = Config(
-            checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Afghanistan": ["afghanistan"]},
+        config = make_test_config(
+            campaigns={
+                "afghanistan": make_simple_campaign("Afghanistan", ["foothold_afghanistan.lua"])
+            }
         )
 
         with pytest.raises(ValidationError, match="frozen"):
@@ -162,7 +154,26 @@ class TestLoadConfig:
                             "description": "Production server",
                         }
                     },
-                    "campaigns": {"Afghanistan": ["afghanistan"], "Caucasus": ["CA"]},
+                    "campaigns": {
+                        "afghanistan": {
+                            "display_name": "Afghanistan",
+                            "files": {
+                                "persistence": {"files": ["foothold_afghanistan.lua"]},
+                                "ctld_save": {"files": [], "optional": True},
+                                "ctld_farps": {"files": [], "optional": True},
+                                "storage": {"files": [], "optional": True},
+                            },
+                        },
+                        "caucasus": {
+                            "display_name": "Caucasus",
+                            "files": {
+                                "persistence": {"files": ["FootHold_CA.lua"]},
+                                "ctld_save": {"files": [], "optional": True},
+                                "ctld_farps": {"files": [], "optional": True},
+                                "storage": {"files": [], "optional": True},
+                            },
+                        },
+                    },
                 },
                 f,
             )
@@ -175,7 +186,7 @@ class TestLoadConfig:
             assert config.checkpoints_dir == Path.home() / ".foothold-checkpoints"
             assert "production-1" in config.servers
             assert config.servers["production-1"].description == "Production server"
-            assert config.campaigns["Afghanistan"] == ["afghanistan"]
+            assert config.campaigns["afghanistan"].display_name == "Afghanistan"
         finally:
             temp_path.unlink()
 
@@ -216,24 +227,24 @@ class TestLoadConfig:
         finally:
             temp_path.unlink()
 
-    def test_load_config_invalid_campaign_empty_list(self):
-        """load_config should raise ValidationError if campaign has empty name list."""
+    def test_load_config_invalid_campaign_structure(self):
+        """load_config should raise ValueError for invalid campaign structure."""
         from foothold_checkpoint.core.config import load_config
 
-        # Create YAML with empty campaign list
+        # Create YAML with invalid campaign structure (old list-based format)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(
                 {
                     "checkpoints_dir": "~/.foothold-checkpoints",
                     "servers": {"test": {"path": "D:/Test", "description": "Test"}},
-                    "campaigns": {"Afghanistan": []},  # Empty list should fail
+                    "campaigns": {"afghanistan": []},  # Empty list - wrong structure
                 },
                 f,
             )
             temp_path = Path(f.name)
 
         try:
-            with pytest.raises(ValidationError, match="empty name list"):
+            with pytest.raises(ValueError, match="must be a dictionary"):
                 load_config(temp_path)
         finally:
             temp_path.unlink()
@@ -253,7 +264,17 @@ class TestLoadConfig:
                             "description": "Test server",
                         }
                     },
-                    "campaigns": {"Germany": ["GCW", "Germany_Modern"]},
+                    "campaigns": {
+                        "germany": {
+                            "display_name": "Germany",
+                            "files": {
+                                "persistence": {"files": ["foothold_germany.lua"]},
+                                "ctld_save": {"files": [], "optional": True},
+                                "ctld_farps": {"files": [], "optional": True},
+                                "storage": {"files": [], "optional": True},
+                            },
+                        }
+                    },
                 },
                 f,
             )
@@ -354,13 +375,13 @@ class TestPathExpansion:
 
     def test_checkpoints_dir_expands_tilde(self):
         """Config should expand ~ in checkpoints_dir to user's home directory."""
+        from tests.conftest import make_simple_campaign, make_test_config
 
-        from foothold_checkpoint.core.config import Config, ServerConfig
-
-        config = Config(
+        config = make_test_config(
             checkpoints_dir=Path("~/.foothold-checkpoints"),
-            servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-            campaigns={"Afghanistan": ["afghanistan"]},
+            campaigns={
+                "afghanistan": make_simple_campaign("Afghanistan", ["foothold_afghanistan.lua"])
+            },
         )
 
         # ~ should be expanded to actual home directory
@@ -384,16 +405,17 @@ class TestPathExpansion:
         """Config should expand environment variables in checkpoints_dir."""
         import os
 
-        from foothold_checkpoint.core.config import Config, ServerConfig
+        from tests.conftest import make_simple_campaign, make_test_config
 
         # Set a test environment variable
         os.environ["FOOTHOLD_TEST_DIR"] = "C:/TestCheckpoints"
 
         try:
-            config = Config(
+            config = make_test_config(
                 checkpoints_dir=Path("$FOOTHOLD_TEST_DIR/backups"),
-                servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-                campaigns={"Afghanistan": ["afghanistan"]},
+                campaigns={
+                    "afghanistan": make_simple_campaign("Afghanistan", ["foothold_afghanistan.lua"])
+                },
             )
 
             # Environment variable should be expanded
@@ -459,7 +481,17 @@ class TestPathExpansion:
                             "description": "Test server with env var",
                         }
                     },
-                    "campaigns": {"Afghanistan": ["afghanistan"]},
+                    "campaigns": {
+                        "afghanistan": {
+                            "display_name": "Afghanistan",
+                            "files": {
+                                "persistence": {"files": ["foothold_afghanistan.lua"]},
+                                "ctld_save": {"files": [], "optional": True},
+                                "ctld_farps": {"files": [], "optional": True},
+                                "storage": {"files": [], "optional": True},
+                            },
+                        }
+                    },
                 },
                 f,
             )
@@ -552,8 +584,8 @@ class TestErrorMessages:
         assert "campaigns" in error_str.lower()
         assert "required" in error_str.lower() or "missing" in error_str.lower()
 
-    def test_empty_campaign_list_error_message(self):
-        """Config should provide clear error when campaign has empty name list."""
+    def test_invalid_campaign_structure_error_message(self):
+        """Config should provide clear error when campaign structure is invalid."""
         from pathlib import Path
 
         from pydantic import ValidationError
@@ -564,12 +596,12 @@ class TestErrorMessages:
             Config(
                 checkpoints_dir=Path("~/.foothold-checkpoints"),
                 servers={"test": ServerConfig(path=Path("D:/Test"), description="Test")},
-                campaigns={"Afghanistan": []},  # Empty list
+                campaigns={"afghanistan": []},  # Wrong structure (list instead of CampaignConfig)
             )
 
-        # Error should be clear about the problem
-        error_str = str(exc_info.value)
-        assert "empty" in error_str.lower() or "at least 1" in error_str.lower()
+        # Error should mention it should be a dictionary or CampaignConfig
+        error_str = str(exc_info.value).lower()
+        assert "should be a valid dictionary" in error_str or "campaignconfig" in error_str
 
     def test_invalid_yaml_error_message(self):
         """load_config should provide clear error for invalid YAML syntax."""

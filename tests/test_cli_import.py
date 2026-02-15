@@ -3,6 +3,29 @@
 from unittest.mock import Mock, patch
 
 
+def create_campaign_mock():
+    """Create a properly structured campaign mock with all required file types."""
+    mock_persistence = Mock()
+    mock_persistence.files = []
+    mock_ctld_save = Mock()
+    mock_ctld_save.files = []
+    mock_ctld_farps = Mock()
+    mock_ctld_farps.files = []
+    mock_storage = Mock()
+    mock_storage.files = []
+
+    mock_files = Mock()
+    mock_files.persistence = mock_persistence
+    mock_files.ctld_save = mock_ctld_save
+    mock_files.ctld_farps = mock_ctld_farps
+    mock_files.storage = mock_storage
+
+    mock_campaign = Mock()
+    mock_campaign.files = mock_files
+
+    return mock_campaign
+
+
 class TestImportCommandWithFlags:
     """Tests for import command with all flags provided."""
 
@@ -19,9 +42,10 @@ class TestImportCommandWithFlags:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {"afghanistan": create_campaign_mock()}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -58,9 +82,10 @@ class TestImportCommandWithFlags:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {"afghanistan": create_campaign_mock()}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -110,9 +135,15 @@ class TestImportCommandPrompts:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock(), "prod-1": Mock()}
             mock_load.return_value = mock_config
@@ -145,9 +176,20 @@ class TestImportCommandPrompts:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_afghanistan = Mock()
+            mock_afghanistan.files.persistence.files = []
+            mock_afghanistan.files.ctld_save.files = []
+            mock_afghanistan.files.ctld_farps.files = []
+            mock_afghanistan.files.storage.files = []
+            mock_syria = Mock()
+            mock_syria.files.persistence.files = []
+            mock_syria.files.ctld_save.files = []
+            mock_syria.files.ctld_farps.files = []
+            mock_syria.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_afghanistan, "syria": mock_syria}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -181,9 +223,15 @@ class TestImportCommandPrompts:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -220,9 +268,10 @@ class TestImportCommandConfirmation:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {"afghanistan": create_campaign_mock()}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -256,9 +305,15 @@ class TestImportCommandConfirmation:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -293,9 +348,15 @@ class TestImportCommandProgressAndWarnings:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -332,9 +393,15 @@ class TestImportCommandProgressAndWarnings:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -367,6 +434,7 @@ class TestImportCommandErrors:
         runner = CliRunner()
         with patch("foothold_checkpoint.cli.load_config") as mock_load:
             mock_config = Mock()
+            mock_config.campaigns = {}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_load.return_value = mock_config
 
@@ -398,9 +466,10 @@ class TestImportCommandErrors:
         runner = CliRunner()
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -411,7 +480,9 @@ class TestImportCommandErrors:
             result = runner.invoke(app, ["import", str(source_dir), "--server", "test-server"])
 
         assert result.exit_code != 0
-        assert "no campaign" in result.stdout.lower() or "not found" in result.stdout.lower()
+        assert (
+            "configured campaign" in result.stdout.lower() or "not found" in result.stdout.lower()
+        )
 
     def test_import_invalid_campaign_name(self, tmp_path):
         """Test error when specified campaign not found in directory."""
@@ -428,6 +499,7 @@ class TestImportCommandErrors:
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -460,9 +532,15 @@ class TestImportCommandQuietMode:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_campaign = Mock()
+            mock_campaign.files.persistence.files = []
+            mock_campaign.files.ctld_save.files = []
+            mock_campaign.files.ctld_farps.files = []
+            mock_campaign.files.storage.files = []
+            mock_config.campaigns = {"afghanistan": mock_campaign}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config
@@ -502,9 +580,10 @@ class TestImportCommandQuietMode:
         with (
             patch("foothold_checkpoint.cli.load_config") as mock_load,
             patch("foothold_checkpoint.cli.import_checkpoint") as mock_import,
-            patch("foothold_checkpoint.cli.group_campaign_files") as mock_group,
+            patch("foothold_checkpoint.core.campaign.group_campaign_files") as mock_group,
         ):
             mock_config = Mock()
+            mock_config.campaigns = {"afghanistan": create_campaign_mock()}
             mock_config.checkpoints_dir = tmp_path / "checkpoints"
             mock_config.servers = {"test-server": Mock()}
             mock_load.return_value = mock_config

@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-15
+
+### Added
+- **Explicit file list configuration**: Campaigns now use structured file lists instead of regex patterns
+  - Separate configuration for persistence files, CTLD saves, CTLD FARPs, and storage files
+  - Optional file types with `optional: true` flag
+  - Improved validation prevents empty required file lists
+  - Better support for campaign evolution (multiple accepted names per file)
+- **Unknown file detection**: Automatic detection and helpful error messages for unconfigured campaign files
+  - Generates YAML configuration snippets for quick setup
+  - Lists all unknown files with suggested configuration
+  - Prevents accidental data loss from untracked files
+- **Auto-backup before restore**: Creates timestamped backup before overwriting files
+  - Automatic backup creation with `--auto-backup` flag (default: enabled)
+  - Backup includes full campaign name in filename for clarity
+  - Can be disabled with `--no-auto-backup` flag
+  - Protects against accidental overwrites
+- **Automatic file renaming on restore**: Files are renamed to canonical names from configuration
+  - Supports campaign name evolution (e.g., `FootHold_GCW_Modern.lua` → `FootHold_germany_modern.lua`)
+  - First name in file list is used as canonical name
+  - Preserves compatibility with old checkpoints
+  - Transparent handling - no user intervention needed
+- **Enhanced list command**: Added `--details` flag to display file lists in checkpoints
+  - Shows all files contained in each checkpoint
+  - Helps verify checkpoint contents before restore
+  - Formatted output with proper indentation
+- **Improved error messages**: More helpful and actionable error messages throughout
+  - Unknown file errors include YAML configuration snippets
+  - Campaign/server not found errors list available options
+  - Config validation errors provide specific field locations
+
+### Changed
+- **Configuration structure**: Campaign configuration now uses explicit file lists instead of name patterns
+  - Migration required: old `campaigns: {"Afghanistan": ["afghanistan"]}` format replaced with structured `CampaignConfig` objects
+  - See `config.yaml.example` for new format
+  - Breaking change: requires configuration file update
+- **Campaign detection**: Uses configured file lists instead of regex patterns
+  - More predictable and explicit behavior
+  - Better error messages when files don't match configuration
+  - No more false positives from similar file names
+
+### Fixed
+- **Type safety**: Fixed mypy type checking error in `load_config()` for checkpoints_dir parameter
+- **Code quality**: Cleaned up unused imports and simplified dict iteration
+- **Cross-platform**: Fixed test compatibility issues for Linux/WSL
+  - Path handling now works correctly on both Windows and Unix systems
+  - Tests skip gracefully on incompatible platforms
+
 ## [1.0.1] - 2026-02-14
 
 ### Fixed

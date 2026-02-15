@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from foothold_checkpoint.core.campaign import group_campaign_files, rename_campaign_file
+from foothold_checkpoint.core.campaign import detect_campaigns
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 
 if TYPE_CHECKING:
@@ -21,6 +21,7 @@ def save_checkpoint(
     server_name: str,
     source_dir: str | Path,
     output_dir: str | Path,
+    config: "Config",
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
@@ -41,6 +42,7 @@ def save_checkpoint(
         source_dir: Path to the directory containing campaign files (typically
             server Saves directory).
         output_dir: Path to the directory where checkpoint ZIP will be saved.
+        config: Configuration object containing campaign definitions.
         created_at: Optional timestamp for the checkpoint. If None, uses current
             UTC time. Must be timezone-aware (UTC recommended).
         name: Optional user-provided name for the checkpoint
@@ -65,6 +67,7 @@ def save_checkpoint(
         ...     server_name="production-1",
         ...     source_dir=Path("C:/DCS/Server/Missions/Saves"),
         ...     output_dir=Path("C:/checkpoints"),
+        ...     config=config,
         ...     name="Before major update"
         ... )
         >>> print(checkpoint.name)
@@ -108,7 +111,7 @@ def save_checkpoint(
     filenames = [f.name for f in all_files if f.is_file()]
 
     # Group files by campaign and find matching files
-    grouped = group_campaign_files(filenames)
+    grouped = detect_campaigns(filenames, config)
 
     # Find campaign files (case-insensitive match)
     campaign_files_names = None
@@ -150,6 +153,7 @@ def save_all_campaigns(
     server_name: str,
     source_dir: str | Path,
     output_dir: str | Path,
+    config: "Config",
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
@@ -166,6 +170,7 @@ def save_all_campaigns(
         server_name: Name of the server where checkpoints are created.
         source_dir: Path to the directory containing campaign files.
         output_dir: Path to the directory where checkpoint ZIPs will be saved.
+        config: Configuration object containing campaign definitions.
         created_at: Optional timestamp for all checkpoints. If None, uses current
             UTC time. All checkpoints will have the same timestamp.
         name: Optional user-provided name applied to all checkpoints.
@@ -189,6 +194,7 @@ def save_all_campaigns(
         ...     server_name="production-1",
         ...     source_dir=Path("C:/DCS/Server/Missions/Saves"),
         ...     output_dir=Path("C:/checkpoints"),
+        ...     config=config,
         ...     name="Daily backup"
         ... )
         >>> for campaign, path in results.items():
@@ -204,7 +210,7 @@ def save_all_campaigns(
     filenames = [f.name for f in all_files if f.is_file()]
 
     # Group files by campaign
-    grouped = group_campaign_files(filenames)
+    grouped = detect_campaigns(filenames, config)
 
     if not grouped:
         return {}
@@ -227,6 +233,7 @@ def save_all_campaigns(
                 server_name=server_name,
                 source_dir=source_dir,
                 output_dir=output_dir,
+                config=config,
                 created_at=created_at,
                 name=name,
                 comment=comment,
@@ -304,6 +311,133 @@ def check_restore_conflicts(
         return existing_files
 
 
+def create_auto_backup(
+    checkpoint_path: Path,
+    target_dir: Path,
+    server_name: str,
+    checkpoints_dir: Path,
+    config: "Config",
+    progress_callback: Callable[[str, int, int], None] | None = None,
+) -> Path | None:
+    """Create an automatic backup before restoring a checkpoint.
+
+    Creates a timestamped checkpoint of the current state before performing
+    a restore operation. This provides a safety net to revert changes if needed.
+
+    Args:
+        checkpoint_path: Path to the checkpoint that will be restored (used to extract campaign name).
+        target_dir: Directory containing current campaign files to backup.
+        server_name: Name of the server (used in metadata).
+        checkpoints_dir: Directory where the auto-backup checkpoint will be saved.
+        config: Configuration object containing campaign definitions.
+        progress_callback: Optional callback for progress tracking.
+
+    Returns:
+        Path to the created auto-backup checkpoint, or None if backup failed.
+
+    Raises:
+        ValueError: If checkpoint metadata is invalid or campaign files not found.
+        OSError: If backup creation fails.
+
+    Example:
+        >>> backup = create_auto_backup(
+        ...     checkpoint_path=Path("checkpoints/ca_20260215.zip"),
+        ...     target_dir=Path("C:/DCS/Server/Missions/Saves"),
+        ...     server_name="foothold2",
+        ...     checkpoints_dir=Path("C:/checkpoints"),
+        ...     config=config
+        ... )
+    """
+    import json
+    import zipfile
+
+    # Read metadata from the checkpoint to get campaign name
+    try:
+        with zipfile.ZipFile(checkpoint_path, "r") as zf:
+            if "metadata.json" not in zf.namelist():
+                raise ValueError("Invalid checkpoint (missing metadata)")
+
+            metadata_json = zf.read("metadata.json").decode("utf-8")
+            metadata = json.loads(metadata_json)
+            campaign_name = metadata.get("campaign_name")
+
+            if not campaign_name:
+                raise ValueError("Campaign name not found in checkpoint metadata")
+
+    except (zipfile.BadZipFile, json.JSONDecodeError, KeyError) as e:
+        raise ValueError(f"Failed to read checkpoint metadata: {e}") from e
+
+    # Generate auto-backup name with UTC timestamp
+    timestamp = datetime.now(timezone.utc)
+    backup_name = f"auto-backup-{timestamp.strftime('%Y%m%d-%H%M%S')}"
+
+    # Generate descriptive comment
+    backup_comment = f"Automatic backup before restoring {checkpoint_path.stem}"
+
+    # Create the backup checkpoint
+    try:
+        backup_path = save_checkpoint(
+            campaign_name=campaign_name,
+            server_name=server_name,
+            source_dir=target_dir,
+            output_dir=checkpoints_dir,
+            config=config,
+            created_at=timestamp,
+            name=backup_name,
+            comment=backup_comment,
+            progress_callback=progress_callback,
+        )
+        return backup_path
+
+    except ValueError as e:
+        # No campaign files found - this is OK, nothing to backup
+        if "No campaign files found" in str(e):
+            return None
+        raise
+
+
+def _get_canonical_filename(filename: str, campaign_name: str, config: "Config") -> str:
+    """Get canonical (current) filename for a file that may have evolved names.
+
+    When a campaign's files have been renamed over time, the config lists
+    multiple accepted names for the same file (old and new). This function
+    returns the first name in the list (the canonical/current name) if the
+    given filename matches any name in the list.
+
+    Args:
+        filename: Original filename from checkpoint (may be old name)
+        campaign_name: Campaign ID to look up in config
+        config: Configuration object with campaign definitions
+
+    Returns:
+        Canonical filename (first in list) if found, otherwise original filename
+
+    Examples:
+        >>> # Config has: persistence.files = ["new.lua", "old.lua"]
+        >>> _get_canonical_filename("old.lua", "campaign", config)
+        "new.lua"  # Returns canonical name
+        >>> _get_canonical_filename("new.lua", "campaign", config)
+        "new.lua"  # Already canonical
+        >>> _get_canonical_filename("unknown.lua", "campaign", config)
+        "unknown.lua"  # Not in config, return as-is
+    """
+    # Check if campaign exists in config
+    if campaign_name not in config.campaigns:
+        return filename
+
+    campaign = config.campaigns[campaign_name]
+
+    # Check each file type list
+    for file_type_name in ["persistence", "ctld_save", "ctld_farps", "storage"]:
+        file_type = getattr(campaign.files, file_type_name)
+        if filename in file_type.files and file_type.files:
+            # Return first name (canonical/current)
+            return str(file_type.files[0])
+
+    # File not found in any list - return original name
+    return filename
+
+
 def restore_checkpoint(
     checkpoint_path: str | Path,
     target_dir: str | Path,
@@ -311,6 +445,8 @@ def restore_checkpoint(
     progress_callback: Callable[[str, int, int], None] | None = None,
     config: "Config | None" = None,  # noqa: UP007
     skip_overwrite_check: bool = False,
+    server_name: str | None = None,
+    auto_backup: bool = True,
 ) -> list[Path]:
     """Restore a checkpoint to a target directory.
 
@@ -318,20 +454,29 @@ def restore_checkpoint(
     target directory after verifying file integrity with SHA-256 checksums.
     By default, excludes Foothold_Ranks.lua unless explicitly requested.
 
+    Before restoring, automatically creates a backup checkpoint of the current
+    state (if auto_backup=True and server_name is provided). This provides a
+    safety net to revert changes if needed.
+
     Args:
         checkpoint_path: Path to the checkpoint ZIP file to restore.
         target_dir: Path to the directory where files will be extracted.
         restore_ranks: If True, restore Foothold_Ranks.lua. If False (default),
-            exclude ranks file from restoration.
+            exclude ranks filee from restoration.
         progress_callback: Optional callback function called during restoration.
             Called as: callback(message: str, current: int, total: int).
         config: Optional configuration object containing campaign name mappings.
             If provided, files will be renamed to use current campaign names
-            (e.g., GCW_Modern → Germany_Modern). If None, original filenames
-            are preserved (backward compatibility).
+            (e.g., GCW_Modern → Germany_Modern). Also used for auto-backup.
+            If None, original filenames are preserved (backward compatibility).
         skip_overwrite_check: If True, skip checking for existing files and
             confirmation prompt. Useful when confirmation was already done
             externally (default: False).
+        server_name: Optional server name for auto-backup metadata. Required if
+            auto_backup is True and config is provided.
+        auto_backup: If True and config is provided, automatically create a backup
+            checkpoint before restoring (default: True). The backup is saved with
+            a timestamped name (auto-backup-YYYYMMDD-HHMMSS).
 
     Returns:
         List of Path objects for the restored files (with potentially renamed paths).
@@ -339,10 +484,10 @@ def restore_checkpoint(
     Raises:
         FileNotFoundError: If checkpoint_path doesn't exist or target_dir doesn't exist.
         ValueError: If checkpoint is not a valid ZIP, metadata is missing/invalid,
-            or checksum verification fails.
+            checksum verification fails, or server_name missing with auto_backup=True.
         PermissionError: If target_dir is not writable.
         RuntimeError: If user cancels overwrite confirmation.
-        OSError: If restoration fails (e.g., disk full).
+        OSError: If restoration fails (e.g., disk full) or auto-backup creation fails.
     """
     import json
     import zipfile
@@ -368,6 +513,34 @@ def restore_checkpoint(
     # Check target directory is writable
     if not _is_writable(target_dir):
         raise PermissionError(f"Target directory is not writable: {target_dir}")
+
+    # Create automatic backup before restoring (if enabled and config provided)
+    if auto_backup and config is not None:
+        # Validate server_name is provided for auto-backup
+        if server_name is None:
+            raise ValueError("server_name is required when auto_backup=True with config provided")
+
+        if progress_callback:
+            progress_callback("Creating automatic backup", 0, 1)
+
+        try:
+            backup_path = create_auto_backup(
+                checkpoint_path=checkpoint_path,
+                target_dir=target_dir,
+                server_name=server_name,
+                checkpoints_dir=config.checkpoints_dir,
+                config=config,
+                progress_callback=progress_callback,
+            )
+            if backup_path and progress_callback:
+                progress_callback(f"Auto-backup created: {backup_path.name}", 1, 1)
+        except ValueError as e:
+            # If no campaign files to backup, continue with restore
+            if "No campaign files found" not in str(e):
+                raise
+        except OSError as e:
+            # Auto-backup failure is critical - don't proceed with restore
+            raise OSError(f"Failed to create automatic backup: {e}") from e
 
     # Open ZIP and read metadata
     with zipfile.ZipFile(checkpoint_path, "r") as zf:
@@ -445,17 +618,20 @@ def restore_checkpoint(
 
         restored_files: list[Path] = []
 
+        # Get campaign_name from metadata for file renaming
+        campaign_name = metadata.get("campaign_name") if config else None
+
         for idx, filename in enumerate(files_to_restore, start=1):
             if progress_callback:
                 progress_callback(f"Extracting {filename}", idx, len(files_to_restore))
 
             file_data = zf.read(filename)
 
-            # Rename file if config is provided (campaign name evolution)
-            if config is not None:
-                target_filename = rename_campaign_file(filename, config)
-            else:
-                target_filename = filename
+            # Determine target filename (with potential renaming if config provided)
+            target_filename = filename
+            if config and campaign_name:
+                # Check if file should be renamed to canonical name
+                target_filename = _get_canonical_filename(filename, campaign_name, config)
 
             target_file = target_dir / target_filename
 
@@ -556,6 +732,13 @@ def list_checkpoints(
                 size_bytes = checkpoint_path.stat().st_size
                 size_human = _format_file_size(size_bytes)
 
+                # Get list of files in the checkpoint (excluding metadata.json)
+                files_in_checkpoint = [
+                    name
+                    for name in zf.namelist()
+                    if name != "metadata.json" and not name.endswith("/")
+                ]
+
                 # Build checkpoint info dictionary
                 checkpoint_info = {
                     "filename": checkpoint_path.name,
@@ -566,6 +749,7 @@ def list_checkpoints(
                     "size_human": size_human,
                     "name": metadata.get("name"),
                     "comment": metadata.get("comment"),
+                    "files": files_in_checkpoint,  # List of files in checkpoint
                 }
 
                 checkpoints.append(checkpoint_info)
@@ -712,6 +896,7 @@ def import_checkpoint(
     campaign_name: str,
     server_name: str,
     output_dir: str | Path,
+    config: "Config",
     name: str | None = None,
     comment: str | None = None,
     created_at: datetime | None = None,
@@ -727,6 +912,7 @@ def import_checkpoint(
         campaign_name: Name of the campaign to import (exact match).
         server_name: Name of the server for metadata.
         output_dir: Directory where checkpoint ZIP will be created.
+        config: Configuration object containing campaign definitions.
         name: Optional user-friendly name for the checkpoint.
         comment: Optional comment describing the checkpoint.
         created_at: Optional timestamp (defaults to current UTC time).
@@ -748,6 +934,7 @@ def import_checkpoint(
         ...     campaign_name="afghanistan",
         ...     server_name="prod-1",
         ...     output_dir="/path/to/checkpoints",
+        ...     config=config,
         ...     name="Old Manual Backup",
         ... )
 
@@ -757,6 +944,7 @@ def import_checkpoint(
         ...     campaign_name="afghanistan",
         ...     server_name="prod-1",
         ...     output_dir="/path/to/checkpoints",
+        ...     config=config,
         ...     return_warnings=True,
         ... )
         >>> for warning in warnings:
@@ -780,9 +968,9 @@ def import_checkpoint(
     filenames = [f.name for f in all_files if f.is_file()]
 
     # Use campaign module to detect and group files
-    from foothold_checkpoint.core.campaign import group_campaign_files
+    from foothold_checkpoint.core.campaign import detect_campaigns
 
-    grouped = group_campaign_files(filenames)
+    grouped = detect_campaigns(filenames, config)
 
     # Check if specified campaign exists
     if campaign_name not in grouped:
@@ -814,31 +1002,43 @@ def import_checkpoint(
     if not campaign_files:
         raise ValueError(f"No campaign files found for '{campaign_name}'")
 
-    # Check for expected files and generate warnings
+    # Check for expected files from config and generate warnings for missing required files
     warnings = []
-    expected_patterns = [
-        (f"foothold_{campaign_name}.lua", "Campaign script file"),
-        (f"foothold_{campaign_name}_storage.csv", "Storage data file"),
-        (f"foothold_{campaign_name}_CTLD_FARPS.csv", "CTLD FARPS data"),
-        (f"foothold_{campaign_name}_CTLD_Save.csv", "CTLD Save data"),
-    ]
 
-    for pattern, description in expected_patterns:
-        # Check case-insensitively
-        found = any(
-            fname.lower() == pattern.lower()
-            or
-            # Also check with version suffixes
-            (
-                fname.lower().startswith(pattern.lower().rsplit(".", 1)[0])
-                and fname.lower().endswith(pattern.lower().rsplit(".", 1)[1])
-            )
-            for fname in campaign_files_names
-        )
-        if not found:
-            warnings.append(f"{description} not found: {pattern}")
+    # Get campaign config to check for missing required files
+    campaign_config = config.campaigns.get(campaign_name)
+    if campaign_config:
+        campaign_files_names_lower = [f.lower() for f in campaign_files_names]
 
-    # Check for ranks file
+        # Check each file type in the config
+        for file_type_name in ["persistence", "ctld_save", "ctld_farps", "storage"]:
+            file_type = getattr(campaign_config.files, file_type_name, None)
+            if file_type and not file_type.optional:
+                # Check if any file from this type is present
+                configured_files = file_type.files
+                if configured_files:
+                    found = any(
+                        configured_file.lower() in campaign_files_names_lower
+                        for configured_file in configured_files
+                    )
+                    if not found:
+                        # Get friendly name for file type
+                        type_descriptions = {
+                            "persistence": "Campaign script file",
+                            "ctld_save": "CTLD Save data",
+                            "ctld_farps": "CTLD FARPS data",
+                            "storage": "Storage data file",
+                        }
+                        desc = type_descriptions.get(file_type_name, file_type_name)
+                        # Show the first configured filename as example
+                        example = (
+                            configured_files[0]
+                            if configured_files
+                            else f"(no {file_type_name} configured)"
+                        )
+                        warnings.append(f"{desc} not found: {example}")
+
+    # Check for ranks file (always optional but good to warn)
     if not ranks_file.exists():
         warnings.append("Shared ranks file not found: Foothold_Ranks.lua")
 

@@ -1,0 +1,3 @@
+Group,x,y,z,CargoName,CargoTemplates,CargoType,CratesNeeded,CrateMass,Structure,StaticCategory,StaticType,StaticShape,SpawnTime
+STATIC,-356174,10,618360,Zone supplies CH-47,cds_crate,Static,1,4000,'none',Cargos,cds_crate,none
+STATIC,-356174,10,618360,Zone supplies CH-47,cds_crate,Static,1,4000,'none',Cargos,cds_crate,none

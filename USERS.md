@@ -45,7 +45,9 @@ The tool uses a YAML configuration file located at `~/.foothold-checkpoint/confi
 
 On first run, the tool automatically creates a default configuration file. You can customize it for your setup.
 
-### Configuration File
+### Configuration File (v1.1.0)
+
+⚠️ **Breaking Change**: Configuration format changed in v1.1.0. See migration instructions below.
 
 ```yaml
 # Directory where checkpoints are stored
@@ -61,23 +63,80 @@ servers:
     path: D:\Servers\DCS-Test\Missions\Saves
     description: "Test server"
 
-# Campaign name mappings (handles name evolution)
+# Campaign configurations with explicit file lists (NEW in v1.1.0)
 campaigns:
-  Afghanistan:
-    - afghanistan
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:  # Required: at least one file
+        - "foothold_afghanistan.lua"
+      ctld_save:
+        files:
+          - "foothold_afghanistan_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "foothold_afghanistan_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "foothold_afghanistan_storage.csv"
+        optional: true
 
-  Caucasus:
-    - CA
-
-  Germany_Modern:
-    - GCW_Modern        # Historical name
-    - Germany_Modern    # Current name (used for restore)
+  # Example with campaign name evolution
+  germany_modern:
+    display_name: "Germany Modern"
+    files:
+      persistence:
+        - "FootHold_Germany_Modern_V0.1.lua"  # Canonical name (first = current)
+        - "FootHold_GCW_Modern.lua"           # Accepted (legacy name)
+      ctld_save:
+        files:
+          - "FootHold_Germany_Modern_V0.1_CTLD_Save.csv"
+          - "FootHold_GCW_Modern_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files: []
+        optional: true
+      storage:
+        files: []
+        optional: true
 ```
 
 **Key Points:**
 - `checkpoints_dir`: Where checkpoint ZIP files are stored
 - `servers`: Map server names to their `Missions\Saves` paths
-- `campaigns`: List historical names (oldest → newest). Last name is used when restoring.
+- `campaigns`: Explicit file lists for each campaign
+  - `persistence`: Required Lua files (at least one)
+  - `ctld_save`, `ctld_farps`, `storage`: Optional file types
+  - First filename = canonical name (used when restoring)
+  - Multiple names = accepted alternatives (for old checkpoints)
+
+**Migration from v1.0.x:**
+```yaml
+# OLD format (v1.0.x)
+campaigns:
+  Afghanistan: ["afghanistan"]
+
+# NEW format (v1.1.0)
+campaigns:
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:
+        - "foothold_afghanistan.lua"
+      ctld_save:
+        files: []
+        optional: true
+      ctld_farps:
+        files: []
+        optional: true
+      storage:
+        files: []
+        optional: true
+```
+
+See `config.yaml.example` for complete examples.
 
 ## Usage
 
@@ -134,6 +193,22 @@ Output:
 └──────────────────────────────────────┴──────────────┴────────────┴─────────────────────┴─────────────────┘
 ```
 
+#### List with File Details (NEW in v1.1.0)
+
+```powershell
+poetry run foothold-checkpoint list --details
+```
+
+Shows all files contained in each checkpoint:
+```
+[Table as above]
+
+Files in afghanistan_2024-02-13_14-30-00.zip:
+  - foothold_afghanistan.lua
+  - foothold_afghanistan_storage.csv
+  - Foothold_Ranks.lua
+```
+
 #### Filter by Server
 
 ```powershell
@@ -163,10 +238,20 @@ poetry run foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --ser
 ```
 
 **Behavior:**
+- **Auto-backup** (NEW): Creates timestamped backup before overwriting (enabled by default)
 - Files are extracted to the target server's `Saves` directory
-- Campaign names are updated to current version (e.g., `GCW` → `Germany_Modern`)
+- **Automatic renaming** (NEW): Files renamed to canonical names from config
+  - Example: Old `FootHold_GCW_Modern.lua` → New `FootHold_Germany_Modern_V0.1.lua`
 - Integrity is verified using SHA-256 checksums
 - `Foothold_Ranks.lua` is **NOT** restored by default
+
+#### Restore Without Auto-Backup
+
+```powershell
+poetry run foothold-checkpoint restore afghanistan_2024-02-13_14-30-00.zip --server test-server --no-auto-backup
+```
+
+⚠️ **Warning**: Only use `--no-auto-backup` if you're certain you want to overwrite without a safety backup.
 
 #### Restore with Ranks File
 
@@ -305,6 +390,38 @@ servers:
 **Solution**:
 1. Check that files follow Foothold naming conventions (`foothold_name*.lua`, `FootHold_Name*.csv`)
 2. Add campaign mapping in config if using custom names
+
+### "Unknown campaign files detected" (NEW in v1.1.0)
+
+**Problem**: Files found that aren't configured in config.yaml
+
+**Solution**: The tool provides a helpful error with YAML snippet to add:
+
+```
+Unknown campaign files detected in source directory:
+  - foothold_newmap.lua
+
+These files appear to be Foothold campaign files but are not configured.
+
+To import this campaign, add it to your config.yaml under 'campaigns':
+
+  newmap:
+    display_name: "New Map"
+    files:
+      persistence:
+        - "foothold_newmap.lua"
+      ctld_save:
+        files: []
+        optional: true
+      ctld_farps:
+        files: []
+        optional: true
+      storage:
+        files: []
+        optional: true
+```
+
+**Action**: Copy the suggested YAML to your `config.yaml` and customize as needed.
 
 ### "Checksum verification failed"
 
