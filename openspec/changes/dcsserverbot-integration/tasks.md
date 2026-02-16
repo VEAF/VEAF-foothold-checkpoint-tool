@@ -50,16 +50,16 @@
 
 ## 5. CLI Async Wrapper Updates
 
-- [ ] 5.1 Add asyncio import to cli.py
-- [ ] 5.2 Wrap save command with asyncio.run(save_checkpoint(...))
-- [ ] 5.3 Wrap restore command with asyncio.run(restore_checkpoint(...))
-- [ ] 5.4 Wrap list command with asyncio.run(list_checkpoints(...))
-- [ ] 5.5 Wrap delete command with asyncio.run(delete_checkpoint(...))
-- [ ] 5.6 Wrap import command with asyncio.run(import_checkpoint(...))
-- [ ] 5.7 Ensure all CLI calls pass hooks=None
+- [x] 5.1 Add asyncio import to cli.py
+- [x] 5.2 Wrap save command with asyncio.run(save_checkpoint(...))
+- [x] 5.3 Wrap restore command with asyncio.run(restore_checkpoint(...))
+- [x] 5.4 Wrap list command with asyncio.run(list_checkpoints(...))
+- [x] 5.5 Wrap delete command with asyncio.run(delete_checkpoint(...))
+- [x] 5.6 Wrap import command with asyncio.run(import_checkpoint(...))
+- [x] 5.7 Ensure all CLI calls pass hooks=None
 - [ ] 5.8 Add --auto-backup / --no-auto-backup flags to restore command
 - [ ] 5.9 Add --details flag to list command
-- [ ] 5.10 Update CLI tests to verify async wrapping works correctly
+- [x] 5.10 Update CLI tests to verify async wrapping works correctly
 
 ## 6. Plugin Directory Structure
 
