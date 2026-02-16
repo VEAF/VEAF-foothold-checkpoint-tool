@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **External campaigns configuration**: Campaigns can now be defined in separate `campaigns.yaml` file
+  - Enables DRY configuration shared between CLI and DCSServerBot plugin
+  - `campaigns_file` field in config.yaml references external campaigns file
+  - `load_campaigns()` function loads and validates external campaigns
+  - Backward compatible: inline campaigns still supported (mutually exclusive with campaigns_file)
+  - Validation ensures at least one of campaigns or campaigns_file is provided
+
+### Changed
+- **BREAKING**: Config model changes for plugin support
+  - `servers` field is now optional (`dict[str, ServerConfig] | None`) to support plugin mode
+  - `campaigns` field is now optional when `campaigns_file` is specified
+  - Cannot specify both `campaigns` and `campaigns_file` simultaneously
+- **Config validation**: Enhanced error messages for configuration issues
+  - Clear error when neither campaigns nor campaigns_file is provided
+  - Error when both campaigns and campaigns_file are specified
+  - Helpful guidance for migration to campaigns_file format
+
 ## [1.1.0] - 2026-02-15
 
 ### Added

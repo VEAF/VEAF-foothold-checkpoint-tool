@@ -278,19 +278,24 @@ class Config(BaseModel):
         checkpoints_dir: Directory where checkpoint ZIP files are stored
         servers: Map of server names to ServerConfig
         campaigns: Map of campaign IDs to CampaignConfig with display names and file lists
+        campaigns_file: Optional path to external campaigns.yaml file (DRY configuration for CLI+plugin)
     """
 
     checkpoints_dir: Path = Field(
         ...,
         description="Directory where checkpoint ZIP files are stored (e.g., '~/.foothold-checkpoints')",
     )
-    servers: dict[str, ServerConfig] = Field(
-        ...,
-        description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields.",
+    servers: dict[str, ServerConfig] | None = Field(
+        default=None,
+        description="Map of server names to ServerConfig. Each server needs 'path' and 'description' fields. Optional for plugin mode.",
     )
-    campaigns: dict[str, CampaignConfig] = Field(
-        ...,
-        description="Map of campaign IDs to CampaignConfig with display name and file lists. Each campaign defines all known file names.",
+    campaigns: dict[str, CampaignConfig] | None = Field(
+        default=None,
+        description="Map of campaign IDs to CampaignConfig with display name and file lists. Each campaign defines all known file names. If campaigns_file is specified, campaigns are loaded from that file instead.",
+    )
+    campaigns_file: Path | None = Field(
+        default=None,
+        description="Path to external campaigns.yaml file containing campaign definitions. Enables DRY configuration shared between CLI and plugin.",
     )
 
     model_config = {"frozen": True}
@@ -303,44 +308,68 @@ class Config(BaseModel):
             value = Path(value)
         return expand_path(value)
 
-    @field_validator("campaigns")
+    @field_validator("campaigns_file", mode="before")
     @classmethod
-    def validate_campaigns(cls, campaigns: dict[str, CampaignConfig]) -> dict[str, CampaignConfig]:
-        """Validate that at least one campaign is configured."""
-        if not campaigns:
+    def expand_campaigns_file(cls, value: Any) -> Path | None:
+        """Expand tilde and environment variables in campaigns file path."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            value = Path(value)
+        return expand_path(value)
+
+    @model_validator(mode="after")
+    def validate_campaigns_source(self) -> "Config":
+        """Validate that campaigns are provided either inline or via campaigns_file."""
+        if not self.campaigns and not self.campaigns_file:
             raise ValueError(
                 "At least one campaign must be configured. "
-                "Add campaign definitions to the 'campaigns' section in config.yaml."
+                "Either define campaigns inline in config.yaml or specify campaigns_file path."
             )
-        return campaigns
+        if self.campaigns and self.campaigns_file:
+            raise ValueError(
+                "Cannot specify both 'campaigns' and 'campaigns_file'. "
+                "Use campaigns_file to reference external campaigns.yaml (recommended for v2.0+), "
+                "or define campaigns inline (legacy v1.x format)."
+            )
+        return self
 
 
-def load_config(path: Path) -> Config:
-    """Load configuration from YAML file.
+def load_campaigns(campaigns_file: Path) -> dict[str, CampaignConfig]:
+    """Load campaign definitions from external YAML file.
 
     Args:
-        path: Path to the YAML configuration file
+        campaigns_file: Path to campaigns.yaml file
 
     Returns:
-        Config: Validated configuration object
+        dict[str, CampaignConfig]: Map of campaign IDs to CampaignConfig objects
 
     Raises:
-        FileNotFoundError: If the configuration file doesn't exist
-        yaml.YAMLError: If the YAML syntax is invalid
-        ValidationError: If the configuration doesn't match the schema
-    """
-    if not path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {path}")
+        FileNotFoundError: If campaigns file doesn't exist
+        yaml.YAMLError: If YAML syntax is invalid
+        ValidationError: If campaigns don't match schema
 
-    with open(path, encoding="utf-8") as f:
+    Example:
+        >>> campaigns = load_campaigns(Path("~/.foothold-checkpoint/campaigns.yaml"))
+        >>> print(campaigns["afghanistan"].display_name)
+        Afghanistan
+    """
+    if not campaigns_file.exists():
+        raise FileNotFoundError(
+            f"Campaigns file not found: {campaigns_file}\n"
+            "Create campaigns.yaml with campaign definitions or specify inline campaigns in config.yaml."
+        )
+
+    with open(campaigns_file, encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
-    # Parse servers section - convert dict to ServerConfig objects
-    servers_data = data.get("servers", {})
-    servers = {name: ServerConfig(**server_config) for name, server_config in servers_data.items()}
-
-    # Parse campaigns section - convert dict to CampaignConfig objects
     campaigns_data = data.get("campaigns", {})
+    if not campaigns_data:
+        raise ValueError(
+            f"No campaigns defined in {campaigns_file}. "
+            "File must contain 'campaigns' section with at least one campaign."
+        )
+
     campaigns: dict[str, CampaignConfig] = {}
     for campaign_id, campaign_config in campaigns_data.items():
         # Validate that campaign_config is a dictionary
@@ -355,10 +384,6 @@ def load_config(path: Path) -> Config:
         file_types: dict[str, Any] = {}
 
         for file_type, file_spec in files_data.items():
-            # file_spec can be:
-            # 1. A list of files: ["file1.lua", "file2.lua"]
-            # 2. A dict with optional flag: {optional: true} or {optional: true, 0: ["file.lua"]}
-            # Note: YAML treats keys starting with numbers specially, so files might be under key 0
             if isinstance(file_spec, list):
                 # Just a file list (required by default)
                 file_types[file_type] = CampaignFileType(files=file_spec, optional=False)
@@ -385,6 +410,90 @@ def load_config(path: Path) -> Config:
             files=CampaignFileList(**file_types),
         )
 
+    return campaigns
+
+
+def load_config(path: Path) -> Config:
+    """Load configuration from YAML file.
+
+    Args:
+        path: Path to the YAML configuration file
+
+    Returns:
+        Config: Validated configuration object
+
+    Raises:
+        FileNotFoundError: If the configuration file doesn't exist
+        yaml.YAMLError: If the YAML syntax is invalid
+        ValidationError: If the configuration doesn't match the schema
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {path}")
+
+    with open(path, encoding="utf-8") as f:
+        data: dict[str, Any] = yaml.safe_load(f)
+
+    # Parse servers section - convert dict to ServerConfig objects (optional for plugin mode)
+    servers_data = data.get("servers", {})
+    servers = {name: ServerConfig(**server_config) for name, server_config in servers_data.items()} if servers_data else None
+
+    # Check if campaigns should be loaded from external file or inline
+    campaigns_file_raw = data.get("campaigns_file")
+    campaigns: dict[str, CampaignConfig] | None = None
+    campaigns_file: Path | None = None
+
+    if campaigns_file_raw:
+        # Load campaigns from external file
+        campaigns_file = Path(campaigns_file_raw) if isinstance(campaigns_file_raw, str) else campaigns_file_raw
+        # Resolve relative paths relative to config file location
+        if not campaigns_file.is_absolute():
+            campaigns_file = (path.parent / campaigns_file).resolve()
+        campaigns = load_campaigns(campaigns_file)
+    else:
+        # Parse campaigns section inline - convert dict to CampaignConfig objects
+        campaigns_data = data.get("campaigns", {})
+        if campaigns_data:
+            campaigns_inline: dict[str, CampaignConfig] = {}
+            for campaign_id, campaign_config in campaigns_data.items():
+                # Validate that campaign_config is a dictionary
+                if not isinstance(campaign_config, dict):
+                    raise ValueError(
+                        f"Campaign '{campaign_id}' must be a dictionary with 'display_name' and 'files' fields, "
+                        f"got {type(campaign_config).__name__} instead"
+                    )
+
+                # Parse files section for each campaign
+                files_data = campaign_config.get("files", {})
+                file_types: dict[str, Any] = {}
+
+                for file_type, file_spec in files_data.items():
+                    if isinstance(file_spec, list):
+                        # Just a file list (required by default)
+                        file_types[file_type] = CampaignFileType(files=file_spec, optional=False)
+                    elif isinstance(file_spec, dict):
+                        # Has optional flag and potentially file list under various keys
+                        optional = file_spec.get("optional", False)
+                        # Try to find file list under common keys
+                        files_list = []
+                        if "files" in file_spec:
+                            files_list = file_spec["files"] if isinstance(file_spec["files"], list) else []
+                        elif 0 in file_spec:
+                            # YAML sometimes puts list items under numeric keys
+                            files_list = file_spec[0] if isinstance(file_spec[0], list) else [file_spec[0]]
+                        # Allow empty file list only if optional
+                        file_types[file_type] = CampaignFileType(files=files_list, optional=optional)
+                    else:
+                        raise ValueError(
+                            f"Invalid file type specification for campaign '{campaign_id}', "
+                            f"file type '{file_type}': expected list or dict with 'optional' flag"
+                        )
+
+                campaigns_inline[campaign_id] = CampaignConfig(
+                    display_name=campaign_config.get("display_name", campaign_id),
+                    files=CampaignFileList(**file_types),
+                )
+            campaigns = campaigns_inline
+
     # Get checkpoints_dir with type assertion
     checkpoints_dir_raw = data.get("checkpoints_dir")
     if checkpoints_dir_raw is None:
@@ -401,6 +510,7 @@ def load_config(path: Path) -> Config:
         checkpoints_dir=checkpoints_dir,
         servers=servers,
         campaigns=campaigns,
+        campaigns_file=campaigns_file,
     )
 
 

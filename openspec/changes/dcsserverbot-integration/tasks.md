@@ -1,14 +1,14 @@
 ## 1. Configuration Migration
 
-- [ ] 1.1 Create campaigns.yaml schema file
-- [ ] 1.2 Extract campaigns section from existing config.yaml to campaigns.yaml
-- [ ] 1.3 Update config.yaml to add campaigns_file reference
-- [ ] 1.4 Update Config model to support campaigns_file field
-- [ ] 1.5 Implement load_campaigns() function in core/config.py
-- [ ] 1.6 Update CLI config loading to read campaigns from separate file
-- [ ] 1.7 Add validation for campaigns_file existence and readability
-- [ ] 1.8 Create example campaigns.yaml in project root
-- [ ] 1.9 Update config.yaml.example with campaigns_file reference
+- [x] 1.1 Create campaigns.yaml schema file
+- [x] 1.2 Extract campaigns section from existing config.yaml to campaigns.yaml
+- [x] 1.3 Update config.yaml to add campaigns_file reference
+- [x] 1.4 Update Config model to support campaigns_file field
+- [x] 1.5 Implement load_campaigns() function in core/config.py
+- [x] 1.6 Update CLI config loading to read campaigns from separate file
+- [x] 1.7 Add validation for campaigns_file existence and readability
+- [x] 1.8 Create example campaigns.yaml in project root
+- [x] 1.9 Update config.yaml.example with campaigns_file reference
 
 ## 2. Core Library Event Hooks System
 

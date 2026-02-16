@@ -1,0 +1,227 @@
+# Foothold Checkpoint Tool - Campaigns Configuration
+#
+# This file defines all campaign configurations including file names for each campaign.
+# This file is shared between CLI and DCSServerBot plugin to maintain DRY principle.
+#
+# Each campaign defines all known file names for each file type:
+#   - persistence: Main Lua file(s) - REQUIRED (at least one file)
+#   - ctld_save: CTLD save CSV file(s) - optional
+#   - ctld_farps: CTLD FARPs CSV file(s) - optional  
+#   - storage: Storage CSV file(s) - optional
+#
+# Campaign File Naming Evolution:
+# When a campaign's file names change over time (e.g., "FootHold_GCW_Modern.lua" → "FootHold_Germany_Modern.lua"),
+# list ALL accepted names for each file. The FIRST name in the list is the "canonical" (current) name:
+#   - On restore: old checkpoint files are automatically renamed to the first (canonical) name
+#   - On save: files matching any name in the list will be included
+#
+# Optional Files:
+# Mark file types as optional with `optional: true`. The tool will skip them if not present
+# without generating warnings. Required file types (like persistence) must have at least one file.
+
+campaigns:
+  afghanistan:
+    display_name: "Afghanistan"
+    files:
+      persistence:
+        - "foothold_afghanistan.lua"
+      ctld_save:
+        files:
+          - "foothold_afghanistan_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "foothold_afghanistan_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "foothold_afghanistan_storage.csv"
+        optional: true
+
+  caucasus:
+    display_name: "Caucasus"
+    files:
+      persistence:
+        - "FootHold_CA_v0.2.lua"
+      ctld_save:
+        files:
+          - "FootHold_CA_v0.2_CTLD_Save.csv"
+          - "FootHold_CA_CTLD_Save_Modern.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_CA_v0.2_CTLD_FARPS.csv"
+          - "Foothold_CA_CTLD_FARPS_Modern.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_CA_v0.2_storage.csv"
+        optional: true
+
+  germany_modern:
+    display_name: "Germany Modern"
+    files:
+      persistence:
+        # First name = canonical (current) name used on restore
+        - "FootHold_Germany_Modern_V0.1.lua"
+        # Additional accepted names (historical/legacy)
+        - "FootHold_GCW_Modern.lua"
+      ctld_save:
+        files:
+          - "FootHold_Germany_Modern_V0.1_CTLD_Save.csv"
+          - "FootHold_GCW_Modern_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Germany_Modern_V0.1_CTLD_FARPS.csv"
+          - "FootHold_GCW_Modern_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Germany_Modern_V0.1_storage.csv"
+          - "FootHold_GCW_Modern_storage.csv"
+        optional: true
+
+  korea:
+    display_name: "Korea"
+    files:
+      persistence:
+        - "FootHold_Korea.lua"
+      ctld_save:
+        files:
+          - "FootHold_Korea_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Korea_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Korea_storage.csv"
+        optional: true
+
+  marianas:
+    display_name: "Marianas"
+    files:
+      persistence:
+        - "FootHold_Marianas.lua"
+      ctld_save:
+        files:
+          - "FootHold_Marianas_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Marianas_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Marianas_storage.csv"
+        optional: true
+
+  nevada:
+    display_name: "Nevada"
+    files:
+      persistence:
+        - "FootHold_Nevada.lua"
+      ctld_save:
+        files:
+          - "FootHold_Nevada_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Nevada_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Nevada_storage.csv"
+        optional: true
+
+  normandy:
+    display_name: "Normandy"
+    files:
+      persistence:
+        - "FootHold_Normandy.lua"
+      ctld_save:
+        files:
+          - "FootHold_Normandy_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Normandy_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Normandy_storage.csv"
+        optional: true
+
+  persian_gulf:
+    display_name: "Persian Gulf"
+    files:
+      persistence:
+        - "FootHold_PersianGulf.lua"
+      ctld_save:
+        files:
+          - "FootHold_PersianGulf_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_PersianGulf_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_PersianGulf_storage.csv"
+        optional: true
+
+  sinai:
+    display_name: "Sinai"
+    files:
+      persistence:
+        - "FootHold_Sinai.lua"
+      ctld_save:
+        files:
+          - "FootHold_Sinai_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Sinai_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Sinai_storage.csv"
+        optional: true
+
+  south_atlantic:
+    display_name: "South Atlantic"
+    files:
+      persistence:
+        - "FootHold_SouthAtlantic.lua"
+      ctld_save:
+        files:
+          - "FootHold_SouthAtlantic_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_SouthAtlantic_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_SouthAtlantic_storage.csv"
+        optional: true
+
+  syria:
+    display_name: "Syria"
+    files:
+      persistence:
+        - "FootHold_Syria.lua"
+      ctld_save:
+        files:
+          - "FootHold_Syria_CTLD_Save.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "FootHold_Syria_CTLD_FARPS.csv"
+        optional: true
+      storage:
+        files:
+          - "FootHold_Syria_storage.csv"
+        optional: true
