@@ -549,7 +549,7 @@ async def send_notification(
 
 **Mitigation:**
 - Build plugin ZIP with all dependencies for drop-in installation
-- Clear README_PLUGIN.md with installation instructions
+- Clear README.md in plugin folder with installation instructions
 - Consider adding to DCSServerBot plugin repository in future
 - Poetry add command works for development setup
 

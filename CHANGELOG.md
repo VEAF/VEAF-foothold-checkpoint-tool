@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-02-16
+
 ### Added
+- **DCSServerBot plugin improvements**:
+  - Plugin renamed to `foothold-checkpoint` for better identification
+  - Plugin files reorganized into `src/foothold_checkpoint/plugin/` directory structure
+  - Build script (`scripts/build_plugin.py`) updated to package plugin from organized structure
+  - Plugin distribution ZIP includes all necessary files (config examples, campaigns example, README)
+  - Documentation updated with DCSServerBot integration sections in README.md and USERS.md
+  - **ARCHITECTURE: Plugin now uses DCSServerBot's Plugin base class**:
+    - `FootholdCheckpoint` inherits from `Plugin[FootholdEventListener]` instead of `commands.Cog`
+    - `FootholdEventListener` inherits from `EventListener` for DCS event integration
+    - Plugin configuration automatically loaded via `self.locals` (DEFAULT section)
+    - Server-specific config support via `self.get_config(server)` with automatic merge
+    - Access to bot infrastructure: `self.log`, `self.pool`, `self.apool`, etc.
+    - Follows DCSServerBot plugin conventions and best practices
+  - **CONFIGURATION: Improved notification system**:
+    - Channel accepts both numeric ID (recommended) or channel name (fallback)
+    - Simplified notification toggles: `on_save`, `on_restore`, `on_delete`, `on_error`
+    - Per-server notification channels via server-specific config sections
+  - **DOCUMENTATION: Comprehensive plugin installation guide**:
+    - Step-by-step activation via `opt_plugins` in `main.yaml` (critical first step)
+    - Detailed configuration with DEFAULT and server-specific sections
+    - Common troubleshooting scenarios and solutions
 - **External campaigns configuration**: Campaigns can now be defined in separate `campaigns.yaml` file
   - Enables DRY configuration shared between CLI and DCSServerBot plugin
   - `campaigns_file` field in config.yaml references external campaigns file
@@ -51,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shows all files contained in each checkpoint
   - Helps verify checkpoint contents before restore
   - Formatted output with proper indentation
+- **Checkpoint grouping and sorting**: Manual checkpoints and auto-backups are now separated for better UX
+  - Manual checkpoints listed first, auto-backups listed last
+  - Visual separator line ("AUTO-BACKUPS") in both CLI and Discord UI
+  - Chronological sorting within each group (oldest first, newest last)
+  - Dropdown menus show most recent checkpoint at the bottom for easier selection
 - **Improved error messages**: More helpful and actionable error messages throughout
   - Unknown file errors include YAML configuration snippets
   - Campaign/server not found errors list available options
@@ -159,7 +187,8 @@ Initial release of the VEAF Foothold Checkpoint Tool.
 - **Type Safety**: Full mypy compliance
 - **Code Quality**: Black formatting, Ruff linting
 
-[Unreleased]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v2.0.0
 [1.1.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.1.0
 [1.0.1]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.0.1
 [1.0.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.0.0

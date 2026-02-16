@@ -375,8 +375,17 @@ def save_command(
         config_file = _config_path if _config_path is not None else Path("config.yaml")
         config = load_config(config_file)
 
+        # Validate servers are configured (required for CLI)
+        if config.servers is None:
+            console.print("[red]Error:[/red] No servers configured in config.yaml")
+            console.print("The CLI requires 'servers' section in config.yaml")
+            raise typer.Exit(1)
+
         # Step 1: Get server name (from flag or prompt)
         if server is None:
+            if False:  # config.servers already checked above
+                console.print("[red]Error:[/red] No servers configured in config file")
+                raise typer.Exit(1)
             available_servers = list(config.servers.keys())
             if not available_servers:
                 console.print("[red]Error:[/red] No servers configured in config file")
@@ -405,6 +414,11 @@ def save_command(
                     console.print(
                         f"Please enter a number (1-{len(available_servers)}) or a server name"
                     )
+
+        # Ensure server was selected (should always be true due to while loop above)
+        if server is None:
+            console.print("[red]Error:[/red] No server selected")
+            raise typer.Exit(1)
 
         # Validate server exists (case-insensitive)
         actual_server = find_key_case_insensitive(config.servers, server)
@@ -669,7 +683,7 @@ def restore_command(
 
         # Restore with ranks file included
         $ foothold-checkpoint restore 1 --server prod-1 --restore-ranks
-        
+
         # Restore without auto-backup (not recommended)
         $ foothold-checkpoint restore 1 --server test-server --no-auto-backup
 
@@ -680,6 +694,12 @@ def restore_command(
         # Step 1: Load configuration
         config_file = _config_path if _config_path else Path("config.yaml")
         config = load_config(config_file)
+
+        # Validate servers are configured (required for CLI)
+        if config.servers is None:
+            console.print("[red]Error:[/red] No servers configured in config.yaml")
+            console.print("The CLI requires 'servers' section in config.yaml")
+            raise typer.Exit(1)
 
         # Step 2: Get checkpoint file(s)
         checkpoint_paths: list[Path]
@@ -798,6 +818,11 @@ def restore_command(
                         f"Please enter a number (1-{len(available_servers)}) or a server name"
                     )
 
+        # Ensure server was selected (should always be true due to while loop above)
+        if server is None:
+            console.print("[red]Error:[/red] No server selected")
+            raise typer.Exit(1)
+
         # Validate server exists in config (case-insensitive)
         actual_server = find_key_case_insensitive(config.servers, server)
         if actual_server is None:
@@ -861,29 +886,33 @@ def restore_command(
                         progress.update(_task, description=f"{message} ({current}/{total})")
 
                     # Restore with progress callback (skip overwrite check since we already confirmed)
-                    restored_files = asyncio.run(restore_checkpoint(
-                        checkpoint_path=checkpoint_path,
-                        target_dir=target_dir,
-                        restore_ranks=restore_ranks,
-                        progress_callback=update_progress,
-                        config=config,
-                        skip_overwrite_check=True,
-                        server_name=server,
-                        auto_backup=auto_backup,
-                    ))
+                    restored_files = asyncio.run(
+                        restore_checkpoint(
+                            checkpoint_path=checkpoint_path,
+                            target_dir=target_dir,
+                            restore_ranks=restore_ranks,
+                            progress_callback=update_progress,
+                            config=config,
+                            skip_overwrite_check=True,
+                            server_name=server,
+                            auto_backup=auto_backup,
+                        )
+                    )
             else:
                 # Quiet mode: no progress display, no interactive confirmation
                 # In quiet mode, we assume user wants to overwrite (typical for automation)
-                restored_files = asyncio.run(restore_checkpoint(
-                    checkpoint_path=checkpoint_path,
-                    target_dir=target_dir,
-                    restore_ranks=restore_ranks,
-                    progress_callback=None,
-                    config=config,
-                    skip_overwrite_check=True,  # No confirmation in quiet mode
-                    server_name=server,
-                    auto_backup=auto_backup,
-                ))
+                restored_files = asyncio.run(
+                    restore_checkpoint(
+                        checkpoint_path=checkpoint_path,
+                        target_dir=target_dir,
+                        restore_ranks=restore_ranks,
+                        progress_callback=None,
+                        config=config,
+                        skip_overwrite_check=True,  # No confirmation in quiet mode
+                        server_name=server,
+                        auto_backup=auto_backup,
+                    )
+                )
 
             total_restored += len(restored_files)
 
@@ -971,9 +1000,9 @@ def list_command(
         config = load_config(config_file)
 
         # List checkpoints with filters
-        checkpoints = asyncio.run(list_checkpoints(
-            config.checkpoints_dir, server_filter=server, campaign_filter=campaign
-        ))
+        checkpoints = asyncio.run(
+            list_checkpoints(config.checkpoints_dir, server_filter=server, campaign_filter=campaign)
+        )
 
         # Handle empty results
         if not checkpoints:
@@ -1010,8 +1039,16 @@ def list_command(
         table.add_column("Name", style="blue")
         table.add_column("Comment", style="dim")
 
-        # Add rows for each checkpoint
+        # Add rows for each checkpoint with separator for auto-backups
+        prev_was_manual = True
         for idx, cp in enumerate(checkpoints, start=1):
+            # Add separator before first auto-backup
+            if cp.get("is_auto_backup") and prev_was_manual:
+                table.add_row(
+                    "", "─" * 40 + " AUTO-BACKUPS " + "─" * 40, "", "", "", "", "", "", style="dim"
+                )
+                prev_was_manual = False
+
             # Format timestamp for human readability (remove microseconds)
             timestamp_str = cp["timestamp"]
             # "2024-02-14T10:30:00.123456" -> "2024-02-14 10:30:00"
@@ -1131,6 +1168,16 @@ def delete_command(
         config_file = _config_path if _config_path else Path("config.yaml")
         config = load_config(config_file)
 
+        # Validate servers and campaigns are configured (required for CLI)
+        if config.servers is None:
+            console.print("[red]Error:[/red] No servers configured in config.yaml")
+            console.print("The CLI requires 'servers' section in config.yaml")
+            raise typer.Exit(1)
+        if config.campaigns is None:
+            console.print("[red]Error:[/red] No campaigns configured in config.yaml")
+            console.print("The CLI requires 'campaigns' section or 'campaigns_file' in config.yaml")
+            raise typer.Exit(1)
+
         # Step 1: Get checkpoint file (from argument or interactive selection)
         if checkpoint_file:
             # Check if checkpoint_file is a numeric selection (e.g., "1", "1,3", "1-3")
@@ -1232,7 +1279,9 @@ def delete_command(
 
             if use_force:
                 # Force mode: no confirmation needed
-                result = asyncio.run(delete_checkpoint(checkpoint_path, force=True, confirm_callback=None))
+                result = asyncio.run(
+                    delete_checkpoint(checkpoint_path, force=True, confirm_callback=None)
+                )
                 if result:
                     deleted_count += 1
             else:
@@ -1266,14 +1315,16 @@ def delete_command(
                 # Create confirmation callback
                 def confirm(meta: dict) -> bool:  # noqa: ARG001 - callback signature required
                     """Prompt user for deletion confirmation."""
-                    response = Prompt.ask(
+                    response: str = Prompt.ask(
                         "\n[yellow]Delete this checkpoint?[/yellow]",
                         choices=["y", "n"],
                         default="n",
                     )
-                    return response.lower() == "y"
+                    return bool(response.lower() == "y")
 
-                result = asyncio.run(delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm))
+                result = asyncio.run(
+                    delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm)
+                )
 
                 if result is None:
                     # User cancelled
@@ -1365,6 +1416,15 @@ def import_command(
         config_file = _config_path if _config_path else Path("config.yaml")
         config = load_config(config_file)
 
+        # Validate required configuration (None = not configured, {} = configured but empty is OK)
+        if config.campaigns is None or config.servers is None:
+            console.print("[red]Error:[/red] Configuration must include both campaigns and servers")
+            raise typer.Exit(1)
+
+        # Type narrowing for Optional attributes
+        campaigns = config.campaigns
+        servers = config.servers
+
         # Step 1: Get source directory (from argument or could be prompted)
         if not directory:
             console.print("[red]Error:[/red] Source directory is required")
@@ -1415,7 +1475,7 @@ def import_command(
                     # Build helpful error with display names
                     available_list = []
                     for camp_id in campaigns_found:
-                        camp_config = config.campaigns.get(camp_id)
+                        camp_config = campaigns.get(camp_id)
                         if camp_config:
                             display = camp_config.display_name
                             available_list.append(f"{camp_id} ({display})")
@@ -1433,7 +1493,7 @@ def import_command(
         elif len(campaigns_found) == 1:
             # Auto-detect single campaign
             campaign_name = list(campaigns_found.keys())[0]
-            camp_config = config.campaigns.get(campaign_name)
+            camp_config = campaigns.get(campaign_name)
             display_name = camp_config.display_name if camp_config else campaign_name
             if not _quiet_mode:
                 console.print(
@@ -1444,7 +1504,7 @@ def import_command(
             if not _quiet_mode:
                 console.print("\n[cyan]Multiple campaigns found:[/cyan]")
                 for idx, camp_id in enumerate(campaigns_found.keys(), 1):
-                    camp_config = config.campaigns.get(camp_id)
+                    camp_config = campaigns.get(camp_id)
                     display_name = camp_config.display_name if camp_config else camp_id
                     console.print(f"  {idx}. [white]{camp_id}[/white] - {display_name}")
 
@@ -1456,7 +1516,7 @@ def import_command(
         # Step 4: Get server name (from flag or prompt)
         if not server:
             # Prompt for server
-            available_servers = list(config.servers.keys())
+            available_servers = list(servers.keys())
             if not available_servers:
                 console.print("[red]Error:[/red] No servers configured")
                 raise typer.Exit(1)
@@ -1485,8 +1545,8 @@ def import_command(
         else:
             server_name = server
             # Validate server exists
-            if server_name not in config.servers:
-                available = ", ".join(config.servers.keys())
+            if server_name not in servers:
+                available = ", ".join(servers.keys())
                 console.print(
                     f"[red]Error:[/red] Server '{server_name}' not found. "
                     f"Available servers: {available}"
@@ -1512,16 +1572,18 @@ def import_command(
                 return
 
         # Step 6: Perform import
-        result = asyncio.run(import_checkpoint(
-            source_dir=source_dir,
-            campaign_name=campaign_name,
-            server_name=server_name,
-            output_dir=config.checkpoints_dir,
-            config=config,
-            name=name,
-            comment=comment,
-            return_warnings=True,
-        ))
+        result = asyncio.run(
+            import_checkpoint(
+                source_dir=source_dir,
+                campaign_name=campaign_name,
+                server_name=server_name,
+                output_dir=config.checkpoints_dir,
+                config=config,
+                name=name,
+                comment=comment,
+                return_warnings=True,
+            )
+        )
 
         # Handle result (could be path or tuple with warnings)
         if isinstance(result, tuple):

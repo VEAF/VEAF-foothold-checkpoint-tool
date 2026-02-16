@@ -37,6 +37,19 @@ poetry install
 poetry run foothold-checkpoint
 ```
 
+## DCSServerBot Integration
+
+This tool can also be used as a plugin for [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot), providing Discord slash commands for checkpoint management directly from Discord:
+
+- Save, restore, list, and delete checkpoints using Discord slash commands
+- Role-based permissions for checkpoint operations
+- Discord notifications for checkpoint events
+- No need to access the server command line
+
+**For plugin installation and usage, see the [Plugin Guide](src/foothold_checkpoint/plugin/README.md).**
+
+The rest of this guide covers the CLI usage. Plugin users should refer to the Plugin Guide instead.
+
 ## Configuration
 
 The tool uses a YAML configuration file located at `~/.foothold-checkpoint/config.yaml`.

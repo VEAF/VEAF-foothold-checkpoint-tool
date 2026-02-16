@@ -1,20 +1,39 @@
-"""Event listener for DCS events (minimal implementation).
+"""Event listener for DCS events.
 
-This module provides the EventListener class for potential future integration
-with DCS mission events. For v2.0.0, this is a minimal stub since checkpoint
-operations are triggered via Discord commands, not DCS events.
+This module provides the EventListener for potential future integration
+with DCS mission events. For v2.0.0, this is a minimal implementation since
+checkpoint operations are primarily triggered via Discord commands.
+
+Future versions may implement:
+- Automatic checkpoints on mission end
+- Checkpoint on server shutdown
+- Integration with mission scripting
 """
 
+from typing import TYPE_CHECKING
 
-class FootholdEventListener:
+from core import EventListener
+
+if TYPE_CHECKING:
+    pass
+
+
+class FootholdEventListener(EventListener["FootholdCheckpoint"]):
     """Event listener for DCS mission events.
 
-    Future versions may implement:
-    - Automatic checkpoints on mission end
-    - Checkpoint on server shutdown
-    - Integration with mission scripting
+    Inherits from DCSServerBot's EventListener base class, providing:
+    - Access to plugin configuration via self.get_config(server)
+    - Database connection pools (self.pool, self.apool)
+    - Bot instance (self.bot)
+    - Logger (self.log)
+    - Event decorators (@event, @chat_command)
+
+    Example future usage:
+        @event(name="onMissionEnd")
+        async def onMissionEnd(self, server: Server, data: dict) -> None:
+            # Auto-save checkpoint when mission ends
+            pass
     """
 
-    def __init__(self) -> None:
-        """Initialize the event listener."""
-        pass
+    # No custom initialization needed - EventListener.__init__ handles everything
+    # All the infrastructure (self.plugin, self.bot, self.log, etc.) is provided by base class

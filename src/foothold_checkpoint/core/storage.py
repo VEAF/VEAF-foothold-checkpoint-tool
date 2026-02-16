@@ -9,12 +9,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from foothold_checkpoint.core.campaign import detect_campaigns
-from foothold_checkpoint.core.checkpoint import create_checkpoint
+# Use relative imports for DCSSB compatibility (package structure is flattened)
+from .campaign import detect_campaigns
+from .checkpoint import create_checkpoint
 
 if TYPE_CHECKING:
-    from foothold_checkpoint.core.config import Config
-    from foothold_checkpoint.core.events import EventHooks
+    from .config import Config
+    from .events import EventHooks
 
 
 async def save_checkpoint(
@@ -26,6 +27,7 @@ async def save_checkpoint(
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
+    is_auto_backup: bool = False,
     progress_callback: Callable[[str, int, int], None] | None = None,
     hooks: "EventHooks | None" = None,
 ) -> Path:
@@ -50,6 +52,8 @@ async def save_checkpoint(
         name: Optional user-provided name for the checkpoint
             (e.g., "Before Mission 5").
         comment: Optional user-provided comment/description for the checkpoint.
+        is_auto_backup: Whether this checkpoint is an automatic backup created
+            before a restore operation. Defaults to False.
         progress_callback: Optional callback function called during checkpoint
             creation. Called as: callback(message: str, current: int, total: int).
             Example: callback("Computing checksums", 1, 3)
@@ -86,7 +90,7 @@ async def save_checkpoint(
         ...     hooks=discord_hooks,
         ... )
     """
-    from foothold_checkpoint.core.events import safe_invoke_hook
+    from .events import safe_invoke_hook
 
     try:
         # Trigger on_save_start hook
@@ -180,6 +184,7 @@ async def save_checkpoint(
             created_at=created_at,
             name=name,
             comment=comment,
+            is_auto_backup=is_auto_backup,
             progress_callback=combined_progress_callback,
         )
 
@@ -439,6 +444,7 @@ async def create_auto_backup(
             created_at=timestamp,
             name=backup_name,
             comment=backup_comment,
+            is_auto_backup=True,
             progress_callback=progress_callback,
             hooks=hooks,
         )
@@ -549,7 +555,7 @@ async def restore_checkpoint(
     import json
     import zipfile
 
-    from foothold_checkpoint.core.events import safe_invoke_hook
+    from .events import safe_invoke_hook
 
     try:
         checkpoint_path = Path(checkpoint_path)
@@ -651,9 +657,7 @@ async def restore_checkpoint(
 
             # Get list of files to restore
             all_files_in_zip = [
-                name
-                for name in zf.namelist()
-                if name != "metadata.json" and not name.endswith("/")
+                name for name in zf.namelist() if name != "metadata.json" and not name.endswith("/")
             ]
 
             # Filter out Foothold_Ranks.lua if not requested
@@ -724,7 +728,10 @@ async def restore_checkpoint(
                 # Trigger on_restore_progress hook
                 if hooks:
                     await safe_invoke_hook(
-                        hooks.on_restore_progress, idx, len(files_to_restore), hook_name="on_restore_progress"
+                        hooks.on_restore_progress,
+                        idx,
+                        len(files_to_restore),
+                        hook_name="on_restore_progress",
                     )
 
                 file_data = zf.read(filename)
@@ -783,7 +790,8 @@ async def list_checkpoints(
         - name: Optional user-provided name (str | None)
         - comment: Optional user-provided comment (str | None)
 
-        List is sorted by timestamp (newest first).
+        List is grouped (manual checkpoints first, auto-backups last) and sorted
+        within each group chronologically (oldest first, newest last).
 
     Raises:
         FileNotFoundError: If checkpoint directory doesn't exist.
@@ -865,6 +873,10 @@ async def list_checkpoints(
                     "name": metadata.get("name"),
                     "comment": metadata.get("comment"),
                     "files": files_in_checkpoint,  # List of files in checkpoint
+                    # Check metadata first, fallback to filename for old checkpoints
+                    "is_auto_backup": metadata.get(
+                        "is_auto_backup", checkpoint_path.name.startswith("auto-backup-")
+                    ),
                 }
 
                 checkpoints.append(checkpoint_info)
@@ -873,8 +885,16 @@ async def list_checkpoints(
             # Skip corrupted or invalid checkpoint files
             continue
 
-    # Sort by timestamp (newest first)
-    checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=True)
+    # Separate manual and auto-backup checkpoints
+    manual_checkpoints = [cp for cp in checkpoints if not cp["is_auto_backup"]]
+    auto_checkpoints = [cp for cp in checkpoints if cp["is_auto_backup"]]
+
+    # Sort each group by timestamp (oldest first = most recent last)
+    manual_checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=False)
+    auto_checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=False)
+
+    # Combine: manual first, then auto-backups
+    checkpoints = manual_checkpoints + auto_checkpoints
 
     return checkpoints
 
@@ -922,7 +942,7 @@ async def delete_checkpoint(
     import zipfile
     from zipfile import BadZipFile
 
-    from foothold_checkpoint.core.events import safe_invoke_hook
+    from .events import safe_invoke_hook
 
     try:
         checkpoint_path = Path(checkpoint_path)
@@ -982,9 +1002,7 @@ async def delete_checkpoint(
         try:
             checkpoint_path.unlink()
         except PermissionError as e:
-            raise PermissionError(
-                f"Permission denied: cannot delete {checkpoint_path.name}"
-            ) from e
+            raise PermissionError(f"Permission denied: cannot delete {checkpoint_path.name}") from e
         except OSError:
             # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
             raise
@@ -1111,7 +1129,7 @@ async def import_checkpoint(
     filenames = [f.name for f in all_files if f.is_file()]
 
     # Use campaign module to detect and group files
-    from foothold_checkpoint.core.campaign import detect_campaigns
+    from .campaign import detect_campaigns
 
     grouped = detect_campaigns(filenames, config)
 
@@ -1186,7 +1204,7 @@ async def import_checkpoint(
         warnings.append("Shared ranks file not found: Foothold_Ranks.lua")
 
     # Use create_checkpoint to build the checkpoint
-    from foothold_checkpoint.core.checkpoint import create_checkpoint
+    from .checkpoint import create_checkpoint
 
     # Set default timestamp to current time
     if created_at is None:

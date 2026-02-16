@@ -19,11 +19,10 @@ Example:
     checkpoint = await save_checkpoint(campaign, server_path, config, hooks=hooks)
 """
 
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-import logging
 from typing import Any
-
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,9 @@ class EventHooks:
     on_save_complete: Callable[[Any], Awaitable[None]] | None = None  # Path
 
     # Restore operation hooks
-    on_restore_start: Callable[[str, str], Awaitable[None]] | None = None  # checkpoint_name, campaign
+    on_restore_start: Callable[[str, str], Awaitable[None]] | None = (
+        None  # checkpoint_name, campaign
+    )
     on_restore_progress: Callable[[int, int], Awaitable[None]] | None = None
     on_restore_complete: Callable[[list[str]], Awaitable[None]] | None = None  # restored_files
 

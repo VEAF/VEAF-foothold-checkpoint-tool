@@ -1,14 +1,48 @@
 # Release Notes
 
-## Version 1.1.0 - February 15, 2026
+## Version 2.0.0 - February 16, 2026
 
 ### ⚠️ Breaking Changes
 
-**This release contains breaking changes.** Your configuration file requires migration.
+**This is a major release with breaking changes.** Your configuration file requires migration.
 
 See **[MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md)** for detailed upgrade instructions.
 
 ### 🎯 What's New
+
+#### 🤖 DCSServerBot Plugin Integration
+**Major new feature:** Full integration as a DCSServerBot plugin with Discord UI!
+
+- 📦 **Plugin package** ready for deployment (`foothold-checkpoint-plugin-v2.0.0.zip`)
+- 🏗️ **Plugin architecture** using DCSServerBot's `Plugin` base class
+- 🔌 **Event listener** integration for DCS events
+- ⚙️ **Auto-configuration** via `self.locals` and `self.get_config(server)`
+- 📢 **Notification system** with per-server channels and toggles
+- 🎮 **Discord commands** with interactive UI dropdowns and buttons
+- 📚 **Comprehensive documentation** in English and French
+
+**Plugin Features:**
+- `/foothold-checkpoint save` - Create checkpoints from Discord
+- `/foothold-checkpoint restore` - Restore with interactive selection
+- `/foothold-checkpoint list` - View checkpoints with filtering
+- `/foothold-checkpoint delete` - Delete with confirmation dialogs
+- Auto-backup protection before restores (enabled by default)
+- Visual separator between manual checkpoints and auto-backups
+- Server and campaign selection via dropdowns
+- Permission controls (administrator-only by default)
+
+#### 🗂️ External Campaigns Configuration
+Share campaign definitions between CLI and plugin:
+
+```yaml
+# config.yaml
+campaigns_file: campaigns.yaml
+```
+
+- ✅ **DRY principle**: Single source of truth for campaign configuration
+- ✅ **Shared config**: Used by both CLI tool and DCSServerBot plugin
+- ✅ **Backward compatible**: Inline campaigns still supported
+- ✅ **Validation**: Clear errors if configuration is invalid
 
 #### 🔧 Explicit File Configuration
 The most significant change in v1.1.0 is the new **structured file list** configuration format, replacing regex-based pattern matching:
@@ -117,7 +151,25 @@ Checkpoint: afghanistan_2026-02-15_10-30-00.zip
 - 🔍 Helps verify checkpoint contents before restore
 - 🎨 Formatted output with proper indentation
 
-#### 💬 Improved Error Messages
+#### � Checkpoint Grouping and Sorting
+Improved organization of checkpoint lists for better user experience:
+
+- 📑 **Manual checkpoints listed first**, auto-backups listed last
+- ➖ **Visual separator** ("AUTO-BACKUPS") in both CLI and Discord UI
+- 📅 **Chronological sorting** within each group (oldest first, newest last)
+- 🎯 **Easier selection** in dropdown menus (most recent at bottom)
+
+Example output:
+```
+Checkpoints for Afghanistan:
+  1. campaign_save_morning.zip      (2024-02-10)  2.1 MB
+  2. weekend_snapshot.zip            (2024-02-14)  2.2 MB
+  ────────────── AUTO-BACKUPS ──────────────
+  3. auto-backup-20240216-201000.zip (2024-02-16)  2.3 MB
+  4. auto-backup-20240216-221045.zip (2024-02-16)  2.3 MB
+```
+
+#### �💬 Improved Error Messages
 More helpful and actionable error messages throughout:
 
 - 🔧 Unknown file errors include YAML configuration snippets

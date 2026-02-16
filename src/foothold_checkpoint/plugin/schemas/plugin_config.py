@@ -11,20 +11,18 @@ class PermissionsConfig(BaseModel):
 
     save: list[str] = Field(
         default_factory=lambda: ["DCS Admin", "Mission Designer"],
-        description="Roles allowed to save checkpoints"
+        description="Roles allowed to save checkpoints",
     )
     restore: list[str] = Field(
-        default_factory=lambda: ["DCS Admin"],
-        description="Roles allowed to restore checkpoints"
+        default_factory=lambda: ["DCS Admin"], description="Roles allowed to restore checkpoints"
     )
     list_checkpoints: list[str] = Field(
         default_factory=lambda: ["DCS Admin", "Mission Designer", "Mission Controller"],
         description="Roles allowed to list checkpoints",
-        alias="list"
+        alias="list",
     )
     delete: list[str] = Field(
-        default_factory=lambda: ["DCS Admin"],
-        description="Roles allowed to delete checkpoints"
+        default_factory=lambda: ["DCS Admin"], description="Roles allowed to delete checkpoints"
     )
 
 
@@ -32,45 +30,30 @@ class NotificationsConfig(BaseModel):
     """Notification configuration for Discord events."""
 
     channel: str = Field(
-        default="mission-logs",
-        description="Discord channel name for checkpoint notifications"
+        default="mission-logs", description="Discord channel name for checkpoint notifications"
     )
-    on_save: bool = Field(
-        default=True,
-        description="Send notification when checkpoint is saved"
-    )
+    on_save: bool = Field(default=True, description="Send notification when checkpoint is saved")
     on_restore: bool = Field(
-        default=True,
-        description="Send notification when checkpoint is restored"
+        default=True, description="Send notification when checkpoint is restored"
     )
     on_delete: bool = Field(
-        default=True,
-        description="Send notification when checkpoint is deleted"
+        default=True, description="Send notification when checkpoint is deleted"
     )
-    on_error: bool = Field(
-        default=True,
-        description="Send notification on operation errors"
-    )
+    on_error: bool = Field(default=True, description="Send notification on operation errors")
 
 
 class PluginConfig(BaseModel):
     """Plugin configuration model for DCSServerBot integration."""
 
     campaigns_file: Path = Field(
-        ...,
-        description="Path to campaigns.yaml defining all campaign settings"
+        ..., description="Path to campaigns.yaml defining all campaign settings"
     )
-    checkpoints_dir: Path = Field(
-        ...,
-        description="Directory where checkpoints are stored"
-    )
+    checkpoints_dir: Path = Field(..., description="Directory where checkpoints are stored")
     permissions: PermissionsConfig = Field(
-        default_factory=PermissionsConfig,
-        description="Role-based permission configuration"
+        default_factory=PermissionsConfig, description="Role-based permission configuration"
     )
     notifications: NotificationsConfig = Field(
-        default_factory=NotificationsConfig,
-        description="Discord notification settings"
+        default_factory=NotificationsConfig, description="Discord notification settings"
     )
 
     @field_validator("campaigns_file", "checkpoints_dir")
@@ -106,5 +89,5 @@ class PluginConfig(BaseModel):
                 "on_restore": self.notifications.on_restore,
                 "on_delete": self.notifications.on_delete,
                 "on_error": self.notifications.on_error,
-            }
+            },
         }
