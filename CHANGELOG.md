@@ -141,5 +141,7 @@ Initial release of the VEAF Foothold Checkpoint Tool.
 - **Type Safety**: Full mypy compliance
 - **Code Quality**: Black formatting, Ruff linting
 
-[Unreleased]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.1.0
+[1.0.1]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.0.1
 [1.0.0]: https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v1.0.0

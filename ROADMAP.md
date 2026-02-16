@@ -192,6 +192,9 @@ Currently no active development. All planned features for v1.1.0 have been compl
 
 ### 💡 Future Considerations (No Timeline)
 
+**DCS Server Bot plugin enhancements**
+- automatic scheduled backups
+
 **Cloud Storage Integration**
 - Upload checkpoints to S3, Azure Blob, Google Cloud Storage
 - Automatic cloud backup on checkpoint creation
