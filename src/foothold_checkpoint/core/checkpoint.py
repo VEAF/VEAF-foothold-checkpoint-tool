@@ -61,6 +61,10 @@ class CheckpointMetadata(BaseModel):
     comment: str | None = Field(
         None, description="Optional user-provided comment or description for the checkpoint"
     )
+    is_auto_backup: bool = Field(
+        False,
+        description="Whether this checkpoint is an automatic backup created before a restore operation",
+    )
 
     model_config = {"frozen": True}
 
@@ -255,6 +259,7 @@ def create_checkpoint(
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
+    is_auto_backup: bool = False,
     progress_callback: Callable[[str, int, int], None] | None = None,
 ) -> Path:
     """Create a checkpoint ZIP archive with campaign files and metadata.
@@ -335,6 +340,7 @@ def create_checkpoint(
         files=files_checksums,
         name=name,
         comment=comment,
+        is_auto_backup=is_auto_backup,
     )
 
     # Generate ZIP filename

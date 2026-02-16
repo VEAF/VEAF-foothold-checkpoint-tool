@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from foothold_checkpoint.core.config import Config
+    # Use relative import for DCSSB compatibility
+    from .config import Config
 
 
 # Pattern to detect foothold-like files (used for unknown file detection)
@@ -68,6 +69,9 @@ def build_file_to_campaign_map(config: "Config") -> dict[str, str]:
         'ca'
     """
     file_to_campaign: dict[str, str] = {}
+
+    if config.campaigns is None:
+        return file_to_campaign
 
     for campaign_id, campaign_config in config.campaigns.items():
         # Iterate through all file types in the campaign
@@ -303,9 +307,7 @@ def generate_config_suggestion(unknown_files: list[str]) -> str:
     files:
       persistence:"""
 
-    # Add the persistence files (usually .lua)
-    persistence_files = [f for f in unknown_files if f.endswith(".lua")]
-    if persistence_files:
+    if persistence_files := [f for f in unknown_files if f.endswith(".lua")]:
         for f in persistence_files:
             snippet += f'\n        - "{f}"'
     else:
@@ -314,16 +316,18 @@ def generate_config_suggestion(unknown_files: list[str]) -> str:
 
     # Add other file types
     snippet += "\n      ctld_save:"
-    ctld_save_files = [f for f in unknown_files if "CTLD_Save" in f or "ctld_save" in f.lower()]
-    if ctld_save_files:
+    if ctld_save_files := [
+        f for f in unknown_files if "CTLD_Save" in f or "ctld_save" in f.lower()
+    ]:
         for f in ctld_save_files:
             snippet += f'\n        - "{f}"'
     else:
         snippet += f'\n        - "foothold_{campaign_id}_CTLD_Save.csv"'
 
     snippet += "\n      ctld_farps:"
-    ctld_farps_files = [f for f in unknown_files if "CTLD_FARPS" in f or "ctld_farps" in f.lower()]
-    if ctld_farps_files:
+    if ctld_farps_files := [
+        f for f in unknown_files if "CTLD_FARPS" in f or "ctld_farps" in f.lower()
+    ]:
         for f in ctld_farps_files:
             snippet += f'\n        - "{f}"'
     else:

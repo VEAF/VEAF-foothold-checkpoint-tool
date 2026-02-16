@@ -23,23 +23,16 @@ servers:
     path: D:\Servers\DCS-Test\Missions\Saves
     description: "Test and development server"
 
-# Campaign configurations with explicit file lists
-# 
-# Each campaign defines all known file names for each file type:
-#   - persistence: Main Lua file(s) - REQUIRED (at least one file)
-#   - ctld_save: CTLD save CSV file(s) - optional
-#   - ctld_farps: CTLD FARPs CSV file(s) - optional  
-#   - storage: Storage CSV file(s) - optional
+# Campaign configurations
 #
-# Campaign File Naming Evolution:
-# When a campaign's file names change over time (e.g., "FootHold_GCW_Modern.lua" → "FootHold_Germany_Modern.lua"),
-# list ALL accepted names for each file. The FIRST name in the list is the "canonical" (current) name:
-#   - On restore: old checkpoint files are automatically renamed to the first (canonical) name
-#   - On save: files matching any name in the list will be included
+# ⚠️ v2.0.0+ Recommended: Use external campaigns.yaml file (DRY configuration for CLI + plugin)
+# Copy campaigns.yaml.example to ~/.foothold-checkpoint/campaigns.yaml and customize it.
+# Then uncomment the line below:
 #
-# Optional Files:
-# Mark file types as optional with `optional: true`. The tool will skip them if not present
-# without generating warnings. Required file types (like persistence) must have at least one file.
+# campaigns_file: campaigns.yaml
+#
+# OR use inline campaign definitions (legacy v1.x format):
+# (Either campaigns_file OR inline campaigns, not both)
 
 campaigns:
   afghanistan:
