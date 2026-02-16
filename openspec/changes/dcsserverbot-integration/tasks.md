@@ -195,32 +195,32 @@
 
 ## 16. EventListener Implementation
 
-- [ ] 16.1 Implement FootholdEventListener class in listener.py
-- [ ] 16.2 Extend EventListener base class
-- [ ] 16.3 Add stub methods for future DCS event integration (optional for v2.0.0)
-- [ ] 16.4 Add docstrings explaining EventListener purpose
-- [ ] 16.5 Keep implementation minimal since no DCS events needed for v2.0.0
+- [x] 16.1 Implement FootholdEventListener class in listener.py
+- [x] 16.2 Extend EventListener base class
+- [x] 16.3 Add stub methods for future DCS event integration (optional for v2.0.0)
+- [x] 16.4 Add docstrings explaining EventListener purpose
+- [x] 16.5 Keep implementation minimal since no DCS events needed for v2.0.0
 
 ## 17. Poetry Dependency Management
 
-- [ ] 17.1 Add discord-py to pyproject.toml
-- [ ] 17.2 Create [tool.poetry.group.plugin] optional group
-- [ ] 17.3 Move discord-py to plugin dependency group
+- [x] 17.1 Add discord-py to pyproject.toml
+- [x] 17.2 Create [tool.poetry.group.plugin] optional group
+- [x] 17.3 Move discord-py to plugin dependency group
 - [ ] 17.4 Add aiofiles to dependencies (if using async file I/O)
 - [ ] 17.5 Update poetry.lock with new dependencies
 - [ ] 17.6 Test CLI-only install (poetry install without --with plugin)
 - [ ] 17.7 Test full install (poetry install --with plugin)
-- [ ] 17.8 Verify discord.py not required for CLI-only usage
+- [x] 17.8 Verify discord.py not required for CLI-only usage
 
 ## 18. Plugin Packaging Script
 
-- [ ] 18.1 Create scripts/build_plugin.py
-- [ ] 18.2 Implement ZIP creation for plugin/ directory
-- [ ] 18.3 Include commands.py, listener.py, version.py, __init__.py in ZIP
-- [ ] 18.4 Include schemas/ directory in ZIP
-- [ ] 18.5 Generate requirements.txt with plugin dependencies only
-- [ ] 18.6 Include README_PLUGIN.md with installation instructions
-- [ ] 18.7 Output ZIP to dist/foothold-plugin-v2.0.0.zip
+- [x] 18.1 Create scripts/build_plugin.py
+- [x] 18.2 Implement ZIP creation for plugin/ directory
+- [x] 18.3 Include commands.py, listener.py, version.py, __init__.py in ZIP
+- [x] 18.4 Include schemas/ directory in ZIP
+- [x] 18.5 Generate requirements.txt with plugin dependencies only
+- [x] 18.6 Include README_PLUGIN.md with installation instructions
+- [x] 18.7 Output ZIP to dist/foothold-plugin-v2.0.0.zip
 - [ ] 18.8 Test ZIP extraction and structure
 - [ ] 18.9 Update CI/CD to run build_plugin.py on release
 
@@ -269,16 +269,16 @@
 
 ## 22. Documentation - Migration Guide
 
-- [ ] 22.1 Create MIGRATION_v2.0.0.md
-- [ ] 22.2 Document config.yaml → campaigns.yaml migration steps
-- [ ] 22.3 Provide before/after config examples
-- [ ] 22.4 Document CLI backward compatibility notes
-- [ ] 22.5 Document breaking changes (async functions, EventHooks parameter)
-- [ ] 22.6 Document plugin installation steps
-- [ ] 22.7 Document foothold.yaml configuration
-- [ ] 22.8 Document permissions configuration
-- [ ] 22.9 Document notifications configuration
-- [ ] 22.10 Add troubleshooting section
+- [x] 22.1 Create MIGRATION_v2.0.0.md
+- [x] 22.2 Document config.yaml → campaigns.yaml migration steps
+- [x] 22.3 Provide before/after config examples
+- [x] 22.4 Document CLI backward compatibility notes
+- [x] 22.5 Document breaking changes (async functions, EventHooks parameter)
+- [x] 22.6 Document plugin installation steps
+- [x] 22.7 Document foothold.yaml configuration
+- [x] 22.8 Document permissions configuration
+- [x] 22.9 Document notifications configuration
+- [x] 22.10 Add troubleshooting section
 
 ## 23. Documentation - User Guide Updates
 
@@ -295,9 +295,16 @@
 
 ## 24. Documentation - Plugin README
 
-- [ ] 24.1 Create README_PLUGIN.md
-- [ ] 24.2 Document plugin installation from ZIP
-- [ ] 24.3 Document plugin installation via Poetry
+- [x] 24.1 Create README_PLUGIN.md
+- [x] 24.2 Document plugin installation from ZIP
+- [x] 24.3 Document plugin installation via Poetry
+- [x] 24.4 Document foothold.yaml configuration structure
+- [x] 24.5 Document campaigns.yaml reference
+- [x] 24.6 Document permissions configuration
+- [x] 24.7 Document notifications configuration
+- [x] 24.8 Document all Discord commands with examples
+- [x] 24.9 Add troubleshooting section
+- [x] 24.10 Add development and testing instructions
 - [ ] 24.4 Document required configuration files
 - [ ] 24.5 Document foothold.yaml configuration options
 - [ ] 24.6 Document campaigns.yaml setup
@@ -330,11 +337,11 @@
 
 ## 27. Configuration Examples
 
-- [ ] 27.1 Update config.yaml.example with campaigns_file reference
-- [ ] 27.2 Create campaigns.yaml.example with all VEAF campaigns
-- [ ] 27.3 Create config/plugins/foothold.yaml.example
-- [ ] 27.4 Document all configuration options with inline comments
-- [ ] 27.5 Provide minimal and full configuration examples
+- [x] 27.1 Update config.yaml.example with campaigns_file reference
+- [x] 27.2 Create campaigns.yaml.example with all VEAF campaigns
+- [x] 27.3 Create config/plugins/foothold.yaml.example
+- [x] 27.4 Document all configuration options with inline comments
+- [x] 27.5 Provide minimal and full configuration examples
 - [ ] 27.6 Add configuration validation examples
 
 ## 28. CI/CD Updates
@@ -367,10 +374,10 @@
 
 ## 30. Release Preparation
 
-- [ ] 30.1 Update version to 2.0.0 in pyproject.toml
-- [ ] 30.2 Update version to 2.0.0 in src/foothold_checkpoint/__init__.py
-- [ ] 30.3 Update version to 2.0.0 in plugin/version.py
-- [ ] 30.4 Verify all tests pass (aim for 350+ tests)
+- [x] 30.1 Update version to 2.0.0 in pyproject.toml
+- [x] 30.2 Update version to 2.0.0 in src/foothold_checkpoint/__init__.py
+- [x] 30.3 Update version to 2.0.0 in plugin/version.py
+- [x] 30.4 Verify all tests pass (aim for 350+ tests)
 - [ ] 30.5 Verify code coverage >90%
 - [ ] 30.6 Run mypy type checking (no errors)
 - [ ] 30.7 Run black formatting

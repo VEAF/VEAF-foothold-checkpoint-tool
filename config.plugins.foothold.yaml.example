@@ -1,0 +1,65 @@
+# Example foothold.yaml configuration for DCSServerBot Plugin
+#
+# Place this file in: DCSServerBot/config/plugins/foothold.yaml
+#
+# This configuration defines how the Foothold checkpoint plugin operates,
+# including campaign locations, permissions, and notification settings.
+
+---
+# Path to campaigns.yaml file (required)
+# Can be relative to this config file or absolute path
+# This file contains all campaign definitions shared between CLI and plugin
+campaigns_file: ./campaigns.yaml
+
+# Directory where all checkpoints are stored (required)
+# Can be relative to bot root or absolute path
+# Bot will create this directory if it doesn't exist
+checkpoints_dir: ./checkpoints
+
+# Discord role-based permissions for checkpoint operations
+# Users must have one of the listed roles to execute each operation
+# Administrators always have access regardless of configuration
+permissions:
+  # Roles allowed to create checkpoints
+  save:
+    - DCS Admin
+    - Mission Designer
+
+  # Roles allowed to restore checkpoints (most dangerous operation)
+  restore:
+    - DCS Admin
+
+  # Roles allowed to list checkpoints (read-only)
+  list:
+    - DCS Admin
+    - Mission Designer
+    - Mission Controller
+    # Uncomment to allow everyone:
+    # - @everyone
+
+  # Roles allowed to delete checkpoints (permanent action)
+  delete:
+    - DCS Admin
+
+# Discord notification configuration
+# Controls how and when the bot sends checkpoint event notifications
+notifications:
+  # Discord channel name where notifications will be sent
+  # Bot must have permission to view and send messages to this channel
+  channel: mission-logs
+
+  # Notify when checkpoint is saved successfully
+  on_save: true
+
+  # Notify when checkpoint is restored successfully
+  on_restore: true
+
+  # Notify when checkpoint is deleted
+  on_delete: true
+
+  # Notify when an operation fails with an error
+  on_error: true
+
+  # Optional: Notify on auto-backup creation
+  # Uncomment to enable:
+  # on_backup: true

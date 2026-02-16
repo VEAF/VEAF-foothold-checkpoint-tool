@@ -4,7 +4,7 @@ This package provides functionality for creating, restoring, listing, and managi
 checkpoints of DCS Foothold campaign save files with integrity verification.
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "VEAF"
 __email__ = "contact@veaf.org"
 
