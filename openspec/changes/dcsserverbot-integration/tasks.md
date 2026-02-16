@@ -57,8 +57,8 @@
 - [x] 5.5 Wrap delete command with asyncio.run(delete_checkpoint(...))
 - [x] 5.6 Wrap import command with asyncio.run(import_checkpoint(...))
 - [x] 5.7 Ensure all CLI calls pass hooks=None
-- [ ] 5.8 Add --auto-backup / --no-auto-backup flags to restore command
-- [ ] 5.9 Add --details flag to list command
+- [x] 5.8 Add --auto-backup / --no-auto-backup flags to restore command
+- [x] 5.9 Add --details flag to list command
 - [x] 5.10 Update CLI tests to verify async wrapping works correctly
 
 ## 6. Plugin Directory Structure

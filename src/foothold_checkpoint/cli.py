@@ -627,6 +627,13 @@ def restore_command(
             help="Include Foothold_Ranks.lua in restoration",
         ),
     ] = False,
+    auto_backup: Annotated[
+        bool,
+        typer.Option(
+            "--auto-backup/--no-auto-backup",
+            help="Automatically create a backup before restoring (enabled by default)",
+        ),
+    ] = True,
 ) -> None:
     """Restore a checkpoint to a target server directory.
 
@@ -638,12 +645,12 @@ def restore_command(
 
     If --server is not provided, prompts for server selection.
 
-    IMPORTANT: An automatic backup is created before restoration. The current
-    campaign state is saved as an auto-backup checkpoint (timestamped) so you
-    can revert if needed. This happens automatically and cannot be disabled.
+    IMPORTANT: By default, an automatic backup is created before restoration.
+    The current campaign state is saved as an auto-backup checkpoint (timestamped)
+    so you can revert if needed. Use --no-auto-backup to disable this safety feature.
 
     The restore process:
-    1. Creates auto-backup checkpoint of current state
+    1. Creates auto-backup checkpoint of current state (if --auto-backup, default)
     2. Verifies checkpoint file integrity with SHA-256 checksums
     3. Prompts for confirmation if files will be overwritten
     4. Extracts files to server directory
@@ -662,6 +669,9 @@ def restore_command(
 
         # Restore with ranks file included
         $ foothold-checkpoint restore 1 --server prod-1 --restore-ranks
+        
+        # Restore without auto-backup (not recommended)
+        $ foothold-checkpoint restore 1 --server test-server --no-auto-backup
 
         # Interactive mode (select checkpoint and server)
         $ foothold-checkpoint restore
@@ -859,7 +869,7 @@ def restore_command(
                         config=config,
                         skip_overwrite_check=True,
                         server_name=server,
-                        auto_backup=True,
+                        auto_backup=auto_backup,
                     ))
             else:
                 # Quiet mode: no progress display, no interactive confirmation
@@ -872,7 +882,7 @@ def restore_command(
                     config=config,
                     skip_overwrite_check=True,  # No confirmation in quiet mode
                     server_name=server,
-                    auto_backup=True,
+                    auto_backup=auto_backup,
                 ))
 
             total_restored += len(restored_files)
