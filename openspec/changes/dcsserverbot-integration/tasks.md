@@ -12,40 +12,40 @@
 
 ## 2. Core Library Event Hooks System
 
-- [ ] 2.1 Create EventHooks dataclass in core/events.py
-- [ ] 2.2 Add on_save_start, on_save_progress, on_save_complete callbacks to EventHooks
-- [ ] 2.3 Add on_restore_start, on_restore_progress, on_restore_complete callbacks to EventHooks
-- [ ] 2.4 Add on_delete_start, on_delete_complete callbacks to EventHooks
-- [ ] 2.5 Add on_backup_complete callback to EventHooks
-- [ ] 2.6 Add on_error callback to EventHooks
-- [ ] 2.7 Implement safe hook invocation wrapper (async, catches exceptions, logs errors)
-- [ ] 2.8 Add type hints for all hook callbacks (Callable[[...], Awaitable[None]])
+- [x] 2.1 Create EventHooks dataclass in core/events.py
+- [x] 2.2 Add on_save_start, on_save_progress, on_save_complete callbacks to EventHooks
+- [x] 2.3 Add on_restore_start, on_restore_progress, on_restore_complete callbacks to EventHooks
+- [x] 2.4 Add on_delete_start, on_delete_complete callbacks to EventHooks
+- [x] 2.5 Add on_backup_complete callback to EventHooks
+- [x] 2.6 Add on_error callback to EventHooks
+- [x] 2.7 Implement safe hook invocation wrapper (async, catches exceptions, logs errors)
+- [x] 2.8 Add type hints for all hook callbacks (Callable[[...], Awaitable[None]])
 
 ## 3. Core Library Async Refactoring
 
-- [ ] 3.1 Convert save_checkpoint() to async def
-- [ ] 3.2 Add optional hooks parameter to save_checkpoint()
-- [ ] 3.3 Integrate EventHooks calls in save_checkpoint() at appropriate points
-- [ ] 3.4 Convert restore_checkpoint() to async def
-- [ ] 3.5 Add optional hooks parameter to restore_checkpoint()
-- [ ] 3.6 Integrate EventHooks calls in restore_checkpoint() at appropriate points
-- [ ] 3.7 Convert delete_checkpoint() to async def
-- [ ] 3.8 Add optional hooks parameter to delete_checkpoint()
-- [ ] 3.9 Integrate EventHooks calls in delete_checkpoint() at appropriate points
-- [ ] 3.10 Convert list_checkpoints() to async def
-- [ ] 3.11 Convert import_checkpoint() to async def
+- [x] 3.1 Convert save_checkpoint() to async def
+- [x] 3.2 Add optional hooks parameter to save_checkpoint()
+- [x] 3.3 Integrate EventHooks calls in save_checkpoint() at appropriate points
+- [x] 3.4 Convert restore_checkpoint() to async def
+- [x] 3.5 Add optional hooks parameter to restore_checkpoint()
+- [x] 3.6 Integrate EventHooks calls in restore_checkpoint() at appropriate points
+- [x] 3.7 Convert delete_checkpoint() to async def
+- [x] 3.8 Add optional hooks parameter to delete_checkpoint()
+- [x] 3.9 Integrate EventHooks calls in delete_checkpoint() at appropriate points
+- [x] 3.10 Convert list_checkpoints() to async def
+- [x] 3.11 Convert import_checkpoint() to async def
 - [ ] 3.12 Add aiofiles dependency for async file operations (optional optimization)
 - [ ] 3.13 Update all core tests to use asyncio.run() or @pytest.mark.asyncio
 
 ## 4. Auto-Backup Feature
 
-- [ ] 4.1 Implement create_auto_backup() function in core/storage.py
-- [ ] 4.2 Add auto_backup parameter to restore_checkpoint() (default True)
-- [ ] 4.3 Integrate auto-backup creation before restore operations
-- [ ] 4.4 Add auto-backup naming convention: {campaign}_backup_{timestamp}.zip
-- [ ] 4.5 Include auto-backup reference in restore metadata/comment
-- [ ] 4.6 Handle auto-backup failures (abort restore on backup failure)
-- [ ] 4.7 Trigger on_backup_complete hook when auto-backup succeeds
+- [x] 4.1 Implement create_auto_backup() function in core/storage.py
+- [x] 4.2 Add auto_backup parameter to restore_checkpoint() (default True)
+- [x] 4.3 Integrate auto-backup creation before restore operations
+- [x] 4.4 Add auto-backup naming convention: {campaign}_backup_{timestamp}.zip
+- [x] 4.5 Include auto-backup reference in restore metadata/comment
+- [x] 4.6 Handle auto-backup failures (abort restore on backup failure)
+- [x] 4.7 Trigger on_backup_complete hook when auto-backup succeeds
 - [ ] 4.8 Add tests for auto-backup creation and failure scenarios
 
 ## 5. CLI Async Wrapper Updates

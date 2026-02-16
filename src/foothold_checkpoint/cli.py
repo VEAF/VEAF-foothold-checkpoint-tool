@@ -1,5 +1,6 @@
 """Command-line interface for foothold-checkpoint tool."""
 
+import asyncio
 import signal
 import sys
 from pathlib import Path
@@ -676,7 +677,7 @@ def restore_command(
             # Check if checkpoint_file is a numeric selection (e.g., "1", "1,3", "1-3")
             if is_numeric_selection(checkpoint_file):
                 # Resolve numeric selection by listing checkpoints
-                checkpoints = list_checkpoints(config.checkpoints_dir)
+                checkpoints = asyncio.run(list_checkpoints(config.checkpoints_dir))
 
                 if not checkpoints:
                     console.print("[red]Error:[/red] No checkpoints found in checkpoint directory")
@@ -713,7 +714,7 @@ def restore_command(
                 console.print("[cyan]Available checkpoints:[/cyan]")
 
             # List all checkpoints
-            checkpoints = list_checkpoints(config.checkpoints_dir)
+            checkpoints = asyncio.run(list_checkpoints(config.checkpoints_dir))
 
             if not checkpoints:
                 console.print("[red]Error:[/red] No checkpoints found in checkpoint directory")
@@ -850,7 +851,7 @@ def restore_command(
                         progress.update(_task, description=f"{message} ({current}/{total})")
 
                     # Restore with progress callback (skip overwrite check since we already confirmed)
-                    restored_files = restore_checkpoint(
+                    restored_files = asyncio.run(restore_checkpoint(
                         checkpoint_path=checkpoint_path,
                         target_dir=target_dir,
                         restore_ranks=restore_ranks,
@@ -859,11 +860,11 @@ def restore_command(
                         skip_overwrite_check=True,
                         server_name=server,
                         auto_backup=True,
-                    )
+                    ))
             else:
                 # Quiet mode: no progress display, no interactive confirmation
                 # In quiet mode, we assume user wants to overwrite (typical for automation)
-                restored_files = restore_checkpoint(
+                restored_files = asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path,
                     target_dir=target_dir,
                     restore_ranks=restore_ranks,
@@ -872,7 +873,7 @@ def restore_command(
                     skip_overwrite_check=True,  # No confirmation in quiet mode
                     server_name=server,
                     auto_backup=True,
-                )
+                ))
 
             total_restored += len(restored_files)
 
@@ -960,9 +961,9 @@ def list_command(
         config = load_config(config_file)
 
         # List checkpoints with filters
-        checkpoints = list_checkpoints(
+        checkpoints = asyncio.run(list_checkpoints(
             config.checkpoints_dir, server_filter=server, campaign_filter=campaign
-        )
+        ))
 
         # Handle empty results
         if not checkpoints:
@@ -1125,7 +1126,7 @@ def delete_command(
             # Check if checkpoint_file is a numeric selection (e.g., "1", "1,3", "1-3")
             if is_numeric_selection(checkpoint_file):
                 # Resolve numeric selection by listing checkpoints
-                checkpoints = list_checkpoints(config.checkpoints_dir)
+                checkpoints = asyncio.run(list_checkpoints(config.checkpoints_dir))
 
                 if not checkpoints:
                     console.print("[yellow]No checkpoints found[/yellow]")
@@ -1153,7 +1154,7 @@ def delete_command(
                 checkpoint_paths = [Path(config.checkpoints_dir) / checkpoint_file]
         else:
             # Interactive mode: list checkpoints and prompt for selection
-            checkpoints = list_checkpoints(config.checkpoints_dir)
+            checkpoints = asyncio.run(list_checkpoints(config.checkpoints_dir))
 
             if not checkpoints:
                 console.print("[yellow]No checkpoints found[/yellow]")
@@ -1221,7 +1222,7 @@ def delete_command(
 
             if use_force:
                 # Force mode: no confirmation needed
-                result = delete_checkpoint(checkpoint_path, force=True, confirm_callback=None)
+                result = asyncio.run(delete_checkpoint(checkpoint_path, force=True, confirm_callback=None))
                 if result:
                     deleted_count += 1
             else:
@@ -1262,7 +1263,7 @@ def delete_command(
                     )
                     return response.lower() == "y"
 
-                result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm)
+                result = asyncio.run(delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm))
 
                 if result is None:
                     # User cancelled
@@ -1501,7 +1502,7 @@ def import_command(
                 return
 
         # Step 6: Perform import
-        result = import_checkpoint(
+        result = asyncio.run(import_checkpoint(
             source_dir=source_dir,
             campaign_name=campaign_name,
             server_name=server_name,
@@ -1510,7 +1511,7 @@ def import_command(
             name=name,
             comment=comment,
             return_warnings=True,
-        )
+        ))
 
         # Handle result (could be path or tuple with warnings)
         if isinstance(result, tuple):

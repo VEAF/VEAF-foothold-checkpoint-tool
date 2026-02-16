@@ -1,5 +1,6 @@
 """Tests for checkpoint storage operations."""
 
+import asyncio
 import contextlib
 import sys
 import tempfile
@@ -37,13 +38,13 @@ class TestSaveCheckpoint:
                 }
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert result.parent == output_dir
@@ -67,13 +68,13 @@ class TestSaveCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert isinstance(result, Path)
             assert result.is_file()
@@ -98,7 +99,7 @@ class TestSaveCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
@@ -106,7 +107,7 @@ class TestSaveCheckpoint:
                 config=config,
                 name="Before Mission 5",
                 comment="Test checkpoint",
-            )
+            ))
 
             # Verify metadata contains name and comment
             with zipfile.ZipFile(result, "r") as zf, zf.open("metadata.json") as mf:
@@ -145,13 +146,13 @@ class TestSaveCheckpoint:
                 }
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="afghanistan",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             # Verify only afghanistan files are in checkpoint
             with zipfile.ZipFile(result, "r") as zf:
@@ -181,13 +182,13 @@ class TestSaveCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 assert "Foothold_Ranks.lua" in zf.namelist()
@@ -211,13 +212,13 @@ class TestSaveCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 assert "Foothold_Ranks.lua" not in zf.namelist()
@@ -240,14 +241,14 @@ class TestSaveCheckpoint:
             )
 
             custom_time = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
                 created_at=custom_time,
-            )
+            ))
 
             assert "2024-01-15_10-30-00" in result.name
 
@@ -273,14 +274,14 @@ class TestSaveCheckpoint:
             def progress_callback(message: str, current: int, total: int) -> None:
                 progress_calls.append((message, current, total))
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
                 progress_callback=progress_callback,
-            )
+            ))
 
             assert len(progress_calls) > 0
             # Should have been called during checkpoint creation
@@ -308,13 +309,13 @@ class TestSaveCheckpoint:
                 ValueError,
                 match="No campaign files found for campaign 'nonexistent'",
             ):
-                save_checkpoint(
+                asyncio.run(save_checkpoint(
                     campaign_name="nonexistent",
                     server_name="server",
                     source_dir=source_dir,
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_save_checkpoint_raises_error_when_source_dir_does_not_exist(self):
         """save_checkpoint should raise FileNotFoundError if source_dir doesn't exist."""
@@ -334,13 +335,13 @@ class TestSaveCheckpoint:
                 FileNotFoundError,
                 match="Source directory.*does not exist",
             ):
-                save_checkpoint(
+                asyncio.run(save_checkpoint(
                     campaign_name="test",
                     server_name="server",
                     source_dir=source_dir,
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_save_checkpoint_raises_error_when_source_dir_is_not_directory(self):
         """save_checkpoint should raise NotADirectoryError if source_dir is a file."""
@@ -361,13 +362,13 @@ class TestSaveCheckpoint:
                 NotADirectoryError,
                 match="Source path.*is not a directory",
             ):
-                save_checkpoint(
+                asyncio.run(save_checkpoint(
                     campaign_name="test",
                     server_name="server",
                     source_dir=source_file,
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_save_checkpoint_raises_error_when_source_dir_not_readable(self):
         """save_checkpoint should raise PermissionError if source_dir is not readable."""
@@ -399,13 +400,13 @@ class TestSaveCheckpoint:
 
             try:
                 with pytest.raises(PermissionError):
-                    save_checkpoint(
+                    asyncio.run(save_checkpoint(
                         campaign_name="test",
                         server_name="server",
                         source_dir=source_dir,
                         output_dir=output_dir,
                         config=config,
-                    )
+                    ))
             finally:
                 # Restore permissions for cleanup
                 os.chmod(source_dir, stat.S_IRWXU)
@@ -440,12 +441,12 @@ class TestSaveAllCampaigns:
                 }
             )
 
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert len(results) == 3
             assert all(path.exists() for path in results.values())
@@ -474,12 +475,12 @@ class TestSaveAllCampaigns:
                 }
             )
 
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert isinstance(results, dict)
             for campaign, path in results.items():
@@ -511,14 +512,14 @@ class TestSaveAllCampaigns:
                 }
             )
 
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
                 name="Shared name",
                 comment="Shared comment",
-            )
+            ))
 
             # Verify all checkpoints have same name/comment
             for checkpoint_path in results.values():
@@ -552,13 +553,13 @@ class TestSaveAllCampaigns:
             )
 
             # Should succeed for valid campaign despite invalid one
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
                 continue_on_error=True,
-            )
+            ))
 
             # Should have saved the valid campaign
             assert "valid" in results
@@ -587,13 +588,13 @@ class TestSaveAllCampaigns:
 
             # Should raise error when trying to create checkpoint in a file path
             with pytest.raises((NotADirectoryError, OSError, FileNotFoundError)):
-                save_all_campaigns(
+                asyncio.run(save_all_campaigns(
                     server_name="server",
                     source_dir=source_dir,
                     output_dir=output_path,  # This is a file, not a directory
                     config=config,
                     continue_on_error=False,
-                )
+                ))
 
     def test_save_all_campaigns_with_no_campaigns_returns_empty_dict(self):
         """save_all_campaigns should return empty dict when no campaigns found."""
@@ -614,12 +615,12 @@ class TestSaveAllCampaigns:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert results == {}
 
@@ -645,13 +646,13 @@ class TestSaveAllCampaigns:
             )
 
             custom_time = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
                 created_at=custom_time,
-            )
+            ))
 
             # All checkpoints should have the same timestamp
             for path in results.values():
@@ -678,13 +679,13 @@ class TestStorageDirectoryCreation:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert output_dir.exists()
             assert output_dir.is_dir()
@@ -707,13 +708,13 @@ class TestStorageDirectoryCreation:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = save_checkpoint(
+            result = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert result.parent == output_dir
@@ -735,12 +736,12 @@ class TestStorageDirectoryCreation:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            results = save_all_campaigns(
+            results = asyncio.run(save_all_campaigns(
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert output_dir.exists()
             assert output_dir.is_dir()
@@ -764,13 +765,13 @@ class TestStorageDirectoryCreation:
             )
 
             with pytest.raises((NotADirectoryError, FileExistsError, OSError)):
-                save_checkpoint(
+                asyncio.run(save_checkpoint(
                     campaign_name="test",
                     server_name="server",
                     source_dir=source_dir,
                     output_dir=output_file,
                     config=config,
-                )
+                ))
 
 
 class TestRestoreCheckpoint:
@@ -800,19 +801,19 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Restore to a different directory
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
-            restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir, config=None)
+            asyncio.run(restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir, config=None))
 
             # Verify files were extracted
             assert (target_dir / "foothold_test.lua").exists()
@@ -836,20 +837,20 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-            )
+            ))
 
             assert isinstance(restored_files, list)
             assert len(restored_files) >= 1
@@ -866,9 +867,9 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
-                restore_checkpoint(
+                asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
 
     def test_restore_checkpoint_raises_error_if_not_valid_zip(self):
         """restore_checkpoint should raise error if file is not a valid ZIP."""
@@ -883,7 +884,7 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             with pytest.raises(ValueError, match="not a valid ZIP archive"):
-                restore_checkpoint(checkpoint_path=invalid_zip, target_dir=target_dir, config=None)
+                asyncio.run(restore_checkpoint(checkpoint_path=invalid_zip, target_dir=target_dir, config=None))
 
     def test_restore_checkpoint_raises_error_if_metadata_missing(self):
         """restore_checkpoint should raise error if metadata.json is missing."""
@@ -901,7 +902,7 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             with pytest.raises(ValueError, match="missing metadata"):
-                restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir, config=None)
+                asyncio.run(restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir, config=None))
 
     def test_restore_checkpoint_raises_error_if_metadata_invalid_json(self):
         """restore_checkpoint should raise error if metadata.json has invalid JSON."""
@@ -919,7 +920,7 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             with pytest.raises(ValueError, match="Invalid metadata JSON"):
-                restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir, config=None)
+                asyncio.run(restore_checkpoint(checkpoint_path=zip_path, target_dir=target_dir, config=None))
 
     def test_restore_checkpoint_raises_error_if_target_dir_not_exists(self):
         """restore_checkpoint should raise error if target directory doesn't exist."""
@@ -937,20 +938,20 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "nonexistent_target"
 
             with pytest.raises(FileNotFoundError, match="Target directory does not exist"):
-                restore_checkpoint(
+                asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
 
     def test_restore_checkpoint_raises_error_if_target_not_writable(self):
         """restore_checkpoint should raise error if target directory is not writable."""
@@ -973,13 +974,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "readonly_target"
             target_dir.mkdir()
@@ -987,9 +988,9 @@ class TestRestoreCheckpoint:
 
             try:
                 with pytest.raises(PermissionError):
-                    restore_checkpoint(
+                    asyncio.run(restore_checkpoint(
                         checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                    )
+                    ))
             finally:
                 target_dir.chmod(0o755)
 
@@ -1011,13 +1012,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Tamper with the ZIP by recreating it with wrong content but same metadata
             with zipfile.ZipFile(checkpoint_path, "r") as zf:
@@ -1036,9 +1037,9 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             with pytest.raises(ValueError, match="Checksum mismatch"):
-                restore_checkpoint(
+                asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
 
     def test_restore_checkpoint_excludes_foothold_ranks_by_default(self):
         """restore_checkpoint should exclude Foothold_Ranks.lua by default."""
@@ -1057,20 +1058,20 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-            )
+            ))
 
             # Campaign file should be restored
             assert (target_dir / "foothold_test.lua").exists()
@@ -1096,23 +1097,23 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 restore_ranks=True,
                 config=None,
-            )
+            ))
 
             # Both files should be restored
             assert (target_dir / "foothold_test.lua").exists()
@@ -1136,24 +1137,24 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
             # Should not raise error, should just warn/log
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 restore_ranks=True,
                 config=None,
-            )
+            ))
 
             # Should restore campaign file successfully
             assert (target_dir / "foothold_test.lua").exists()
@@ -1175,13 +1176,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
@@ -1195,9 +1196,9 @@ class TestRestoreCheckpoint:
                 unittest.mock.patch("builtins.input", return_value="n"),
                 pytest.raises(RuntimeError, match="Restoration cancelled"),
             ):
-                restore_checkpoint(
+                asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
 
             # Original file should remain unchanged
             assert (target_dir / "foothold_test.lua").read_text() == "-- existing content"
@@ -1218,13 +1219,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
@@ -1233,9 +1234,9 @@ class TestRestoreCheckpoint:
             import unittest.mock
 
             with unittest.mock.patch("builtins.input", return_value="y"):
-                restored_files = restore_checkpoint(
+                restored_files = asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
 
             # File should be overwritten
             assert (target_dir / "foothold_test.lua").read_text() == "-- new campaign"
@@ -1257,13 +1258,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
@@ -1273,9 +1274,9 @@ class TestRestoreCheckpoint:
 
             # Should not call input
             with unittest.mock.patch("builtins.input") as mock_input:
-                restored_files = restore_checkpoint(
+                restored_files = asyncio.run(restore_checkpoint(
                     checkpoint_path=checkpoint_path, target_dir=target_dir, config=None
-                )
+                ))
                 mock_input.assert_not_called()
 
             assert len(restored_files) >= 1
@@ -1303,13 +1304,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
@@ -1319,11 +1320,11 @@ class TestRestoreCheckpoint:
             def progress_callback(message: str, current: int, total: int):
                 progress_calls.append((message, current, total))
 
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 progress_callback=progress_callback,
-            )
+            ))
 
             # Should have called progress callback
             assert len(progress_calls) > 0
@@ -1349,13 +1350,13 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
@@ -1373,11 +1374,9 @@ class TestRestoreCheckpoint:
                 # Need to re-create target_dir Path instance after patching
                 target_dir_patched = Path(tmpdir) / "target"
                 with pytest.raises(OSError, match="No space left on device"):
-                    restore_checkpoint(
+                    asyncio.run(restore_checkpoint(
                         checkpoint_path=checkpoint_path, target_dir=target_dir_patched
-                    )
-
-    def test_restore_checkpoint_renames_files_with_evolved_campaign_names(self):
+                    ))
         """restore_checkpoint should rename files when campaign name has evolved."""
         import hashlib
         import json
@@ -1437,13 +1436,13 @@ class TestRestoreCheckpoint:
             target_dir.mkdir()
 
             # Restore with config (should use target directory as-is since metadata has gcw_modern)
-            restored_files = restore_checkpoint(
+            restored_files = asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 config=config,
                 skip_overwrite_check=True,
                 auto_backup=False,  # Disable auto-backup for this test
-            )
+            ))
 
             # Files should still exist with original names (or may be renamed based on config logic)
             # The key is that restoration completes successfully
@@ -1503,13 +1502,13 @@ class TestRestoreCheckpoint:
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
-            restore_checkpoint(
+            asyncio.run(restore_checkpoint(
                 checkpoint_path=checkpoint_path,
                 target_dir=target_dir,
                 config=config,
                 skip_overwrite_check=True,
                 auto_backup=False,  # Disable auto-backup for this test
-            )
+            ))
 
             # Filename should be unchanged (campaign name hasn't evolved)
             assert (target_dir / "foothold_afghanistan.lua").exists()
@@ -1532,19 +1531,19 @@ class TestRestoreCheckpoint:
 
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="gcw_modern",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             target_dir = Path(tmpdir) / "target"
             target_dir.mkdir()
 
             # Restore without config (backward compatibility)
-            restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir, config=None)
+            asyncio.run(restore_checkpoint(checkpoint_path=checkpoint_path, target_dir=target_dir, config=None))
 
             # Original filename should be preserved
             assert (target_dir / "FootHold_GCW_Modern.lua").exists()
@@ -1561,7 +1560,7 @@ class TestListCheckpoints:
             checkpoint_dir = Path(tmpdir) / "checkpoints"
             checkpoint_dir.mkdir()
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert result == []
 
@@ -1591,15 +1590,15 @@ class TestListCheckpoints:
             )
 
             # Create a checkpoint
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert isinstance(result[0], dict)
@@ -1638,27 +1637,27 @@ class TestListCheckpoints:
                 }
             )
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server1",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create test campaign files for second checkpoint
             (source_dir / "foothold_test2.lua").write_text("-- test2")
             (source_dir / "foothold_test2_storage.csv").write_text("data2")
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test2",
                 server_name="server2",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 2
 
@@ -1694,7 +1693,7 @@ class TestListCheckpoints:
                 zf.writestr("foothold_test_storage.csv", large_data)
 
             # List checkpoints (should be fast, not extracting 10 MB)
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert result[0]["campaign"] == "test"
@@ -1727,23 +1726,23 @@ class TestListCheckpoints:
             )
 
             # Create checkpoints for different servers
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server1",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
             time.sleep(1)  # Ensure different timestamp for unique filename
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server2",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir, server_filter="server1")
+            result = asyncio.run(list_checkpoints(checkpoint_dir, server_filter="server1"))
 
             assert len(result) == 1
             assert result[0]["server"] == "server1"
@@ -1778,27 +1777,27 @@ class TestListCheckpoints:
                 }
             )
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="campaign1",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create campaign files for campaign2
             (source_dir / "foothold_campaign2.lua").write_text("-- campaign2")
             (source_dir / "foothold_campaign2_storage.csv").write_text("data2")
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="campaign2",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir, campaign_filter="campaign1")
+            result = asyncio.run(list_checkpoints(checkpoint_dir, campaign_filter="campaign1"))
 
             assert len(result) == 1
             assert result[0]["campaign"] == "campaign1"
@@ -1835,39 +1834,39 @@ class TestListCheckpoints:
                 }
             )
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="campaign1",
                 server_name="server1",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create campaign files for campaign2
             (source_dir / "foothold_campaign2.lua").write_text("-- campaign2")
             (source_dir / "foothold_campaign2_storage.csv").write_text("data2")
             time.sleep(1)  # Ensure different timestamp
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="campaign2",
                 server_name="server1",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
             time.sleep(1)  # Ensure different timestamp
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="campaign1",
                 server_name="server2",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(
+            result = asyncio.run(list_checkpoints(
                 checkpoint_dir, server_filter="server1", campaign_filter="campaign1"
-            )
+            ))
 
             assert len(result) == 1
             assert result[0]["server"] == "server1"
@@ -1900,7 +1899,7 @@ class TestListCheckpoints:
                     zf.writestr("metadata.json", json.dumps(metadata))
                 time.sleep(0.01)  # Ensure different file creation times
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 3
             # Should be sorted newest first
@@ -1932,15 +1931,15 @@ class TestListCheckpoints:
                 }
             )
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert "size_bytes" in result[0]
@@ -1964,15 +1963,15 @@ class TestListCheckpoints:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert "size_human" in result[0]
@@ -2000,20 +1999,20 @@ class TestListCheckpoints:
             )
 
             # Create a valid checkpoint
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="valid",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create a corrupted ZIP file
             corrupted_path = checkpoint_dir / "corrupted.zip"
             corrupted_path.write_text("This is not a valid ZIP file")
 
             # Should return only the valid checkpoint
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert result[0]["campaign"] == "valid"
@@ -2040,13 +2039,13 @@ class TestListCheckpoints:
             )
 
             # Create a valid checkpoint
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="valid",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create a ZIP without metadata.json
             no_metadata_path = checkpoint_dir / "no_metadata.zip"
@@ -2054,7 +2053,7 @@ class TestListCheckpoints:
                 zf.writestr("some_file.txt", "content")
 
             # Should return only the valid checkpoint
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             assert len(result) == 1
             assert result[0]["campaign"] == "valid"
@@ -2067,7 +2066,7 @@ class TestListCheckpoints:
             non_existent_dir = Path(tmpdir) / "nonexistent"
 
             with pytest.raises(FileNotFoundError, match="Checkpoint directory not found"):
-                list_checkpoints(non_existent_dir)
+                asyncio.run(list_checkpoints(non_existent_dir))
 
     def test_list_checkpoints_skips_non_zip_files(self):
         """list_checkpoints should ignore non-ZIP files in the checkpoint directory."""
@@ -2094,19 +2093,19 @@ class TestListCheckpoints:
             )
 
             # Create a valid checkpoint
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create non-ZIP files
             (checkpoint_dir / "readme.txt").write_text("This is not a checkpoint")
             (checkpoint_dir / "notes.md").write_text("# Notes")
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             # Should only return the valid checkpoint
             assert len(result) == 1
@@ -2140,20 +2139,20 @@ class TestListCheckpoints:
             )
 
             # Create a valid checkpoint
-            save_checkpoint(
+            asyncio.run(save_checkpoint(
                 campaign_name="valid",
                 server_name="server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Create a ZIP with invalid JSON metadata
             invalid_json_path = checkpoint_dir / "invalid_json.zip"
             with zipfile.ZipFile(invalid_json_path, "w") as zf:
                 zf.writestr("metadata.json", '{"campaign": "test", invalid json here')
 
-            result = list_checkpoints(checkpoint_dir)
+            result = asyncio.run(list_checkpoints(checkpoint_dir))
 
             # Should return only the valid checkpoint
             assert len(result) == 1
@@ -2182,19 +2181,19 @@ class TestDeleteCheckpoint:
             )
 
             # Save a checkpoint
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Verify file exists
             assert checkpoint_path.exists()
 
             # Delete the checkpoint
-            delete_checkpoint(checkpoint_path, force=True)
+            asyncio.run(delete_checkpoint(checkpoint_path, force=True))
 
             # Verify file is gone
             assert not checkpoint_path.exists()
@@ -2216,16 +2215,16 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Delete using string path
-            delete_checkpoint(str(checkpoint_path), force=True)
+            asyncio.run(delete_checkpoint(str(checkpoint_path), force=True))
 
             assert not checkpoint_path.exists()
 
@@ -2239,7 +2238,7 @@ class TestDeleteCheckpoint:
             non_existent = checkpoint_dir / "nonexistent.zip"
 
             with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
-                delete_checkpoint(non_existent, force=True)
+                asyncio.run(delete_checkpoint(non_existent, force=True))
 
     def test_delete_checkpoint_raises_error_if_not_a_zip(self):
         """delete_checkpoint should raise ValueError if file is not a ZIP."""
@@ -2254,7 +2253,7 @@ class TestDeleteCheckpoint:
             not_zip.write_text("not a zip file")
 
             with pytest.raises(ValueError, match="Not a valid checkpoint file"):
-                delete_checkpoint(not_zip, force=True)
+                asyncio.run(delete_checkpoint(not_zip, force=True))
 
     def test_delete_checkpoint_raises_error_if_zip_missing_metadata(self):
         """delete_checkpoint should raise ValueError if ZIP lacks metadata.json."""
@@ -2272,7 +2271,7 @@ class TestDeleteCheckpoint:
                 zf.writestr("some_file.txt", "content")
 
             with pytest.raises(ValueError, match="Not a valid checkpoint.*missing metadata"):
-                delete_checkpoint(invalid_zip, force=True)
+                asyncio.run(delete_checkpoint(invalid_zip, force=True))
 
     def test_delete_checkpoint_returns_metadata_dict(self):
         """delete_checkpoint should return checkpoint metadata dict before deletion."""
@@ -2291,7 +2290,7 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
@@ -2299,9 +2298,9 @@ class TestDeleteCheckpoint:
                 config=config,
                 name="Test Checkpoint",
                 comment="Test comment",
-            )
+            ))
 
-            metadata = delete_checkpoint(checkpoint_path, force=True)
+            metadata = asyncio.run(delete_checkpoint(checkpoint_path, force=True))
 
             # Should return metadata dict
             assert isinstance(metadata, dict)
@@ -2328,7 +2327,7 @@ class TestDeleteCheckpoint:
 
             # Should raise error even in force mode (cannot validate it's a checkpoint)
             with pytest.raises(ValueError, match="Cannot read checkpoint metadata"):
-                delete_checkpoint(corrupted_zip, force=True)
+                asyncio.run(delete_checkpoint(corrupted_zip, force=True))
 
     @pytest.mark.skipif(
         sys.platform != "win32",
@@ -2354,20 +2353,20 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Make file read-only
             os.chmod(checkpoint_path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
             try:
                 with pytest.raises(PermissionError):
-                    delete_checkpoint(checkpoint_path, force=True)
+                    asyncio.run(delete_checkpoint(checkpoint_path, force=True))
             finally:
                 # Restore permissions for cleanup
                 with contextlib.suppress(OSError, FileNotFoundError):
@@ -2393,16 +2392,16 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Force mode should delete immediately
-            delete_checkpoint(checkpoint_path, force=True)
+            asyncio.run(delete_checkpoint(checkpoint_path, force=True))
 
             assert not checkpoint_path.exists()
 
@@ -2423,17 +2422,17 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Without force and without confirmation callback should raise error
             with pytest.raises(ValueError, match="Confirmation callback required when force=False"):
-                delete_checkpoint(checkpoint_path, force=False)
+                asyncio.run(delete_checkpoint(checkpoint_path, force=False))
 
     def test_delete_checkpoint_calls_confirmation_callback(self):
         """delete_checkpoint should call confirmation callback and respect its result."""
@@ -2452,19 +2451,19 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Confirmation callback returns False (user cancels)
             def confirm_no(metadata):
                 return False
 
-            result = delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_no)
+            result = asyncio.run(delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_no))
 
             # File should still exist
             assert checkpoint_path.exists()
@@ -2488,14 +2487,14 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 name="Test Name",
                 config=config,
-            )
+            ))
 
             received_metadata = {}
 
@@ -2503,7 +2502,7 @@ class TestDeleteCheckpoint:
                 received_metadata.update(metadata)
                 return True
 
-            delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes)
+            asyncio.run(delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes))
 
             # Callback should have received metadata
             assert received_metadata["campaign_name"] == "test"
@@ -2527,18 +2526,18 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             def confirm_yes(metadata):
                 return True
 
-            delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes)
+            asyncio.run(delete_checkpoint(checkpoint_path, force=False, confirm_callback=confirm_yes))
 
             # File should be deleted
             assert not checkpoint_path.exists()
@@ -2562,20 +2561,20 @@ class TestDeleteCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = asyncio.run(save_checkpoint(
                 campaign_name="test",
                 server_name="test-server",
                 source_dir=source_dir,
                 output_dir=checkpoint_dir,
                 config=config,
-            )
+            ))
 
             # Mock Path.unlink to raise OSError
             with (
                 patch.object(Path, "unlink", side_effect=OSError("File in use")),
                 pytest.raises(OSError, match="File in use"),
             ):
-                delete_checkpoint(checkpoint_path, force=True)
+                asyncio.run(delete_checkpoint(checkpoint_path, force=True))
 
 
 class TestImportCheckpoint:
@@ -2606,13 +2605,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert result.parent == output_dir
@@ -2636,13 +2635,13 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=str(source_dir),
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=str(output_dir),
                 config=config,
-            )
+            ))
 
             assert result.exists()
 
@@ -2661,13 +2660,13 @@ class TestImportCheckpoint:
             )
 
             with pytest.raises(FileNotFoundError, match="Import directory not found"):
-                import_checkpoint(
+                asyncio.run(import_checkpoint(
                     source_dir=source_dir,
                     campaign_name="test",
                     server_name="test-server",
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_import_checkpoint_raises_error_if_source_is_file(self):
         """import_checkpoint should raise ValueError if source path is a file, not directory."""
@@ -2685,13 +2684,13 @@ class TestImportCheckpoint:
             )
 
             with pytest.raises(ValueError, match="Not a directory"):
-                import_checkpoint(
+                asyncio.run(import_checkpoint(
                     source_dir=source_file,
                     campaign_name="test",
                     server_name="test-server",
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_import_checkpoint_raises_error_if_no_campaign_files(self):
         """import_checkpoint should raise ValueError if no campaign files found."""
@@ -2712,13 +2711,13 @@ class TestImportCheckpoint:
             )
 
             with pytest.raises(ValueError, match="No campaign files found"):
-                import_checkpoint(
+                asyncio.run(import_checkpoint(
                     source_dir=source_dir,
                     campaign_name="test",
                     server_name="test-server",
                     output_dir=output_dir,
                     config=config,
-                )
+                ))
 
     def test_import_checkpoint_detects_campaign_files_for_specified_campaign(self):
         """import_checkpoint should detect and import only files for specified campaign."""
@@ -2754,13 +2753,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test1",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             # Check checkpoint contains only test1 files
             with zipfile.ZipFile(result, "r") as zf:
@@ -2792,13 +2791,13 @@ class TestImportCheckpoint:
             )
 
             before_import = datetime.now(timezone.utc)
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
             after_import = datetime.now(timezone.utc)
 
             # Check metadata has current timestamp
@@ -2836,13 +2835,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             # Check metadata has checksums
             with zipfile.ZipFile(result, "r") as zf:
@@ -2876,7 +2875,7 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
@@ -2884,7 +2883,7 @@ class TestImportCheckpoint:
                 config=config,
                 name="Imported Backup",
                 comment="Old manual backup",
-            )
+            ))
 
             # Check metadata
             with zipfile.ZipFile(result, "r") as zf:
@@ -2917,13 +2916,13 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 metadata_content = zf.read("metadata.json")
@@ -2952,13 +2951,13 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 files = zf.namelist()
@@ -2983,13 +2982,13 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 files = zf.namelist()
@@ -3025,13 +3024,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 files = zf.namelist()
@@ -3066,13 +3065,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 files = zf.namelist()
@@ -3105,13 +3104,13 @@ class TestImportCheckpoint:
                 }
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             with zipfile.ZipFile(result, "r") as zf:
                 files = zf.namelist()
@@ -3143,14 +3142,14 @@ class TestImportCheckpoint:
                 }
             )
 
-            result, warnings = import_checkpoint(
+            result, warnings = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 return_warnings=True,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert len(warnings) > 0
@@ -3181,14 +3180,14 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result, warnings = import_checkpoint(
+            result, warnings = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 return_warnings=True,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert len(warnings) == 0
@@ -3222,13 +3221,13 @@ class TestImportCheckpoint:
             try:
                 os.chmod(source_dir, 0o000)
                 with pytest.raises(PermissionError):
-                    import_checkpoint(
+                    asyncio.run(import_checkpoint(
                         source_dir=source_dir,
                         campaign_name="test",
                         server_name="test-server",
                         output_dir=output_dir,
                         config=config,
-                    )
+                    ))
             finally:
                 # Restore permissions for cleanup
                 with contextlib.suppress(OSError, PermissionError):
@@ -3250,13 +3249,13 @@ class TestImportCheckpoint:
                 campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
             )
 
-            result = import_checkpoint(
+            result = asyncio.run(import_checkpoint(
                 source_dir=source_dir,
                 campaign_name="test",
                 server_name="test-server",
                 output_dir=output_dir,
                 config=config,
-            )
+            ))
 
             assert result.exists()
             assert output_dir.exists()
