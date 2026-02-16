@@ -85,114 +85,113 @@
 
 ## 8. Plugin Base Class Implementation
 
-- [ ] 8.1 Implement Foothold(Plugin[FootholdEventListener]) class in commands.py
-- [ ] 8.2 Implement __init__ method with super().__init__(bot, listener) call
-- [ ] 8.3 Implement cog_load() lifecycle hook
-- [ ] 8.4 Implement cog_unload() lifecycle hook
-- [ ] 8.5 Implement install() lifecycle hook (if needed)
-- [ ] 8.6 Add setup() function for bot registration
-- [ ] 8.7 Initialize plugin logger via self.log
-- [ ] 8.8 Load config via self.get_config() in cog_load()
+- [x] 8.1 Implement Foothold(Plugin[FootholdEventListener]) class in commands.py
+- [x] 8.2 Implement __init__ method with super().__init__(bot, listener) call
+- [x] 8.3 Implement cog_load() lifecycle hook
+- [x] 8.4 Implement cog_unload() lifecycle hook
+- [x] 8.5 Implement install() lifecycle hook (if needed)
+- [x] 8.6 Add setup() function for bot registration
+- [x] 8.7 Initialize plugin logger via self.log
+- [x] 8.8 Load config via self.get_config() in cog_load()
 
 ## 9. Plugin Permissions System
 
-- [ ] 9.1 Implement check_permission() method in commands.py
-- [ ] 9.2 Load permissions from config['permissions'] section
-- [ ] 9.3 Check user roles against permitted roles for operation
+- [x] 9.1 Implement check_permission() method in commands.py
+- [x] 9.2 Load permissions from config['permissions'] section
+- [x] 9.3 Check user roles against permitted roles for operation
 - [ ] 9.4 Implement case-insensitive role name matching
-- [ ] 9.5 Support multiple permitted roles per operation (OR logic)
-- [ ] 9.6 Implement administrator override (Discord Administrator permission)
+- [x] 9.5 Support multiple permitted roles per operation (OR logic)
+- [x] 9.6 Implement administrator override (Discord Administrator permission)
 - [ ] 9.7 Implement bot owner override
 - [ ] 9.8 Log permission checks and overrides
-- [ ] 9.9 Create format_permission_denied() helper for error messages
+- [x] 9.9 Create format_permission_denied() helper for error messages
 - [ ] 9.10 Add unit tests for permission checking logic
 
 ## 10. Discord Notifications System
 
-- [ ] 10.1 Implement NotificationManager class in notifications.py
-- [ ] 10.2 Implement get_notification_channel() method (lookup by name or ID)
-- [ ] 10.3 Implement create_save_embed() for save notifications
-- [ ] 10.4 Implement create_restore_embed() for restore notifications
-- [ ] 10.5 Implement create_delete_embed() for delete notifications
-- [ ] 10.6 Implement create_error_embed() for failure notifications
-- [ ] 10.7 Add timestamp and user attribution to all embeds
-- [ ] 10.8 Implement send_notification() method with error handling
-- [ ] 10.9 Check notification config flags (on_save, on_restore, etc.) before sending
-- [ ] 10.10 Handle missing channel gracefully (log warning, don't fail operation)
-- [ ] 10.11 Handle missing permissions gracefully (log warning, don't fail operation)
+- [x] 10.1 Implement NotificationManager class in notifications.py
+- [x] 10.2 Implement get_notification_channel() method (lookup by name or ID)
+- [x] 10.3 Implement create_save_embed() for save notifications
+- [x] 10.4 Implement create_restore_embed() for restore notifications
+- [x] 10.5 Implement create_delete_embed() for delete notifications
+- [x] 10.6 Implement create_error_embed() for failure notifications
+- [x] 10.7 Add timestamp and user attribution to all embeds
+- [x] 10.8 Implement send_notification() method with error handling
+- [x] 10.9 Check notification config flags (on_save, on_restore, etc.) before sending
+- [x] 10.10 Handle missing channel gracefully (log warning, don't fail operation)
+- [x] 10.11 Handle missing permissions gracefully (log warning, don't fail operation)
 - [ ] 10.12 Add Discord rate limit handling
 - [ ] 10.13 Add unit tests for embed creation and sending
 
 ## 11. Discord Commands - Base Infrastructure
 
-- [ ] 11.1 Add @command decorator to Foothold class commands
-- [ ] 11.2 Add @app_commands.guild_only() to all commands
+- [x] 11.1 Add @command decorator to Foothold class commands
+- [x] 11.2 Add @app_commands.guild_only() to all commands
 - [ ] 11.3 Add @utils.app_has_role('DCS') base permission to all commands
 - [ ] 11.4 Implement ServerTransformer parameter for all commands
 - [ ] 11.5 Create campaign_autocomplete() function for campaign parameter
 - [ ] 11.6 Create checkpoint_autocomplete() function for checkpoint parameter
-- [ ] 11.7 Implement interaction.response.defer(thinking=True) for long operations
-- [ ] 11.8 Implement error handling wrapper for all commands
-- [ ] 11.9 Add command execution logging (user, server, params, result)
+- [x] 11.7 Implement interaction.response.defer(thinking=True) for long operations
+- [x] 11.8 Implement error handling wrapper for all commands
+- [x] 11.9 Add command execution logging (user, server, params, result)
 
 ## 12. Discord Commands - /foothold save Implementation
 
-- [ ] 12.1 Define save command with description
-- [ ] 12.2 Add server parameter with ServerTransformer
-- [ ] 12.3 Add campaign parameter with autocomplete
-- [ ] 12.4 Add optional name parameter
-- [ ] 12.5 Add optional comment parameter  
-- [ ] 12.6 Implement permission check for 'save' operation
-- [ ] 12.7 Create EventHooks for Discord progress updates
-- [ ] 12.8 Call save_checkpoint() from core library with hooks
-- [ ] 12.9 Create success embed response
-- [ ] 12.10 Create failure embed response
-- [ ] 12.11 Trigger notification on save complete
-- [ ] 12.12 Handle exceptions and send error notifications
+- [x] 12.1 Define save command with description
+- [x] 12.2 Add server parameter with ServerTransformer
+- [x] 12.3 Add campaign parameter with autocomplete
+- [x] 12.4 Add optional name parameter
+- [x] 12.5 Add optional comment parameter
+- [x] 12.6 Implement permission check for 'save' operation
+- [x] 12.7 Create EventHooks for Discord progress updates
+- [x] 12.8 Call save_checkpoint() from core library with hooks
+- [x] 12.9 Create success embed response
+- [x] 12.10 Create failure embed response
+- [x] 12.11 Trigger notification on save complete
+- [x] 12.12 Handle exceptions and send error notifications
 
 ## 13. Discord Commands - /foothold restore Implementation
 
-- [ ] 13.1 Define restore command with description
-- [ ] 13.2 Add server parameter with ServerTransformer
-- [ ] 13.3 Add checkpoint parameter with autocomplete
-- [ ] 13.4 Add optional auto_backup flag (default True)
-- [ ] 13.5 Implement permission check for 'restore' operation
+- [x] 13.1 Define restore command with description
+- [x] 13.2 Add server parameter with ServerTransformer
+- [x] 13.3 Add checkpoint parameter with autocomplete
+- [x] 13.4 Add optional auto_backup flag (default True)
+- [x] 13.5 Implement permission check for 'restore' operation
 - [ ] 13.6 Implement Discord confirmation modal or buttons
-- [ ] 13.7 Create EventHooks for Discord progress updates
-- [ ] 13.8 Call restore_checkpoint() from core library with hooks and auto_backup flag
-- [ ] 13.9 Create success embed response including auto-backup info
-- [ ] 13.10 Create failure embed response
-- [ ] 13.11 Trigger notification on restore complete
-- [ ] 13.12 Handle exceptions and send error notifications
+- [x] 13.7 Create EventHooks for Discord progress updates
+- [x] 13.8 Call restore_checkpoint() from core library with hooks and auto_backup flag
+- [x] 13.9 Create success embed response including auto-backup info
+- [x] 13.10 Create failure embed response
+- [x] 13.11 Trigger notification on restore complete
+- [x] 13.12 Handle exceptions and send error notifications
 
 ## 14. Discord Commands - /foothold list Implementation
 
-- [ ] 14.1 Define list command with description
-- [ ] 14.2 Add server parameter with ServerTransformer
-- [ ] 14.3 Add optional campaign filter parameter with autocomplete
-- [ ] 14.4 Add optional details flag
-- [ ] 14.5 Implement permission check for 'list' operation
-- [ ] 14.6 Call list_checkpoints() from core library with filters
-- [ ] 14.7 Format checkpoint list as Discord embed with fields
+- [x] 14.1 Define list command with description
+- [x] 14.2 Add server parameter with ServerTransformer
+- [x] 14.3 Add optional campaign filter parameter with autocomplete
+- [x] 14.4 Add optional details flag
+- [x] 14.5 Implement permission check for 'list' operation
+- [x] 14.6 Call list_checkpoints() from core library with filters
+- [x] 14.7 Format checkpoint list as Discord embed with fields
 - [ ] 14.8 Implement pagination if checkpoint count exceeds limit
 - [ ] 14.9 Add navigation buttons for paginated results
-- [ ] 14.10 Handle empty checkpoint list with helpful message
-- [ ] 14.11 Display checkpoint details when --details flag is used
+- [x] 14.10 Handle empty checkpoint list with helpful message
+- [x] 14.11 Display checkpoint details when --details flag is used
 
 ## 15. Discord Commands - /foothold delete Implementation
 
-- [ ] 15.1 Define delete command with description
-- [ ] 15.2 Add server parameter with ServerTransformer
-- [ ] 15.3 Add checkpoint parameter with autocomplete
-- [ ] 15.4 Implement permission check for 'delete' operation
-- [ ] 15.5 Implement Discord confirmation buttons
+- [x] 15.1 Define delete command with description
+- [x] 15.2 Add server parameter with ServerTransformer
+- [x] 15.3 Add checkpoint parameter with autocomplete
+- [x] 15.4 Implement permission check for 'delete' operation\n- [ ] 15.5 Implement Discord confirmation buttons
 - [ ] 15.6 Create EventHooks for notifications
-- [ ] 15.7 Call delete_checkpoint() from core library on confirmation
-- [ ] 15.8 Create success embed response
+- [x] 15.7 Call delete_checkpoint() from core library on confirmation
+- [x] 15.8 Create success embed response
 - [ ] 15.9 Create cancellation message for aborted deletes
-- [ ] 15.10 Create failure embed response
-- [ ] 15.11 Trigger notification on delete complete
-- [ ] 15.12 Handle exceptions and send error notifications
+- [x] 15.10 Create failure embed response
+- [x] 15.11 Trigger notification on delete complete
+- [x] 15.12 Handle exceptions and send error notifications
 
 ## 16. EventListener Implementation
 
