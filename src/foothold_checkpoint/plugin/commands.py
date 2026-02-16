@@ -1,77 +1,61 @@
-"""DCSServerBot commands for foothold-checkpoint management.
+"""Discord commands for Foothold checkpoint management.
 
-This module provides bot commands that wrap the foothold-checkpoint CLI tool,
-allowing server administrators to manage campaign checkpoints directly through
-Discord commands.
+This module implements the DCSServerBot plugin with Discord slash commands
+for checkpoint operations: save, restore, list, delete.
+"""
 
-DCSServerBot Architecture Notes:
-- Commands are defined as async functions decorated with @app_commands or similar
-- Commands have permission checks to restrict access to administrators
-- Commands can use Discord's interaction system for progress updates
-- Error handling should provide user-friendly Discord messages
+from typing import Optional
 
-Example Integration Pattern:
-```python
+import discord
 from discord import app_commands
 from discord.ext import commands
 
-class FootholdCheckpointCog(commands.Cog):
-    '''Foothold campaign checkpoint management commands.'''
+# TODO: Import DCSServerBot types when implementing
+# from core import Plugin, EventListener, Server, utils
 
-    def __init__(self, bot):
+
+class FootholdEventListener:
+    """Event listener for DCS events (minimal implementation for v2.0.0).
+
+    Future versions may implement DCS event hooks for automated checkpoints.
+    """
+    pass
+
+
+class Foothold(commands.Cog):
+    """Foothold Checkpoint Management Plugin for DCSServerBot.
+
+    Provides Discord slash commands for managing DCS Foothold campaign checkpoints:
+    - /foothold save: Create checkpoint from current campaign state
+    - /foothold restore: Restore checkpoint to server
+    - /foothold list: List available checkpoints
+    - /foothold delete: Delete checkpoint
+
+    Integrates with foothold_checkpoint core library for checkpoint operations.
+    """
+
+    def __init__(self, bot: commands.Bot):
+        """Initialize the Foothold plugin.
+
+        Args:
+            bot: Discord bot instance
+        """
         self.bot = bot
+        self.log = bot.log if hasattr(bot, 'log') else bot.logger
 
-    @app_commands.command(name='checkpoint-save')
-    @app_commands.checks.has_permissions(administrator=True)
-    async def checkpoint_save(self, interaction, server: str, campaign: str):
-        '''Save a checkpoint for a campaign.'''
-        await interaction.response.defer()
-        # Call foothold_checkpoint.cli functions or subprocess
-        # Report progress to Discord
-        await interaction.followup.send('Checkpoint saved successfully!')
+    async def cog_load(self) -> None:
+        """Called when the cog is loaded."""
+        self.log.info("Foothold plugin loaded")
 
-    @app_commands.command(name='checkpoint-list')
-    async def checkpoint_list(self, interaction, server: str = None):
-        '''List available checkpoints.'''
-        # Format list as Discord embed
-        pass
+    async def cog_unload(self) -> None:
+        """Called when the cog is unloaded."""
+        self.log.info("Foothold plugin unloaded")
 
-    @app_commands.command(name='checkpoint-restore')
-    @app_commands.checks.has_permissions(administrator=True)
-    async def checkpoint_restore(self, interaction, checkpoint: str, server: str):
-        '''Restore a checkpoint.'''
-        pass
 
-async def setup(bot):
-    '''Required setup function for DCSServerBot plugin loading.'''
-    await bot.add_cog(FootholdCheckpointCog(bot))
-```
+async def setup(bot: commands.Bot) -> None:
+    """Setup function to register the plugin with the bot.
 
-Implementation Strategies:
-1. Subprocess Approach:
-   - Call `foothold-checkpoint` CLI as subprocess
-   - Parse stdout for progress and results
-   - Simpler but less control
-
-2. Direct API Approach:
-   - Import foothold_checkpoint.cli functions directly
-   - Call Python functions with appropriate parameters
-   - Better error handling and progress reporting
-
-3. Hybrid Approach:
-   - Use direct API calls for listing/querying
-   - Use subprocess for long-running operations
-   - Balance simplicity and functionality
-
-TODO: Implement actual bot commands once DCSServerBot integration requirements
-are fully defined. This skeleton provides the structure and documentation
-for future integration.
-"""
-
-# Placeholder for actual implementation
-# When implementing, import necessary modules:
-# from foothold_checkpoint.cli import save_command, restore_command, list_command
-# from foothold_checkpoint.core.config import load_config
-# from foothold_checkpoint.core.storage import list_checkpoints
-
-__all__: list[str] = []  # Will be populated with actual command classes
+    Args:
+        bot: Discord bot instance
+    """
+    await bot.add_cog(Foothold(bot))

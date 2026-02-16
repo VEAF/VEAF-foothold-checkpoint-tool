@@ -63,25 +63,25 @@
 
 ## 6. Plugin Directory Structure
 
-- [ ] 6.1 Create src/foothold_checkpoint/plugin/ directory
-- [ ] 6.2 Create plugin/__init__.py with package metadata
-- [ ] 6.3 Create plugin/version.py with __version__ = "2.0.0"
-- [ ] 6.4 Create plugin/commands.py skeleton
-- [ ] 6.5 Create plugin/listener.py skeleton
-- [ ] 6.6 Create plugin/permissions.py skeleton
-- [ ] 6.7 Create plugin/notifications.py skeleton
-- [ ] 6.8 Create plugin/schemas/ directory
-- [ ] 6.9 Create plugin/schemas/foothold_schema.yaml
+- [x] 6.1 Create src/foothold_checkpoint/plugin/ directory
+- [x] 6.2 Create plugin/__init__.py with package metadata
+- [x] 6.3 Create plugin/version.py with __version__ = "2.0.0"
+- [x] 6.4 Create plugin/commands.py skeleton
+- [x] 6.5 Create plugin/listener.py skeleton
+- [x] 6.6 Create plugin/permissions.py skeleton
+- [x] 6.7 Create plugin/notifications.py skeleton
+- [x] 6.8 Create plugin/schemas/ directory
+- [x] 6.9 Create plugin/schemas/foothold_schema.yaml
 
 ## 7. Plugin Configuration Schema
 
-- [ ] 7.1 Define campaigns_file field in foothold_schema.yaml
-- [ ] 7.2 Define checkpoints_dir field in foothold_schema.yaml
-- [ ] 7.3 Define permissions section schema (save, restore, list, delete as string arrays)
-- [ ] 7.4 Define notifications section schema (channel, on_save, on_restore, on_delete, on_failure)
-- [ ] 7.5 Mark campaigns_file and checkpoints_dir as required fields
-- [ ] 7.6 Add type validations for all fields
-- [ ] 7.7 Create example config/plugins/foothold.yaml for documentation
+- [x] 7.1 Define campaigns_file field in foothold_schema.yaml
+- [x] 7.2 Define checkpoints_dir field in foothold_schema.yaml
+- [x] 7.3 Define permissions section schema (save, restore, list, delete as string arrays)
+- [x] 7.4 Define notifications section schema (channel, on_save, on_restore, on_delete, on_failure)
+- [x] 7.5 Mark campaigns_file and checkpoints_dir as required fields
+- [x] 7.6 Add type validations for all fields
+- [x] 7.7 Create example config/plugins/foothold.yaml for documentation
 
 ## 8. Plugin Base Class Implementation
 
