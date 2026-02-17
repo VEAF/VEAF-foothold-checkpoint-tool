@@ -235,8 +235,19 @@ def format_restore_success_embed(
     embed.add_field(name="📄 Restored From", value=f"`{checkpoint_filename}`", inline=False)
     embed.add_field(name="🖥️ Server", value=server, inline=True)
 
-    if backup_created and backup_filename:
-        embed.add_field(name="💾 Auto-Backup", value=f"Created: `{backup_filename}`", inline=False)
+    if backup_created:
+        if backup_filename:
+            embed.add_field(
+                name="💾 Auto-Backup Created",
+                value=f"`{backup_filename}`",
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="💾 Auto-Backup Created",
+                value="✅ Backup created before restoration",
+                inline=False,
+            )
 
     embed.set_footer(text="⚠️ Server restart may be required for changes to take effect")
 

@@ -212,7 +212,7 @@ DEFAULT:
   
   # Discord notifications
   notifications:
-    # Use channel ID (recommended) or channel name
+    # Discord channel ID where notifications will be sent
     # To get ID: Right-click channel → Copy Channel ID (requires Developer Mode)
     channel: 1234567890123456789  # Replace with your channel ID
     on_save: true
@@ -239,7 +239,7 @@ DEFAULT:
 - **enabled**: Set to `false` to disable the plugin without removing it
 - **campaigns_file**: Path to campaigns configuration (see Step 3)
 - **checkpoints_dir**: Where checkpoint ZIP files are stored
-- **notifications.channel**: Replace `1234567890123456789` with your actual Discord channel ID or use channel name like `"foothold-checkpoints"`
+- **notifications.channel**: Replace `1234567890123456789` with your actual Discord channel ID (integer)
 - **Server sections**: Add `DCS.your_server_name:` sections to override defaults per server
 
 ### Step 3: Configure Campaigns
@@ -334,22 +334,17 @@ All commands are under the `/foothold-checkpoint` group:
 
 ### `/foothold-checkpoint save`
 
-Save a checkpoint for campaign files.
+Save a checkpoint for campaign files using interactive selection.
 
 **Parameters:**
 - `server` (required): DCS server name from DCSSB configuration
   - Determines which `Missions/Saves` folder to read from
   - Must match a server defined in `servers.yaml`
   - **Autocomplete**: Type to filter available servers
-- `campaign` (optional): Campaign name, or leave empty for interactive selection
-- `name` (optional): Custom checkpoint name (defaults to timestamp)
-- `comment` (optional): Descriptive comment for this checkpoint
 
-**Examples:**
+**Example:**
 ```
-/foothold-checkpoint save server:Afghanistan campaign:afghanistan
-/foothold-checkpoint save server:Caucasus name:pre-deployment comment:Before major update
-/foothold-checkpoint save server:Afghanistan    # Interactive campaign selection
+/foothold-checkpoint save server:Afghanistan
 ```
 
 **How it works:**
@@ -357,108 +352,101 @@ Save a checkpoint for campaign files.
 2. Gets the DCS installation path: `server.instance.home`
 3. Constructs Missions/Saves path: `{home}/Missions/Saves/`
 4. **Detects campaigns**: Scans files in Missions/Saves and matches them to campaign configurations
-5. **Interactive mode**: Shows only detected campaigns in the selection menu
-6. **Direct mode**: Validates that the specified campaign exists in the server directory
+5. **Interactive selection**: Shows detected campaigns in a selection menu
+6. **Metadata modal**: Optionally add custom name and comment to the checkpoint
 7. Reads campaign files from that directory based on `campaigns.yaml` definitions
 8. Creates versioned ZIP checkpoint in `checkpoints_dir`
 
 **Campaign Detection:**
-Like the CLI tool, the plugin only shows campaigns that are actually present in the server's Missions/Saves directory. If a campaign is configured in `campaigns.yaml` but has no files in the server directory, it won't appear in the selection menu. This prevents saving empty checkpoints and provides accurate feedback about which campaigns are available on each server.
+The plugin only shows campaigns that are actually present in the server's Missions/Saves directory. If a campaign is configured in `campaigns.yaml` but has no files in the server directory, it won't appear in the selection menu. This prevents saving empty checkpoints and provides accurate feedback about which campaigns are available on each server.
 
 **Required Role:** Configured in `permissions.save`
 
 ### `/foothold-checkpoint restore`
 
-Restore a checkpoint to a campaign.
+Restore a checkpoint to a campaign using interactive selection.
 
 **Parameters:**
 - `server` (required): DCS server name from DCSSB configuration
   - Determines which `Missions/Saves` folder to restore to
   - Must match a server defined in `servers.yaml`
   - **Autocomplete**: Type to filter available servers
-- `checkpoint` (optional): Checkpoint filename to restore
-  - Leave empty for **interactive selection** from dropdown menu
-- `campaign` (optional): Campaign name to restore to
-  - Defaults to checkpoint's original campaign if not specified
-- `auto_backup` (optional, default: true): Create automatic backup before restoring
 
-**Examples:**
+**Example:**
 ```
-# Interactive mode - select checkpoint from dropdown
 /foothold-checkpoint restore server:Afghanistan
-
-# Direct mode - specify checkpoint
-/foothold-checkpoint restore server:Afghanistan checkpoint:caucasus_2026-02-15.zip campaign:caucasus
-
-# Disable auto-backup
-/foothold-checkpoint restore server:Caucasus checkpoint:afghanistan_backup.zip auto_backup:false
 ```
 
 **Interactive Selection:**
-When no checkpoint is specified, the plugin displays a dropdown menu with all available checkpoints, showing:
+The plugin displays a dropdown menu with all available checkpoints, showing:
 - Checkpoint filename
 - Campaign name
 - Date and time
 - File size
+- Custom name and comment (if present)
 
 **Safety features:**
-- Automatic backup created before restore (unless disabled)
+- **Automatic backup always created** before restore for safety
 - Files renamed to match current campaign file naming conventions
 - Validation of checkpoint integrity before restore
+- Confirmation dialog with full checkpoint details
 - Server-specific restore to correct Missions/Saves directory
 
 **Required Role:** Configured in `permissions.restore`
 
 ### `/foothold-checkpoint list`
 
-Display all saved checkpoints in an aligned table.
+Browse all saved checkpoints with an interactive viewer.
 
-**Parameters:**
-- `campaign` (optional): Filter by campaign name
-- `server` (optional): Filter by server name
+**Parameters:** None
 
-**Output format:**
+**Example:**
 ```
-FILE                          DATE         SIZE
-──────────────────────────────────────────────
-afghanistan_20240101_120000   2024-01-01   2.5 MB
-afghanistan_20240102_150000   2024-01-02   2.6 MB
-caucasus_20240101_140000      2024-01-01   3.1 MB
+/foothold-checkpoint list
 ```
+
+**Interactive Browser:**
+- Dropdown menu to navigate between checkpoints
+- Detailed view showing:
+  - Checkpoint filename
+  - Campaign name
+  - Date and time
+  - File size
+  - SHA-256 checksums
+  - Custom name and comment (if present)
+  - List of files in the checkpoint
 
 **Required Role:** Configured in `permissions.list`
 
 ### `/foothold-checkpoint delete`
 
-Delete a checkpoint file.
+Delete a checkpoint file using interactive selection.
 
-**Parameters:**
-- `checkpoint` (optional): Checkpoint filename to delete
-  - Leave empty for **interactive selection** from dropdown menu
-- `campaign` (optional): Filter checkpoints by campaign
+**Parameters:** None
 
-**Examples:**
+**Example:**
 ```
-# Interactive mode - select checkpoint from dropdown
 /foothold-checkpoint delete
-
-# Filter by campaign, then select
-/foothold-checkpoint delete campaign:caucasus
-
-# Direct mode - specify checkpoint
-/foothold-checkpoint delete checkpoint:old_backup_2024.zip campaign:afghanistan
 ```
 
 **Interactive Selection:**
-When no checkpoint is specified, the plugin displays a dropdown menu with all available checkpoints, showing:
+The plugin displays an interactive browser with:
+- Dropdown menu to navigate between checkpoints
+- Detailed view showing checkpoint information
+- Delete button to request deletion
+- Safety confirmation dialog before actual deletion
+
+**Checkpoint details shown:**
 - Checkpoint filename
 - Campaign name
 - Date and time
 - File size
+- Custom name and comment (if present)
 
 **Confirmation:**
 - Interactive button confirmation required after selection
-- Shows checkpoint name and campaign before deletion
+- Shows full checkpoint details before deletion
+- Option to cancel and return to browser
 - 60-second timeout for confirmation
 
 **Warning:** Deletion is permanent and cannot be undone!
@@ -546,9 +534,9 @@ Notifications use a simple on/off toggle per event type with a single channel:
 
 ```yaml
 notifications:
-  # Discord channel ID (recommended) or name where all notifications are sent
+  # Discord channel ID where all notifications are sent
   # To get channel ID: Right-click channel → Copy Channel ID (Developer Mode required)
-  channel: 1234567890123456789  # Or use channel name: "foothold-notifications"
+  channel: 1234567890123456789
   
   # Enable/disable notifications per event type
   on_save: true      # Notify when checkpoint saved

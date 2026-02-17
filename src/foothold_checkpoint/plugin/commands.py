@@ -185,27 +185,18 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
     @checkpoint_group.command(name="save", description="Save a checkpoint for a campaign")
     @app_commands.autocomplete(server=server_autocomplete)
     @app_commands.describe(
-        server="DCS server (required) - determines Missions/Saves directory",
-        campaign="Campaign to save (leave empty for interactive selection)",
-        name="Optional custom name for the checkpoint",
-        comment="Optional comment describing the checkpoint",
+        server="DCS server - determines Missions/Saves directory",
     )
     async def save_command(
         self,
         interaction: discord.Interaction,
         server: str,
-        campaign: str | None = None,
-        name: str | None = None,
-        comment: str | None = None,
     ) -> None:
-        """Save a checkpoint for the specified campaign(s).
+        """Save a checkpoint for the specified campaign(s) using interactive selection.
 
         Args:
             interaction: Discord interaction
-            server: Server name from DCSSB servers - required
-            campaign: Campaign name to save (None for interactive selection)
-            name: Optional custom checkpoint name
-            comment: Optional checkpoint comment
+            server: Server name from DCSSB servers
         """
         # Check permissions
         if not await self._check_permission(interaction, "save"):
@@ -222,188 +213,132 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
         server_name = server
 
-        # If no campaign specified, show interactive selector
-        if campaign is None:
-            if not self.campaigns:
-                await interaction.response.send_message(
-                    "❌ No campaigns configured. Please configure campaigns in `campaigns.yaml`.",
-                    ephemeral=True,
-                )
-                return
-
-            # Get DCSSB server instance to detect available campaigns
-            dcssb_server = self.bot.servers[server_name]
-            try:
-                # Get Missions/Saves from server instance
-                missions_saves_dir = Path(dcssb_server.instance.home) / "Missions" / "Saves"
-                if not missions_saves_dir.exists():
-                    await interaction.response.send_message(
-                        f"❌ Missions/Saves directory not found for server `{server}`: {missions_saves_dir}",
-                        ephemeral=True,
-                    )
-                    return
-
-                # Detect campaigns by listing files in the directory
-                campaign_files = [f.name for f in missions_saves_dir.iterdir() if f.is_file()]
-                self.log.debug(f"Found {len(campaign_files)} files in {missions_saves_dir}")
-                self.log.debug(f"Files: {campaign_files[:10]}")
-                self.log.debug(f"Config campaigns: {list(self.campaigns.keys())}")
-
-                # Build a minimal config object with campaigns for detection
-                # (self.core_config has campaigns_file but not campaigns loaded)
-                from .core.config import Config
-
-                temp_config = Config(
-                    checkpoints_dir=self.core_config.checkpoints_dir,
-                    campaigns=self.campaigns,
-                    servers=None,
-                )
-
-                detected_campaigns = detect_campaigns(campaign_files, temp_config)
-                self.log.debug(f"Detected campaigns: {list(detected_campaigns.keys())}")
-
-                if not detected_campaigns:
-                    # Show detailed error with file list for debugging
-                    files_info = ", ".join(campaign_files[:5]) if campaign_files else "no files"
-                    if len(campaign_files) > 5:
-                        files_info += f" ...and {len(campaign_files) - 5} more"
-
-                    # Also show configured campaign file patterns for comparison
-                    config_info = "\n".join(
-                        [
-                            f"• **{cid}**: {', '.join(cfg.files.persistence.files[:2])}"
-                            for cid, cfg in list(self.campaigns.items())[:3]
-                        ]
-                    )
-
-                    await interaction.response.send_message(
-                        f"❌ No campaign files found in `{missions_saves_dir}`.\n\n"
-                        f"📂 **Files in directory ({len(campaign_files)} total):**\n{files_info}\n\n"
-                        f"⚙️ **Configured campaigns (showing first 3):**\n{config_info}\n\n"
-                        f"Make sure campaign file names in `campaigns.yaml` match the actual files on the server.",
-                        ephemeral=True,
-                    )
-                    return
-
-                # Filter self.campaigns to only include detected campaigns
-                available_campaigns = {
-                    campaign_id: self.campaigns[campaign_id]
-                    for campaign_id in detected_campaigns
-                    if campaign_id in self.campaigns
-                }
-
-                if not available_campaigns:
-                    detected_names = ", ".join(detected_campaigns.keys())
-                    await interaction.response.send_message(
-                        f"❌ Detected campaigns ({detected_names}) are not configured in `campaigns.yaml`.\n"
-                        f"Please add campaign configurations for these campaigns.",
-                        ephemeral=True,
-                    )
-                    return
-
-            except AttributeError as e:
-                self.log.error(f"Failed to access server installation path: {e}")
-                await interaction.response.send_message(
-                    f"❌ Could not determine Missions/Saves path for server `{server}`. Check DCSSB server configuration.",
-                    ephemeral=True,
-                )
-                return
-
-            # Show campaign selection view with only detected campaigns
-            view = CampaignSelectView(available_campaigns)
-            detected_count = len(available_campaigns)
+        # Always use interactive campaign selector
+        if not self.campaigns:
             await interaction.response.send_message(
-                f"📁 **Select campaign(s) to save from server `{server}`:**\n"
-                f"📊 {detected_count} campaign{'s' if detected_count != 1 else ''} detected in Missions/Saves",
-                view=view,
+                "❌ No campaigns configured. Please configure campaigns in `campaigns.yaml`.",
                 ephemeral=True,
             )
+            return
 
-            # Wait for user selection
-            await view.wait()
-
-            if view.selected_campaigns is None:
-                # Timeout or cancelled
-                return
-
-            # Save selected campaigns
-            campaigns_to_save = view.selected_campaigns
-
-            # Get metadata from modal if user provided it (override command parameters)
-            if view.metadata_modal:
-                # Use modal values if provided, otherwise keep command parameter values
-                modal_name = view.metadata_modal.checkpoint_name
-                modal_comment = view.metadata_modal.checkpoint_comment
-                if modal_name:
-                    name = modal_name
-                if modal_comment:
-                    comment = modal_comment
-
-                # Update message to show saving is in progress
-                campaign_names = ", ".join(
-                    [available_campaigns[c].display_name or c for c in campaigns_to_save]
-                )
-                metadata_info = ""
-                if name:
-                    metadata_info += f"\n📝 Name: **{name}**"
-                if comment:
-                    metadata_info += f"\n💬 Comment: _{comment}_"
-                await interaction.edit_original_response(
-                    content=f"✅ **Saving checkpoints for: {campaign_names}**{metadata_info}\n\n⏳ Please wait...",
-                    view=None,
-                )
-        else:
-            # Single campaign specified - validate it exists in server's Missions/Saves
-            # Defer for potentially long operation
-            await interaction.response.defer(thinking=True, ephemeral=True)
-
-            # Validate campaign is detected in server
-            dcssb_server = self.bot.servers[server_name]
-            try:
-                missions_saves_dir = Path(dcssb_server.instance.home) / "Missions" / "Saves"
-                if not missions_saves_dir.exists():
-                    await interaction.followup.send(
-                        f"❌ Missions/Saves directory not found for server `{server}`: {missions_saves_dir}",
-                        ephemeral=True,
-                    )
-                    return
-
-                # Detect campaigns by listing files in the directory
-                campaign_files = [f.name for f in missions_saves_dir.iterdir() if f.is_file()]
-
-                # Build a minimal config object with campaigns for detection
-                from .core.config import Config
-
-                temp_config = Config(
-                    checkpoints_dir=self.core_config.checkpoints_dir,
-                    campaigns=self.campaigns,
-                    servers=None,
-                )
-
-                detected_campaigns = detect_campaigns(campaign_files, temp_config)
-
-                # Check if specified campaign is detected
-                if campaign not in detected_campaigns:
-                    available = (
-                        ", ".join(detected_campaigns.keys()) if detected_campaigns else "none"
-                    )
-                    await interaction.followup.send(
-                        f"❌ Campaign `{campaign}` not found in server `{server}`.\n"
-                        f"📊 Detected campaigns: {available}\n\n"
-                        f"Make sure the campaign files exist in `{missions_saves_dir}`.",
-                        ephemeral=True,
-                    )
-                    return
-
-            except AttributeError as e:
-                self.log.error(f"Failed to access server installation path: {e}")
-                await interaction.followup.send(
-                    f"❌ Could not determine Missions/Saves path for server `{server}`. Check DCSSB server configuration.",
+        # Get DCSSB server instance to detect available campaigns
+        dcssb_server = self.bot.servers[server_name]
+        try:
+            # Get Missions/Saves from server instance
+            missions_saves_dir = Path(dcssb_server.instance.home) / "Missions" / "Saves"
+            if not missions_saves_dir.exists():
+                await interaction.response.send_message(
+                    f"❌ Missions/Saves directory not found for server `{server}`: {missions_saves_dir}",
                     ephemeral=True,
                 )
                 return
 
-            campaigns_to_save = [campaign]
+            # Detect campaigns by listing files in the directory
+            campaign_files = [f.name for f in missions_saves_dir.iterdir() if f.is_file()]
+            self.log.debug(f"Found {len(campaign_files)} files in {missions_saves_dir}")
+            self.log.debug(f"Files: {campaign_files[:10]}")
+            self.log.debug(f"Config campaigns: {list(self.campaigns.keys())}")
+
+            # Build a minimal config object with campaigns for detection
+            # (self.core_config has campaigns_file but not campaigns loaded)
+            from .core.config import Config
+
+            temp_config = Config(
+                checkpoints_dir=self.core_config.checkpoints_dir,
+                campaigns=self.campaigns,
+                servers=None,
+            )
+
+            detected_campaigns = detect_campaigns(campaign_files, temp_config)
+            self.log.debug(f"Detected campaigns: {list(detected_campaigns.keys())}")
+
+            if not detected_campaigns:
+                # Show detailed error with file list for debugging
+                files_info = ", ".join(campaign_files[:5]) if campaign_files else "no files"
+                if len(campaign_files) > 5:
+                    files_info += f" ...and {len(campaign_files) - 5} more"
+
+                # Also show configured campaign file patterns for comparison
+                config_info = "\n".join(
+                    [
+                        f"• **{cid}**: {', '.join(cfg.files.persistence.files[:2])}"
+                        for cid, cfg in list(self.campaigns.items())[:3]
+                    ]
+                )
+
+                await interaction.response.send_message(
+                    f"❌ No campaign files found in `{missions_saves_dir}`.\n\n"
+                    f"📂 **Files in directory ({len(campaign_files)} total):**\n{files_info}\n\n"
+                    f"⚙️ **Configured campaigns (showing first 3):**\n{config_info}\n\n"
+                    f"Make sure campaign file names in `campaigns.yaml` match the actual files on the server.",
+                    ephemeral=True,
+                )
+                return
+
+            # Filter self.campaigns to only include detected campaigns
+            available_campaigns = {
+                campaign_id: self.campaigns[campaign_id]
+                for campaign_id in detected_campaigns
+                if campaign_id in self.campaigns
+            }
+
+            if not available_campaigns:
+                detected_names = ", ".join(detected_campaigns.keys())
+                await interaction.response.send_message(
+                    f"❌ Detected campaigns ({detected_names}) are not configured in `campaigns.yaml`.\n"
+                    f"Please add campaign configurations for these campaigns.",
+                    ephemeral=True,
+                )
+                return
+
+        except AttributeError as e:
+            self.log.error(f"Failed to access server installation path: {e}")
+            await interaction.response.send_message(
+                f"❌ Could not determine Missions/Saves path for server `{server}`. Check DCSSB server configuration.",
+                ephemeral=True,
+            )
+            return
+
+        # Show campaign selection view with only detected campaigns
+        view = CampaignSelectView(available_campaigns)
+        detected_count = len(available_campaigns)
+        await interaction.response.send_message(
+            f"📁 **Select campaign(s) to save from server `{server}`:**\n"
+            f"📊 {detected_count} campaign{'s' if detected_count != 1 else ''} detected in Missions/Saves",
+            view=view,
+            ephemeral=True,
+        )
+
+        # Wait for user selection
+        await view.wait()
+
+        if view.selected_campaigns is None:
+            # Timeout or cancelled
+            return
+
+        # Save selected campaigns
+        campaigns_to_save = view.selected_campaigns
+
+        # Get metadata from modal if user provided it
+        name = None
+        comment = None
+        if view.metadata_modal:
+            name = view.metadata_modal.checkpoint_name
+            comment = view.metadata_modal.checkpoint_comment
+
+        # Update message to show saving is in progress
+        campaign_names = ", ".join(
+            [available_campaigns[c].display_name or c for c in campaigns_to_save]
+        )
+        metadata_info = ""
+        if name:
+            metadata_info += f"\n📝 Name: **{name}**"
+        if comment:
+            metadata_info += f"\n💬 Comment: _{comment}_"
+        await interaction.edit_original_response(
+            content=f"✅ **Saving checkpoints for: {campaign_names}**{metadata_info}\n\n⏳ Please wait...",
+            view=None,
+        )
 
         # Save each selected campaign
         results = []
@@ -495,6 +430,9 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 errors.append(f"{camp}: {str(e)}")
 
         # Send results
+        # Always delete "Please wait..." message from interactive selector
+        await interaction.delete_original_response()
+
         if len(campaigns_to_save) == 1:
             # Single campaign - use detailed embed
             if results:
@@ -507,10 +445,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                     name=name,
                     comment=comment,
                 )
-                if campaign is None:
-                    await interaction.followup.send(embed=embed, ephemeral=True)
-                else:
-                    await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
             else:
                 error_msg = errors[0] if errors else "Unknown error"
                 embed = format_error_embed("save", Exception(error_msg))
@@ -540,27 +475,18 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
     @checkpoint_group.command(name="restore", description="Restore a checkpoint")
     @app_commands.autocomplete(server=server_autocomplete)
     @app_commands.describe(
-        server="DCS server (required) - determines Missions/Saves directory",
-        checkpoint="Checkpoint to restore (leave empty for interactive selection)",
-        campaign="Campaign to restore to (optional, defaults to checkpoint's original campaign)",
-        auto_backup="Create automatic backup before restoring (default: True)",
+        server="DCS server - determines Missions/Saves directory",
     )
     async def restore_command(
         self,
         interaction: discord.Interaction,
         server: str,
-        checkpoint: str | None = None,
-        campaign: str | None = None,
-        auto_backup: bool = True,
     ) -> None:
-        """Restore a checkpoint for the specified campaign.
+        """Restore a checkpoint using interactive selection.
 
         Args:
             interaction: Discord interaction
-            server: Server name from DCSSB servers - required
-            checkpoint: Optional checkpoint filename to restore
-            campaign: Optional campaign name to restore to
-            auto_backup: Whether to create auto-backup before restore
+            server: Server name from DCSSB servers
         """
         # Check permissions
         if not await self._check_permission(interaction, "restore"):
@@ -575,74 +501,52 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             )
             return
 
-        # Track selected checkpoint dict for detailed confirmation
-        selected_checkpoint_dict = None
+        # Always use interactive selector for checkpoint
+        # Auto-backup is always enabled for safety
+        auto_backup = True
 
-        # If no checkpoint specified, show interactive selector
-        if checkpoint is None:
-            await interaction.response.defer(thinking=True, ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
 
-            config_dict = self._get_config()
-            checkpoints_dir = Path(config_dict["checkpoints_dir"])
+        config_dict = self._get_config()
+        checkpoints_dir = Path(config_dict["checkpoints_dir"])
 
-            # Get checkpoints
-            checkpoints_list = await list_checkpoints(
-                checkpoint_dir=checkpoints_dir, campaign_filter=campaign
-            )
+        # Get checkpoints
+        checkpoints_list = await list_checkpoints(
+            checkpoint_dir=checkpoints_dir, campaign_filter=None
+        )
 
-            if not checkpoints_list:
-                await interaction.followup.send(
-                    "❌ No checkpoints available to restore.", ephemeral=True
-                )
-                return
-
-            # Show checkpoint selection view
-            view = CheckpointSelectView(checkpoints_list)
+        if not checkpoints_list:
             await interaction.followup.send(
-                f"🔄 **Select checkpoint to restore to server `{server}`:**",
-                view=view,
-                ephemeral=True,
+                "❌ No checkpoints available to restore.", ephemeral=True
             )
-
-            # Wait for user selection
-            await view.wait()
-
-            if view.selected_checkpoint is None:
-                # Timeout or cancelled
-                return
-
-            # Use selected checkpoint
-            selected = view.selected_checkpoint
-            selected_checkpoint_dict = selected  # Save for confirmation dialog
-            checkpoint = selected["filename"]
-            # If campaign not specified, use checkpoint's campaign
-            if campaign is None:
-                campaign = selected.get("campaign")
-
-        # If checkpoint still None, error
-        if checkpoint is None:
-            await interaction.response.send_message("❌ No checkpoint specified.", ephemeral=True)
             return
 
-        # Build checkpoint dict for confirmation dialog
-        if campaign is None:
-            campaign = "unknown"
+        # Show checkpoint selection view (edit original message)
+        view = CheckpointSelectView(checkpoints_list)
+        await interaction.edit_original_response(
+            content=f"🔄 **Select checkpoint to restore to server `{server}`:**",
+            view=view,
+        )
 
-        if selected_checkpoint_dict:
-            checkpoint_dict = selected_checkpoint_dict
-        else:
-            checkpoint_dict = {
-                "filename": checkpoint,
-                "campaign": campaign,
-            }
+        # Wait for user selection
+        await view.wait()
+
+        if view.selected_checkpoint is None:
+            # Timeout or cancelled
+            return
+
+        # Use selected checkpoint
+        selected = view.selected_checkpoint
+        checkpoint = selected["filename"]
+        campaign = selected.get("campaign", "unknown")
 
         # Show confirmation dialog with full checkpoint details
-        confirm_view = CheckpointRestoreConfirm(checkpoint_dict, server, auto_backup)
+        confirm_view = CheckpointRestoreConfirm(selected, server, auto_backup)
 
         # Use detailed embed formatter
         from .formatters import format_checkpoint_details_embed
 
-        details_embed = format_checkpoint_details_embed(checkpoint_dict)
+        details_embed = format_checkpoint_details_embed(selected)
         details_embed.title = "⚠️ Confirm Restoration"
         details_embed.color = discord.Color.blue()
 
@@ -654,14 +558,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
         details_embed.add_field(name="⚠️ Warning", value=warning_text, inline=False)
 
-        if interaction.response.is_done():
-            await interaction.followup.send(
-                embed=details_embed, view=confirm_view, ephemeral=True, wait=True
-            )
-        else:
-            await interaction.response.send_message(
-                embed=details_embed, view=confirm_view, ephemeral=True
-            )
+        # Edit original message to show confirmation
+        await interaction.edit_original_response(
+            content=None,
+            embed=details_embed,
+            view=confirm_view,
+        )
 
         # Wait for confirmation
         await confirm_view.wait()
@@ -669,10 +571,6 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         if not confirm_view.confirmed:
             # User cancelled
             return
-
-        # Defer response for long operation (if not already deferred)
-        if not interaction.response.is_done():
-            await interaction.response.defer(thinking=True, ephemeral=True)
 
         try:
             # Get campaign config
@@ -753,7 +651,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 backup_created=auto_backup,
                 backup_filename=backup_filename,
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Edit original message to show final result
+            await interaction.edit_original_response(
+                content=None,
+                embed=embed,
+                view=None,
+            )
 
             # Send notification
             if interaction.guild:
@@ -771,7 +674,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         except Exception as e:
             self.log.error(f"Failed to restore checkpoint: {e}", exc_info=True)
             embed = format_error_embed("restore", e)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Edit original message to show error
+            await interaction.edit_original_response(
+                content=None,
+                embed=embed,
+                view=None,
+            )
 
             # Send error notification
             if interaction.guild:
@@ -787,17 +695,14 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
     # Discord Command: /foothold-checkpoint list
     @checkpoint_group.command(name="list", description="List available checkpoints")
-    @app_commands.describe(campaign="Optional: Filter by campaign")
     async def list_command(
         self,
         interaction: discord.Interaction,
-        campaign: str | None = None,
     ) -> None:
         """List available checkpoints with interactive browser.
 
         Args:
             interaction: Discord interaction
-            campaign: Optional campaign filter
         """
         # Check permissions
         if not await self._check_permission(interaction, "list"):
@@ -811,14 +716,11 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
             # Get checkpoints
             checkpoints_list = await list_checkpoints(
-                checkpoint_dir=checkpoints_dir, campaign_filter=campaign
+                checkpoint_dir=checkpoints_dir, campaign_filter=None
             )
 
             if not checkpoints_list:
-                message = "❌ No checkpoints found"
-                if campaign:
-                    message = f"{message} for campaign '{campaign}'"
-                await interaction.followup.send(f"{message}.", ephemeral=True)
+                await interaction.followup.send("❌ No checkpoints found.", ephemeral=True)
                 return
 
             # Create interactive browser view
@@ -830,9 +732,8 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             initial_embed = format_checkpoint_details_embed(checkpoints_list[0])
 
             # Build initial message
-            filter_info = f" for campaign **{campaign}**" if campaign else ""
             await interaction.followup.send(
-                content=f"📦 **Checkpoint 1/{len(checkpoints_list)}**{filter_info} - Select from dropdown to view details:",
+                content=f"📦 **Checkpoint 1/{len(checkpoints_list)}** - Select from dropdown to view details:",
                 embed=initial_embed,
                 view=view,
                 ephemeral=True,
@@ -845,101 +746,70 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
     # Discord Command: /foothold-checkpoint delete
     @checkpoint_group.command(name="delete", description="Delete a checkpoint")
-    @app_commands.describe(
-        checkpoint="Checkpoint to delete (leave empty for interactive selection)",
-        campaign="Campaign filter (optional)",
-    )
     async def delete_command(
         self,
         interaction: discord.Interaction,
-        checkpoint: str | None = None,
-        campaign: str | None = None,
     ) -> None:
-        """Delete a checkpoint.
+        """Delete a checkpoint using interactive selection.
 
         Args:
             interaction: Discord interaction
-            checkpoint: Optional checkpoint filename to delete
-            campaign: Optional campaign filter
         """
         # Check permissions
         if not await self._check_permission(interaction, "delete"):
             return
 
-        selected_checkpoint_dict = None
+        # Always use interactive browser
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
-        # If no checkpoint specified, show interactive browser
-        if checkpoint is None:
-            await interaction.response.defer(thinking=True, ephemeral=True)
+        config_dict = self._get_config()
+        checkpoints_dir = Path(config_dict["checkpoints_dir"])
 
-            config_dict = self._get_config()
-            checkpoints_dir = Path(config_dict["checkpoints_dir"])
+        # Get checkpoints
+        checkpoints_list = await list_checkpoints(
+            checkpoint_dir=checkpoints_dir, campaign_filter=None
+        )
 
-            # Get checkpoints
-            checkpoints_list = await list_checkpoints(
-                checkpoint_dir=checkpoints_dir, campaign_filter=campaign
-            )
-
-            if not checkpoints_list:
-                await interaction.followup.send(
-                    "❌ No checkpoints available to delete.", ephemeral=True
-                )
-                return
-
-            # Import formatter before using it
-            from .formatters import format_checkpoint_details_embed
-
-            # Create interactive browser view with Delete button
-            view = CheckpointDeleteBrowserView(
-                checkpoints=checkpoints_list, format_details_func=format_checkpoint_details_embed
-            )
-
-            # Get initial embed (first checkpoint)
-            initial_embed = format_checkpoint_details_embed(checkpoints_list[0])
-
-            # Build initial message
-            filter_info = f" for campaign **{campaign}**" if campaign else ""
+        if not checkpoints_list:
             await interaction.followup.send(
-                content=f"🗑️ **Checkpoint 1/{len(checkpoints_list)}**{filter_info} - Select from dropdown to view details, then click Delete:",
-                embed=initial_embed,
-                view=view,
-                ephemeral=True,
+                "❌ No checkpoints available to delete.", ephemeral=True
             )
-
-            # Wait for user interaction
-            await view.wait()
-
-            if not view.delete_requested:
-                # Timeout or user didn't click Delete
-                return
-
-            # Use selected checkpoint from browser
-            selected_checkpoint_dict = checkpoints_list[view.current_index]
-            checkpoint = selected_checkpoint_dict["filename"]
-            campaign = selected_checkpoint_dict.get("campaign", campaign)
-
-            # Store the browser state for potential restoration on cancel
-            browser_checkpoints = checkpoints_list
-            browser_index = view.current_index
-            browser_campaign_filter = campaign
-
-        # If still no checkpoint, error
-        if checkpoint is None:
-            await interaction.response.send_message("❌ No checkpoint specified.", ephemeral=True)
             return
 
-        # Show confirmation dialog with full checkpoint details
-        if campaign is None:
-            campaign = "unknown"
+        # Import formatter before using it
+        from .formatters import format_checkpoint_details_embed
 
-        # Use checkpoint dict from browser or build minimal one
-        if selected_checkpoint_dict is None:
-            checkpoint_dict = {
-                "filename": checkpoint,
-                "campaign": campaign,
-            }
-        else:
-            checkpoint_dict = selected_checkpoint_dict
+        # Create interactive browser view with Delete button
+        view = CheckpointDeleteBrowserView(
+            checkpoints=checkpoints_list, format_details_func=format_checkpoint_details_embed
+        )
+
+        # Get initial embed (first checkpoint)
+        initial_embed = format_checkpoint_details_embed(checkpoints_list[0])
+
+        # Build initial message
+        await interaction.followup.send(
+            content=f"🗑️ **Checkpoint 1/{len(checkpoints_list)}** - Select from dropdown to view details, then click Delete:",
+            embed=initial_embed,
+            view=view,
+            ephemeral=True,
+        )
+
+        # Wait for user interaction
+        await view.wait()
+
+        if not view.delete_requested:
+            # Timeout or user didn't click Delete
+            return
+
+        # Use selected checkpoint from browser
+        selected_checkpoint_dict = checkpoints_list[view.current_index]
+        checkpoint = selected_checkpoint_dict["filename"]
+        campaign = selected_checkpoint_dict.get("campaign", "unknown")
+
+        # Store the browser state for potential restoration on cancel
+        browser_checkpoints = checkpoints_list
+        browser_index = view.current_index
 
         # Create restore function for cancel button
         async def restore_browser(cancel_interaction: discord.Interaction) -> None:
@@ -956,24 +826,21 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             current_embed = format_checkpoint_details_embed(browser_checkpoints[browser_index])
 
             # Update message to show browser again
-            filter_info = (
-                f" for campaign **{browser_campaign_filter}**" if browser_campaign_filter else ""
-            )
             await cancel_interaction.response.edit_message(
-                content=f"🗑️ **Checkpoint {browser_index + 1}/{len(browser_checkpoints)}**{filter_info} - Select from dropdown to view details, then click Delete:",
+                content=f"🗑️ **Checkpoint {browser_index + 1}/{len(browser_checkpoints)}** - Select from dropdown to view details, then click Delete:",
                 embed=current_embed,
                 view=new_view,
             )
 
         confirm_view = CheckpointDeleteConfirm(
-            checkpoint_dict,
-            restore_browser_func=restore_browser if "browser_checkpoints" in locals() else None,
+            selected_checkpoint_dict,
+            restore_browser_func=restore_browser,
         )
 
         # Use detailed embed formatter
         from .formatters import format_checkpoint_details_embed
 
-        details_embed = format_checkpoint_details_embed(checkpoint_dict)
+        details_embed = format_checkpoint_details_embed(selected_checkpoint_dict)
         details_embed.title = "⚠️ Confirm Deletion"
         details_embed.color = discord.Color.orange()
         details_embed.add_field(

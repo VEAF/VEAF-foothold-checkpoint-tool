@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "foothold-checkpoint"
-version = "2.0.0"
+version = "2.1.0"
 description = "CLI tool for managing DCS Foothold campaign checkpoints with integrity verification"
 authors = ["VEAF <contact@veaf.org>"]
 license = "MIT"
@@ -134,7 +134,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
-strict_concatenate = true
+extra_checks = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -146,3 +146,7 @@ warn_return_any = false
 [[tool.mypy.overrides]]
 module = "foothold_checkpoint.plugin.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ruamel.*"
+ignore_missing_imports = true

@@ -39,8 +39,9 @@ permissions:
 # Notification settings for checkpoint events
 # Controls which events trigger Discord notifications and where they're sent
 notifications:
-  # Discord channel name for checkpoint notifications (default: mission-logs)
-  channel: mission-logs
+  # Discord channel ID for checkpoint notifications
+  # To get ID: Right-click channel → Copy Channel ID (Developer Mode required)
+  channel: 1234567890123456789
 
   # Event types to notify
   on_save: true       # Notify when checkpoint is saved

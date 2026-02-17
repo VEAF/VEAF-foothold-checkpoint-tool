@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-02-17
+
+### Changed
+- **DCSServerBot plugin UI simplified**: All Discord commands now use interactive-only mode
+  - `/foothold-checkpoint save`: Only `server` parameter required (removed `campaign`, `name`, `comment`)
+  - `/foothold-checkpoint restore`: Only `server` parameter required (removed `checkpoint`, `campaign`, `auto_backup`)
+  - `/foothold-checkpoint list`: No parameters required (removed `campaign` filter)
+  - `/foothold-checkpoint delete`: No parameters required (removed `checkpoint`, `campaign` filters)
+  - Interactive selection now the only workflow - simpler and more consistent UX
+  - Auto-backup always enabled for restore operations (safety first)
+  - Metadata (name, comment) can be added via modal in interactive workflow
+
+### Fixed
+- **DCSServerBot plugin schema validation**: Added proper YAML schema file for configuration validation
+  - Schema file: `schemas/foothold-checkpoint_schema.yaml` (pykwalify format)
+  - Fixes "No schema files found" warning at plugin startup
+  - Validates plugin configuration structure against expected format
+- **Notification channel configuration**: Fixed channel field type from string to integer
+  - `notifications.channel` now correctly accepts Discord channel ID (integer)
+  - Updated schema, Pydantic model, and documentation to reflect channel ID requirement
+  - Resolves schema validation error when using numeric channel IDs
+- **Discord UI message cleanup**: Restore command now uses single updating message
+  - Previous behavior: Multiple messages remained visible after completion
+  - New behavior: Single message updates through selection → confirmation → result
+  - Cleaner Discord interface with less clutter
+- **Auto-backup visibility**: Restore success message now always shows backup creation status
+  - Displays backup filename when available
+  - Shows confirmation message when backup created but filename not returned
+  - Ensures users are aware of safety backup before restoration
+
+### Improved
+- **Plugin build script**: Updated to include all file types from `schemas/` directory
+  - Previously only included `.py` files
+  - Now includes `.yaml` schema files required for validation
+- **Documentation**: Updated plugin README and examples to reflect interactive-only workflow
+  - Removed references to optional command parameters
+  - Clarified that channel must be a Discord channel ID (integer)
+  - Updated all command examples to show simplified syntax
+
 ## [2.0.0] - 2026-02-16
 
 ### Added

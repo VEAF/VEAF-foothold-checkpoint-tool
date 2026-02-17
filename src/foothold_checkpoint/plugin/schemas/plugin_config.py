@@ -29,9 +29,7 @@ class PermissionsConfig(BaseModel):
 class NotificationsConfig(BaseModel):
     """Notification configuration for Discord events."""
 
-    channel: str = Field(
-        default="mission-logs", description="Discord channel name for checkpoint notifications"
-    )
+    channel: int = Field(default=0, description="Discord channel ID for checkpoint notifications")
     on_save: bool = Field(default=True, description="Send notification when checkpoint is saved")
     on_restore: bool = Field(
         default=True, description="Send notification when checkpoint is restored"

@@ -57,10 +57,13 @@ __all__ = ["__version__"]
         # Add plugin/schemas/ as schemas/
         schemas_dir = plugin_dir / "schemas"
         if schemas_dir.exists():
-            for py_file in schemas_dir.rglob("*.py"):
-                arcname = Path("foothold-checkpoint") / "schemas" / py_file.relative_to(schemas_dir)
-                zipf.write(py_file, arcname)
-                print(f"  Added: {arcname}")
+            for file in schemas_dir.rglob("*"):
+                if file.is_file():
+                    arcname = (
+                        Path("foothold-checkpoint") / "schemas" / file.relative_to(schemas_dir)
+                    )
+                    zipf.write(file, arcname)
+                    print(f"  Added: {arcname}")
 
         # Add all files from core directory
         core_dir = foothold_src / "core"

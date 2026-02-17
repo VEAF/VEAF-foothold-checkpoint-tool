@@ -53,21 +53,18 @@ DEFAULT:
   # Discord notification configuration
   # Controls how and when the bot sends checkpoint event notifications
   notifications:
-    # Discord channel ID (recommended) or channel name where notifications will be sent
+    # Discord channel ID where notifications will be sent
     # To get channel ID: Right-click channel → Copy Channel ID (requires Developer Mode)
     # Bot must have permission to view and send messages to this channel
     # 
-    # IMPORTANT: Replace the example value below with your actual channel ID or name
-    # Examples:
-    #   channel: 1234567890123456789  # Channel ID (recommended)
-    #   channel: mission-logs          # Channel name (fallback)
+    # IMPORTANT: Replace the example value below with your actual channel ID
+    # Example: channel: 1234567890123456789
     # 
     # Troubleshooting if notifications don't appear:
-    # 1. Check DCSServerBot logs for warnings like "Notification channel '...' not found"
-    # 2. Verify the bot has "View Channel" and "Send Messages" permissions in that channel
-    # 3. If using channel name, ensure it matches exactly (case-sensitive)
-    # 4. If using channel ID, ensure Developer Mode is enabled in Discord settings
-    channel: 1234567890123456789  # ⚠️ REPLACE THIS WITH YOUR ACTUAL CHANNEL ID OR NAME
+    # 1. Check DCSServerBot logs for warnings about notification channel
+    # 2. Verify the bot has "View Channel" and "Send Messages" permissions
+    # 3. Ensure Developer Mode is enabled in Discord settings to copy channel IDs
+    channel: 1234567890123456789  # ⚠️ REPLACE THIS WITH YOUR ACTUAL CHANNEL ID
     
     # Notify when checkpoint is saved successfully
     on_save: true
@@ -96,7 +93,7 @@ DEFAULT:
 # DCS.openbeta_server:
 #   enabled: true
 #   notifications:
-#     channel: foothold-checkpoints  # Different channel name
+#     channel: 9876543210987654321  # Different channel ID
 
 # Example: More restrictive permissions for production server
 # DCS.production_server:
