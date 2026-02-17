@@ -1,14 +1,174 @@
 # Release Notes
 
-## Version 1.1.0 - February 15, 2026
+## Version 2.1.0 - February 17, 2026
+
+### 🎨 UI/UX Improvements
+
+This is a **polish and bug-fix release** focused on improving the DCSServerBot plugin user experience.
+
+#### 🎯 Simplified Discord Commands (Interactive-Only Mode)
+
+All Discord commands have been **simplified to use only interactive mode**:
+
+**Before (v2.0.0):**
+```
+/foothold-checkpoint save server:VEAF campaign:afghanistan name:backup comment:test
+/foothold-checkpoint restore server:VEAF checkpoint:file.zip campaign:afghanistan auto_backup:true
+/foothold-checkpoint list campaign:afghanistan
+/foothold-checkpoint delete checkpoint:file.zip campaign:afghanistan
+```
+
+**After (v2.1.0):**
+```
+/foothold-checkpoint save server:VEAF
+/foothold-checkpoint restore server:VEAF
+/foothold-checkpoint list
+/foothold-checkpoint delete
+```
+
+**Benefits:**
+- ✅ **Simpler syntax**: Only required parameters (server for save/restore)
+- ✅ **Consistent UX**: All commands use the same interactive workflow
+- ✅ **No confusion**: One way to do things (no dual mode)
+- ✅ **Better discovery**: Users see all available options via dropdowns
+- ✅ **Safer defaults**: Auto-backup always enabled for restore operations
+
+**Interactive Features:**
+- 📋 Campaign selection dropdown (shows only detected campaigns)
+- 📝 Optional metadata modal for custom name and comment
+- ✅ Confirmation dialogs with full checkpoint details
+- 🔄 Single updating message (no message spam)
+
+#### 🧹 Cleaner Discord Interface
+
+**Restore command now uses a single updating message:**
+
+- **Before**: 3 separate messages remained visible (selection + confirmation + result)
+- **After**: 1 message that updates through selection → confirmation → result
+- **Result**: Much cleaner Discord interface with less visual clutter
+
+#### 💾 Auto-Backup Visibility
+
+**Restore success message now always shows backup status:**
+
+```
+✅ Checkpoint Restored
+📄 Restored From: germany_modern_2026-02-17_11-05-18.zip
+🖥️ Server: VEAF (www.veaf.org) [fr] - Private Foothold 2
+💾 Auto-Backup Created: auto-backup-germany_modern-20260217-114405.zip
+⚠️ Server restart may be required for changes to take effect
+```
+
+- 📦 Shows backup filename when available
+- ✅ Shows confirmation when backup created but filename not returned
+- 🛡️ Ensures users know a safety backup was created
+
+### 🐛 Bug Fixes
+
+#### ✅ Schema Validation Fixed
+
+- **Issue**: "No schema files found for plugin foothold-checkpoint" warning at startup
+- **Fix**: Added proper YAML schema file (`schemas/foothold-checkpoint_schema.yaml`)
+- **Format**: Uses pykwalify YAML format (DCSServerBot standard)
+- **Result**: No more warnings, proper configuration validation
+
+#### 🔧 Channel ID Type Fixed
+
+- **Issue**: Schema validation error when using numeric Discord channel IDs
+- **Error**: `Value '1339713555024580731' is not of type 'str'`
+- **Fix**: Changed `notifications.channel` from `str` to `int` in all config files
+- **Updated**: Schema, Pydantic model, examples, and documentation
+- **Result**: Numeric channel IDs now work correctly
+
+#### 📦 Build Script Improved
+
+- **Issue**: Schema YAML files were not included in plugin ZIP
+- **Fix**: Build script now includes all file types from `schemas/` directory
+- **Result**: Plugin ZIP contains validation schema for proper operation
+
+### 📚 Documentation Updates
+
+- ✅ Updated README.md with simplified command syntax
+- ✅ Updated all examples to use channel ID (integer) instead of channel name
+- ✅ Clarified that interactive mode is the only supported workflow
+- ✅ Removed references to removed optional parameters
+
+### 🔄 Migration from 2.0.0
+
+**No breaking changes!** This is a **backward-compatible release**.
+
+**If you're using the DCSServerBot plugin:**
+
+1. **Update plugin**: Extract new `foothold-checkpoint-plugin-v2.1.0.zip`
+2. **Update config**: Change `notifications.channel` to use numeric ID (if using string):
+   ```yaml
+   # Before
+   notifications:
+     channel: mission-logs
+   
+   # After (get ID: Right-click channel → Copy Channel ID)
+   notifications:
+     channel: 1234567890123456789
+   ```
+3. **Restart bot**: The plugin will load with schema validation
+
+**Command usage changes:**
+- All optional parameters have been removed
+- Simply omit them - the interactive workflow handles everything
+- Example: `/foothold-checkpoint save server:VEAF` (that's it!)
+
+**No changes required for CLI tool users.**
+
+### 📦 Downloads
+
+- **Plugin**: `foothold-checkpoint-plugin-v2.1.0.zip`
+- **CLI Tool**: Install via `pip install foothold-checkpoint==2.1.0`
+
+---
+
+## Version 2.0.0 - February 16, 2026
 
 ### ⚠️ Breaking Changes
 
-**This release contains breaking changes.** Your configuration file requires migration.
+**This is a major release with breaking changes.** Your configuration file requires migration.
 
 See **[MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md)** for detailed upgrade instructions.
 
 ### 🎯 What's New
+
+#### 🤖 DCSServerBot Plugin Integration
+**Major new feature:** Full integration as a DCSServerBot plugin with Discord UI!
+
+- 📦 **Plugin package** ready for deployment (`foothold-checkpoint-plugin-v2.0.0.zip`)
+- 🏗️ **Plugin architecture** using DCSServerBot's `Plugin` base class
+- 🔌 **Event listener** integration for DCS events
+- ⚙️ **Auto-configuration** via `self.locals` and `self.get_config(server)`
+- 📢 **Notification system** with per-server channels and toggles
+- 🎮 **Discord commands** with interactive UI dropdowns and buttons
+- 📚 **Comprehensive documentation** in English and French
+
+**Plugin Features:**
+- `/foothold-checkpoint save` - Create checkpoints from Discord
+- `/foothold-checkpoint restore` - Restore with interactive selection
+- `/foothold-checkpoint list` - View checkpoints with filtering
+- `/foothold-checkpoint delete` - Delete with confirmation dialogs
+- Auto-backup protection before restores (enabled by default)
+- Visual separator between manual checkpoints and auto-backups
+- Server and campaign selection via dropdowns
+- Permission controls (administrator-only by default)
+
+#### 🗂️ External Campaigns Configuration
+Share campaign definitions between CLI and plugin:
+
+```yaml
+# config.yaml
+campaigns_file: campaigns.yaml
+```
+
+- ✅ **DRY principle**: Single source of truth for campaign configuration
+- ✅ **Shared config**: Used by both CLI tool and DCSServerBot plugin
+- ✅ **Backward compatible**: Inline campaigns still supported
+- ✅ **Validation**: Clear errors if configuration is invalid
 
 #### 🔧 Explicit File Configuration
 The most significant change in v1.1.0 is the new **structured file list** configuration format, replacing regex-based pattern matching:
@@ -117,7 +277,25 @@ Checkpoint: afghanistan_2026-02-15_10-30-00.zip
 - 🔍 Helps verify checkpoint contents before restore
 - 🎨 Formatted output with proper indentation
 
-#### 💬 Improved Error Messages
+#### � Checkpoint Grouping and Sorting
+Improved organization of checkpoint lists for better user experience:
+
+- 📑 **Manual checkpoints listed first**, auto-backups listed last
+- ➖ **Visual separator** ("AUTO-BACKUPS") in both CLI and Discord UI
+- 📅 **Chronological sorting** within each group (oldest first, newest last)
+- 🎯 **Easier selection** in dropdown menus (most recent at bottom)
+
+Example output:
+```
+Checkpoints for Afghanistan:
+  1. campaign_save_morning.zip      (2024-02-10)  2.1 MB
+  2. weekend_snapshot.zip            (2024-02-14)  2.2 MB
+  ────────────── AUTO-BACKUPS ──────────────
+  3. auto-backup-20240216-201000.zip (2024-02-16)  2.3 MB
+  4. auto-backup-20240216-221045.zip (2024-02-16)  2.3 MB
+```
+
+#### �💬 Improved Error Messages
 More helpful and actionable error messages throughout:
 
 - 🔧 Unknown file errors include YAML configuration snippets

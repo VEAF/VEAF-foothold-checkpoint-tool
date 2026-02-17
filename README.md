@@ -8,36 +8,51 @@ A CLI tool for managing DCS Foothold campaign checkpoints with integrity verific
 
 - **Save checkpoints**: Create timestamped backups of Foothold campaign saves with SHA-256 integrity verification
 - **Restore checkpoints**: Restore campaigns with automatic integrity checks and auto-backup
-- **Auto-backup before restore**: Automatically creates a backup before overwriting files (new in v1.1.0)
-- **Automatic file renaming**: Transparently rename files when restoring old checkpoints (new in v1.1.0)
-- **Unknown file detection**: Helpful error messages with YAML snippets for unconfigured files (new in v1.1.0)
+- **Auto-backup before restore**: Automatically creates a backup before overwriting files (v1.1.0+)
+- **Automatic file renaming**: Transparently rename files when restoring old checkpoints (v1.1.0+)
+- **Unknown file detection**: Helpful error messages with YAML snippets for unconfigured files (v1.1.0+)
 - **Cross-server support**: Move checkpoints between different DCS servers
 - **Campaign evolution**: Automatically handle campaign name changes (e.g., `GCW_Modern` → `Germany_Modern`)
 - **Import**: Convert existing manual backups to checkpoint format
 - **Flexible CLI**: Use command-line flags or interactive prompts
 - **Rich terminal UI**: Progress bars, tables, colored output, and `--details` flag for file lists
+- **DCSServerBot Plugin**: Discord slash commands for checkpoint management (see [Plugin Guide](src/foothold_checkpoint/plugin/README.md))
+
+## 🎮 DCSServerBot Integration
+
+The tool can be used as a plugin for [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot), providing Discord slash commands for checkpoint management:
+
+- `/foothold-checkpoint save` - Create checkpoints from Discord
+- `/foothold-checkpoint restore` - Restore checkpoints via Discord UI
+- `/foothold-checkpoint list` - Browse available checkpoints
+- `/foothold-checkpoint delete` - Remove old checkpoints
+
+**See the [Plugin Guide](src/foothold_checkpoint/plugin/README.md) for installation and configuration.**
 
 ## 📋 Status
 
-🎉 **Version 1.1.0 Released!** - February 15, 2026
+🎉 **Version 2.0.0 Released!** - February 16, 2026
 
 **All Features Complete**:
 
+- ✅ **DCSServerBot plugin** with full Discord UI integration
 - ✅ All core features implemented and tested (save, restore, list, delete, import)
 - ✅ Explicit file list configuration with optional files support
 - ✅ Auto-backup and automatic file renaming on restore
+- ✅ Checkpoint grouping and sorting (manual first, auto-backups last)
+- ✅ External campaigns configuration for shared CLI/plugin setup
 - ✅ Unknown file detection with helpful configuration suggestions
 - ✅ Complete CLI with error handling, interactive prompts, and quiet mode
-- ✅ 304 tests passing with 79% code coverage (100% on core modules)
-- ✅ Comprehensive documentation (user guide, contributing guide, release notes)
+- ✅ 306 tests (302 passing) with core coverage 76-100%
+- ✅ Comprehensive documentation (user guide, plugin guide EN/FR, contributing guide)
 - ✅ Real campaign data integration testing
 - ✅ Code quality checks (ruff, black, mypy)
 - ✅ Cross-platform testing (Windows + Linux/WSL)
 - ✅ Ready for production use!
 
-**New in v1.1.0**: Structured campaign configuration, auto-backup protection, file renaming on restore, unknown file detection
+**New in v2.0.0**: DCSServerBot plugin integration, external campaigns configuration, checkpoint grouping UI
 
-⚠️ **Breaking Change**: Configuration format changed in v1.1.0. See [CHANGELOG.md](CHANGELOG.md) for migration guide.
+⚠️ **Breaking Change**: Configuration format changed. See [CHANGELOG.md](CHANGELOG.md) for migration guide.
 
 ## 📖 Documentation
 

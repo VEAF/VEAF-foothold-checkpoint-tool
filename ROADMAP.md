@@ -13,6 +13,47 @@ This document outlines the past, present, and future development of the VEAF Foo
 
 ## Completed Releases
 
+### ✅ v2.0.0 - DCSServerBot Plugin Integration (February 16, 2026)
+
+**Status:** Released
+
+**Key Features:**
+- **DCSServerBot plugin** with full Discord UI integration
+  - Plugin architecture using DCSServerBot's `Plugin` base class
+  - Discord commands: `/foothold-checkpoint save`, `restore`, `list`, `delete`
+  - Interactive UI with dropdowns and buttons
+  - Per-server notification channels with configurable toggles
+  - Comprehensive English and French documentation
+- **External campaigns configuration** via separate `campaigns.yaml` file
+  - Shared between CLI and plugin (DRY principle)
+  - Backward compatible with inline campaigns
+- **Checkpoint grouping and sorting**
+  - Manual checkpoints listed first, auto-backups last
+  - Visual separator ("AUTO-BACKUPS") in CLI and Discord
+  - Chronological sorting (oldest first, newest last)
+- **Configuration improvements**
+  - Optional `servers` field (for plugin-only mode)
+  - Optional `campaigns` field (when using `campaigns_file`)
+  - Enhanced validation with helpful error messages
+
+**Breaking Changes:**
+- Configuration format migration required (same as v1.1.0)
+- `servers` field now optional (for plugin mode)
+- `campaigns` and `campaigns_file` are mutually exclusive
+
+**Quality Metrics:**
+- 306 tests (302 passing, 3 skipped)
+- 46% overall coverage (core: 76-100%)
+- Full mypy type checking
+- Cross-platform support (Windows, Linux, macOS)
+
+**Related:**
+- OpenSpec change: `dcsserverbot-integration` (archived 2026-02-16)
+- Plugin package: `foothold-checkpoint-plugin-v2.0.0.zip`
+- GitHub Release: [v2.0.0](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v2.0.0)
+
+---
+
 ### ✅ v1.1.0 - Explicit File Configuration (February 15, 2026)
 
 **Status:** Released
@@ -97,24 +138,34 @@ This document outlines the past, present, and future development of the VEAF Foo
 
 ## In Progress
 
-Currently no active development. All planned features for v1.1.0 have been completed and released.
+### 🚧 v2.0.0 - DCSServerBot Integration
+
+**Status:** In active development
+
+**Completed Work:**
+- ✅ Plugin structure reorganized into `src/foothold_checkpoint/plugin/` directory
+- ✅ Plugin renamed to `foothold-checkpoint` for better identification  
+- ✅ Build script created (`scripts/build_plugin.py`) for plugin distribution
+- ✅ Plugin configuration examples (`foothold-checkpoint.yaml.example`, `campaigns.yaml.example`)
+- ✅ Plugin documentation (`README.md` in plugin folder)
+- ✅ Documentation updated (README.md and USERS.md) with DCSServerBot integration sections
+- ✅ External campaigns configuration support (shared between CLI and plugin)
+
+**Key Features (Implemented):**
+- Native plugin for [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
+- Discord slash commands for checkpoint operations (`/checkpoint save`, `/checkpoint restore`, `/checkpoint list`, `/checkpoint delete`)
+- Role-based access control (administrator-only by default)
+- Shared campaign configuration between CLI and plugin modes
+
+**Next Steps:**
+- Discord notifications for checkpoint events
+- Enhanced error reporting in Discord
+- Plugin testing and user feedback
+- Documentation improvements based on usage
 
 ---
 
 ## Planned
-
-
-### 💡 v2.0.0 - DCSServerBot Integration
-
-**Major Features:**
-
-#### DCSServerBot Plugin
-- Native plugin for [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
-- Discord commands for checkpoint operations
-- Discord notifications for checkpoint events
-- Role-based access control for checkpoint operations
-
----
 
 ### 💡 v2.1.0 - Webapp version
 

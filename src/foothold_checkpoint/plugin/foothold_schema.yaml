@@ -1,0 +1,50 @@
+# DCSServerBot plugin configuration schema for Foothold Checkpoint Tool
+#
+# This configuration file defines bot-specific settings for checkpoint management,
+# including where campaigns are defined, where checkpoints are stored, Discord
+# permissions, and notification preferences.
+#
+# Configuration Structure:
+# - campaigns_file: Path to campaigns.yaml (required)
+# - checkpoints_dir: Directory for checkpoint storage (required for bot operations)
+# - permissions: Role-based access control for Discord commands
+# - notifications: Configure Discord notifications for checkpoint events
+#
+# See README.md for detailed configuration guide.
+
+---
+# Path to campaigns.yaml defining all campaign settings
+# This file is shared between CLI and bot for DRY configuration
+campaigns_file: !Env ${CAMPAIGNS_FILE:campaigns.yaml}
+
+# Directory where all checkpoints will be stored
+# Bot uses this location for save/restore/list/delete operations
+checkpoints_dir: !Env ${CHECKPOINTS_DIR:./checkpoints}
+
+# Discord permission configuration
+# Define which roles can execute each checkpoint operation
+permissions:
+  save:
+    - DCS Admin
+    - Mission Designer
+  restore:
+    - DCS Admin
+  list:
+    - DCS Admin
+    - Mission Designer
+    - Mission Controller
+  delete:
+    - DCS Admin
+
+# Notification settings for checkpoint events
+# Controls which events trigger Discord notifications and where they're sent
+notifications:
+  # Discord channel ID for checkpoint notifications
+  # To get ID: Right-click channel → Copy Channel ID (Developer Mode required)
+  channel: 1234567890123456789
+
+  # Event types to notify
+  on_save: true       # Notify when checkpoint is saved
+  on_restore: true    # Notify when checkpoint is restored
+  on_delete: true     # Notify when checkpoint is deleted
+  on_error: true      # Notify on operation errors

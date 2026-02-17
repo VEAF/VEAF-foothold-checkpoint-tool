@@ -9,14 +9,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from foothold_checkpoint.core.campaign import detect_campaigns
-from foothold_checkpoint.core.checkpoint import create_checkpoint
+# Use relative imports for DCSSB compatibility (package structure is flattened)
+from .campaign import detect_campaigns
+from .checkpoint import create_checkpoint
 
 if TYPE_CHECKING:
-    from foothold_checkpoint.core.config import Config
+    from .config import Config
+    from .events import EventHooks
 
 
-def save_checkpoint(
+async def save_checkpoint(
     campaign_name: str,
     server_name: str,
     source_dir: str | Path,
@@ -25,7 +27,9 @@ def save_checkpoint(
     created_at: datetime | None = None,
     name: str | None = None,
     comment: str | None = None,
+    is_auto_backup: bool = False,
     progress_callback: Callable[[str, int, int], None] | None = None,
+    hooks: "EventHooks | None" = None,
 ) -> Path:
     """Save a checkpoint for a single campaign.
 
@@ -48,9 +52,13 @@ def save_checkpoint(
         name: Optional user-provided name for the checkpoint
             (e.g., "Before Mission 5").
         comment: Optional user-provided comment/description for the checkpoint.
+        is_auto_backup: Whether this checkpoint is an automatic backup created
+            before a restore operation. Defaults to False.
         progress_callback: Optional callback function called during checkpoint
             creation. Called as: callback(message: str, current: int, total: int).
             Example: callback("Computing checksums", 1, 3)
+        hooks: Optional event hooks for operation notifications. Used by plugin
+            for Discord notifications. Set to None for CLI mode.
 
     Returns:
         Path to the created checkpoint ZIP file.
@@ -62,7 +70,8 @@ def save_checkpoint(
         OSError: If checkpoint creation fails (disk full, etc.).
 
     Examples:
-        >>> checkpoint = save_checkpoint(
+        >>> # CLI mode (no hooks)
+        >>> checkpoint = await save_checkpoint(
         ...     campaign_name="afghanistan",
         ...     server_name="production-1",
         ...     source_dir=Path("C:/DCS/Server/Missions/Saves"),
@@ -70,86 +79,131 @@ def save_checkpoint(
         ...     config=config,
         ...     name="Before major update"
         ... )
-        >>> print(checkpoint.name)
-        afghanistan_2024-02-14_10-30-00.zip
+
+        >>> # Plugin mode (with Discord hooks)
+        >>> checkpoint = await save_checkpoint(
+        ...     campaign_name="afghanistan",
+        ...     server_name="production-1",
+        ...     source_dir=Path("C:/DCS/Server/Missions/Saves"),
+        ...     output_dir=Path("C:/checkpoints"),
+        ...     config=config,
+        ...     hooks=discord_hooks,
+        ... )
     """
-    source_dir = Path(source_dir)
-    output_dir = Path(output_dir)
+    from .events import safe_invoke_hook
 
-    # Validate source directory exists and is accessible
-    if not source_dir.exists():
-        raise FileNotFoundError(
-            f"Source directory '{source_dir}' does not exist. "
-            f"Please check the server path in your configuration."
-        )
-
-    if not source_dir.is_dir():
-        raise NotADirectoryError(
-            f"Source path '{source_dir}' is not a directory. "
-            f"Expected a directory containing campaign files."
-        )
-
-    # Test readability by attempting to list directory
     try:
-        list(source_dir.iterdir())
-    except PermissionError as e:
-        raise PermissionError(
-            f"Source directory '{source_dir}' is not readable. " f"Check file system permissions."
-        ) from e
+        # Trigger on_save_start hook
+        if hooks:
+            await safe_invoke_hook(hooks.on_save_start, campaign_name, hook_name="on_save_start")
 
-    # Create output directory if it doesn't exist
-    if output_dir.exists() and not output_dir.is_dir():
-        raise NotADirectoryError(
-            f"Output path '{output_dir}' exists but is not a directory. "
-            f"Please specify a directory path for checkpoint storage."
+        source_dir = Path(source_dir)
+        output_dir = Path(output_dir)
+
+        # Validate source directory exists and is accessible
+        if not source_dir.exists():
+            raise FileNotFoundError(
+                f"Source directory '{source_dir}' does not exist. "
+                f"Please check the server path in your configuration."
+            )
+
+        if not source_dir.is_dir():
+            raise NotADirectoryError(
+                f"Source path '{source_dir}' is not a directory. "
+                f"Expected a directory containing campaign files."
+            )
+
+        # Test readability by attempting to list directory
+        try:
+            list(source_dir.iterdir())
+        except PermissionError as e:
+            raise PermissionError(
+                f"Source directory '{source_dir}' is not readable. "
+                f"Check file system permissions."
+            ) from e
+
+        # Create output directory if it doesn't exist
+        if output_dir.exists() and not output_dir.is_dir():
+            raise NotADirectoryError(
+                f"Output path '{output_dir}' exists but is not a directory. "
+                f"Please specify a directory path for checkpoint storage."
+            )
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Find all files in source directory
+        all_files = list(source_dir.glob("*"))
+        filenames = [f.name for f in all_files if f.is_file()]
+
+        # Group files by campaign and find matching files
+        grouped = detect_campaigns(filenames, config)
+
+        # Find campaign files (case-insensitive match)
+        campaign_files_names = None
+        for camp_name, files in grouped.items():
+            if camp_name.lower() == campaign_name.lower():
+                campaign_files_names = files
+                break
+
+        if not campaign_files_names:
+            raise ValueError(
+                f"No campaign files found for campaign '{campaign_name}' in {source_dir}. "
+                f"Available campaigns: {', '.join(grouped.keys()) if grouped else 'none'}"
+            )
+
+        # Build full paths for campaign files
+        campaign_files = [source_dir / fname for fname in campaign_files_names]
+
+        # Add Foothold_Ranks.lua if it exists
+        ranks_file = source_dir / "Foothold_Ranks.lua"
+        if ranks_file.exists():
+            campaign_files.append(ranks_file)
+
+        # Wrap progress callback to also trigger on_save_progress hook
+        def combined_progress_callback(message: str, current: int, total: int) -> None:
+            # Call original callback if provided
+            if progress_callback:
+                progress_callback(message, current, total)
+
+            # Trigger on_save_progress hook (sync wrapper for async hook)
+            if hooks and hooks.on_save_progress:
+                import asyncio
+
+                asyncio.create_task(
+                    safe_invoke_hook(
+                        hooks.on_save_progress, current, total, hook_name="on_save_progress"
+                    )
+                )
+
+        # Create the checkpoint using low-level function
+        checkpoint_path = create_checkpoint(
+            campaign_name=campaign_name,
+            server_name=server_name,
+            campaign_files=campaign_files,
+            output_dir=output_dir,
+            created_at=created_at,
+            name=name,
+            comment=comment,
+            is_auto_backup=is_auto_backup,
+            progress_callback=combined_progress_callback,
         )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+        # Trigger on_save_complete hook
+        if hooks:
+            await safe_invoke_hook(
+                hooks.on_save_complete, checkpoint_path, hook_name="on_save_complete"
+            )
 
-    # Find all files in source directory
-    all_files = list(source_dir.glob("*"))
-    filenames = [f.name for f in all_files if f.is_file()]
+        return checkpoint_path
 
-    # Group files by campaign and find matching files
-    grouped = detect_campaigns(filenames, config)
-
-    # Find campaign files (case-insensitive match)
-    campaign_files_names = None
-    for camp_name, files in grouped.items():
-        if camp_name.lower() == campaign_name.lower():
-            campaign_files_names = files
-            break
-
-    if not campaign_files_names:
-        raise ValueError(
-            f"No campaign files found for campaign '{campaign_name}' in {source_dir}. "
-            f"Available campaigns: {', '.join(grouped.keys()) if grouped else 'none'}"
-        )
-
-    # Build full paths for campaign files
-    campaign_files = [source_dir / fname for fname in campaign_files_names]
-
-    # Add Foothold_Ranks.lua if it exists
-    ranks_file = source_dir / "Foothold_Ranks.lua"
-    if ranks_file.exists():
-        campaign_files.append(ranks_file)
-
-    # Create the checkpoint using low-level function
-    checkpoint_path = create_checkpoint(
-        campaign_name=campaign_name,
-        server_name=server_name,
-        campaign_files=campaign_files,
-        output_dir=output_dir,
-        created_at=created_at,
-        name=name,
-        comment=comment,
-        progress_callback=progress_callback,
-    )
-
-    return checkpoint_path
+    except Exception as e:
+        # Trigger on_error hook
+        if hooks:
+            await safe_invoke_hook(hooks.on_error, e, hook_name="on_error")
+        raise
 
 
-def save_all_campaigns(
+async def save_all_campaigns(
     server_name: str,
     source_dir: str | Path,
     output_dir: str | Path,
@@ -158,6 +212,7 @@ def save_all_campaigns(
     name: str | None = None,
     comment: str | None = None,
     progress_callback: Callable[[str, int, int], None] | None = None,
+    hooks: "EventHooks | None" = None,
     continue_on_error: bool = True,
 ) -> dict[str, Path]:
     """Save checkpoints for all detected campaigns in source directory.
@@ -177,6 +232,7 @@ def save_all_campaigns(
         comment: Optional user-provided comment applied to all checkpoints.
         progress_callback: Optional callback for progress tracking.
             Called as: callback(message: str, current: int, total: int).
+        hooks: Optional event hooks for operation notifications.
         continue_on_error: If True, continue saving other campaigns when one fails.
             If False, raise error immediately on first failure.
 
@@ -190,7 +246,7 @@ def save_all_campaigns(
         Exception: If continue_on_error=False and any campaign save fails.
 
     Examples:
-        >>> results = save_all_campaigns(
+        >>> results = await save_all_campaigns(
         ...     server_name="production-1",
         ...     source_dir=Path("C:/DCS/Server/Missions/Saves"),
         ...     output_dir=Path("C:/checkpoints"),
@@ -228,7 +284,7 @@ def save_all_campaigns(
                     total_campaigns,
                 )
 
-            checkpoint_path = save_checkpoint(
+            checkpoint_path = await save_checkpoint(
                 campaign_name=campaign_name,
                 server_name=server_name,
                 source_dir=source_dir,
@@ -238,6 +294,7 @@ def save_all_campaigns(
                 name=name,
                 comment=comment,
                 progress_callback=progress_callback,
+                hooks=hooks,
             )
 
             results[campaign_name] = checkpoint_path
@@ -311,13 +368,14 @@ def check_restore_conflicts(
         return existing_files
 
 
-def create_auto_backup(
+async def create_auto_backup(
     checkpoint_path: Path,
     target_dir: Path,
     server_name: str,
     checkpoints_dir: Path,
     config: "Config",
     progress_callback: Callable[[str, int, int], None] | None = None,
+    hooks: "EventHooks | None" = None,
 ) -> Path | None:
     """Create an automatic backup before restoring a checkpoint.
 
@@ -331,6 +389,7 @@ def create_auto_backup(
         checkpoints_dir: Directory where the auto-backup checkpoint will be saved.
         config: Configuration object containing campaign definitions.
         progress_callback: Optional callback for progress tracking.
+        hooks: Optional event hooks for operation notifications.
 
     Returns:
         Path to the created auto-backup checkpoint, or None if backup failed.
@@ -340,7 +399,7 @@ def create_auto_backup(
         OSError: If backup creation fails.
 
     Example:
-        >>> backup = create_auto_backup(
+        >>> backup = await create_auto_backup(
         ...     checkpoint_path=Path("checkpoints/ca_20260215.zip"),
         ...     target_dir=Path("C:/DCS/Server/Missions/Saves"),
         ...     server_name="foothold2",
@@ -376,7 +435,7 @@ def create_auto_backup(
 
     # Create the backup checkpoint
     try:
-        backup_path = save_checkpoint(
+        backup_path = await save_checkpoint(
             campaign_name=campaign_name,
             server_name=server_name,
             source_dir=target_dir,
@@ -385,7 +444,9 @@ def create_auto_backup(
             created_at=timestamp,
             name=backup_name,
             comment=backup_comment,
+            is_auto_backup=True,
             progress_callback=progress_callback,
+            hooks=hooks,
         )
         return backup_path
 
@@ -421,8 +482,8 @@ def _get_canonical_filename(filename: str, campaign_name: str, config: "Config")
         >>> _get_canonical_filename("unknown.lua", "campaign", config)
         "unknown.lua"  # Not in config, return as-is
     """
-    # Check if campaign exists in config
-    if campaign_name not in config.campaigns:
+    # Check if campaigns dict is available and campaign exists in config
+    if config.campaigns is None or campaign_name not in config.campaigns:
         return filename
 
     campaign = config.campaigns[campaign_name]
@@ -438,7 +499,7 @@ def _get_canonical_filename(filename: str, campaign_name: str, config: "Config")
     return filename
 
 
-def restore_checkpoint(
+async def restore_checkpoint(
     checkpoint_path: str | Path,
     target_dir: str | Path,
     restore_ranks: bool = False,
@@ -447,6 +508,7 @@ def restore_checkpoint(
     skip_overwrite_check: bool = False,
     server_name: str | None = None,
     auto_backup: bool = True,
+    hooks: "EventHooks | None" = None,
 ) -> list[Path]:
     """Restore a checkpoint to a target directory.
 
@@ -462,7 +524,7 @@ def restore_checkpoint(
         checkpoint_path: Path to the checkpoint ZIP file to restore.
         target_dir: Path to the directory where files will be extracted.
         restore_ranks: If True, restore Foothold_Ranks.lua. If False (default),
-            exclude ranks filee from restoration.
+            exclude ranks file from restoration.
         progress_callback: Optional callback function called during restoration.
             Called as: callback(message: str, current: int, total: int).
         config: Optional configuration object containing campaign name mappings.
@@ -477,6 +539,7 @@ def restore_checkpoint(
         auto_backup: If True and config is provided, automatically create a backup
             checkpoint before restoring (default: True). The backup is saved with
             a timestamped name (auto-backup-YYYYMMDD-HHMMSS).
+        hooks: Optional event hooks for operation notifications.
 
     Returns:
         List of Path objects for the restored files (with potentially renamed paths).
@@ -492,157 +555,216 @@ def restore_checkpoint(
     import json
     import zipfile
 
-    checkpoint_path = Path(checkpoint_path)
-    target_dir = Path(target_dir)
+    from .events import safe_invoke_hook
 
-    # Validate checkpoint file exists
-    if not checkpoint_path.exists():
-        raise FileNotFoundError("Checkpoint file not found")
+    try:
+        checkpoint_path = Path(checkpoint_path)
+        target_dir = Path(target_dir)
 
-    # Validate checkpoint is a valid ZIP
-    if not zipfile.is_zipfile(checkpoint_path):
-        raise ValueError("Invalid checkpoint file (not a valid ZIP archive)")
+        # Validate checkpoint file exists FIRST
+        if not checkpoint_path.exists():
+            raise FileNotFoundError("Checkpoint file not found")
 
-    # Validate target directory exists
-    if not target_dir.exists():
-        raise FileNotFoundError("Target directory does not exist")
+        # Validate checkpoint is a valid ZIP BEFORE trying to open it
+        if not zipfile.is_zipfile(checkpoint_path):
+            raise ValueError("Invalid checkpoint file (not a valid ZIP archive)")
 
-    if not target_dir.is_dir():
-        raise NotADirectoryError("Target path is not a directory")
-
-    # Check target directory is writable
-    if not _is_writable(target_dir):
-        raise PermissionError(f"Target directory is not writable: {target_dir}")
-
-    # Create automatic backup before restoring (if enabled and config provided)
-    if auto_backup and config is not None:
-        # Validate server_name is provided for auto-backup
-        if server_name is None:
-            raise ValueError("server_name is required when auto_backup=True with config provided")
-
-        if progress_callback:
-            progress_callback("Creating automatic backup", 0, 1)
-
+        # Read metadata to get campaign name for hook
         try:
-            backup_path = create_auto_backup(
-                checkpoint_path=checkpoint_path,
-                target_dir=target_dir,
-                server_name=server_name,
-                checkpoints_dir=config.checkpoints_dir,
-                config=config,
-                progress_callback=progress_callback,
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                if "metadata.json" in zf.namelist():
+                    metadata_json = zf.read("metadata.json").decode("utf-8")
+                    try:
+                        metadata = json.loads(metadata_json)
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"Invalid metadata JSON: {e}") from e
+                    campaign_name_for_hook = metadata.get("campaign_name", "unknown")
+                else:
+                    campaign_name_for_hook = "unknown"
+        except zipfile.BadZipFile as e:
+            raise ValueError(f"Invalid checkpoint file (not a valid ZIP archive): {e}") from e
+
+        # Trigger on_restore_start hook
+        if hooks:
+            await safe_invoke_hook(
+                hooks.on_restore_start,
+                checkpoint_path.stem,
+                campaign_name_for_hook,
+                hook_name="on_restore_start",
             )
-            if backup_path and progress_callback:
-                progress_callback(f"Auto-backup created: {backup_path.name}", 1, 1)
-        except ValueError as e:
-            # If no campaign files to backup, continue with restore
-            if "No campaign files found" not in str(e):
-                raise
-        except OSError as e:
-            # Auto-backup failure is critical - don't proceed with restore
-            raise OSError(f"Failed to create automatic backup: {e}") from e
 
-    # Open ZIP and read metadata
-    with zipfile.ZipFile(checkpoint_path, "r") as zf:
-        # Check metadata.json exists
-        if "metadata.json" not in zf.namelist():
-            raise ValueError("Invalid checkpoint (missing metadata)")
+        # Validate target directory exists
+        if not target_dir.exists():
+            raise FileNotFoundError("Target directory does not exist")
 
-        # Read and parse metadata.json
-        try:
-            metadata_json = zf.read("metadata.json").decode("utf-8")
-            metadata = json.loads(metadata_json)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid metadata JSON: {e}") from e
+        if not target_dir.is_dir():
+            raise NotADirectoryError("Target path is not a directory")
 
-        # Get list of files to restore
-        all_files_in_zip = [
-            name for name in zf.namelist() if name != "metadata.json" and not name.endswith("/")
-        ]
+        # Check target directory is writable
+        if not _is_writable(target_dir):
+            raise PermissionError(f"Target directory is not writable: {target_dir}")
 
-        # Filter out Foothold_Ranks.lua if not requested
-        files_to_restore = []
-        for filename in all_files_in_zip:
-            if filename == "Foothold_Ranks.lua" and not restore_ranks:
-                continue
-            files_to_restore.append(filename)
+        # Create automatic backup before restoring (if enabled and config provided)
+        backup_path = None
+        if auto_backup and config is not None:
+            # Validate server_name is provided for auto-backup
+            if server_name is None:
+                raise ValueError(
+                    "server_name is required when auto_backup=True with config provided"
+                )
 
-        if not files_to_restore:
-            return []
+            if progress_callback:
+                progress_callback("Creating automatic backup", 0, 1)
 
-        # Verify checksums before extraction (silently - progress during extraction only)
-        # This avoids spinner/progress interference with confirmation prompts
-        file_checksums = metadata.get("files", {})
+            try:
+                backup_path = await create_auto_backup(
+                    checkpoint_path=checkpoint_path,
+                    target_dir=target_dir,
+                    server_name=server_name,
+                    checkpoints_dir=config.checkpoints_dir,
+                    config=config,
+                    progress_callback=progress_callback,
+                    hooks=hooks,
+                )
+                if backup_path:
+                    if progress_callback:
+                        progress_callback(f"Auto-backup created: {backup_path.name}", 1, 1)
+                    # Trigger on_backup_complete hook
+                    if hooks:
+                        await safe_invoke_hook(
+                            hooks.on_backup_complete, backup_path, hook_name="on_backup_complete"
+                        )
+            except ValueError as e:
+                # If no campaign files to backup, continue with restore
+                if "No campaign files found" not in str(e):
+                    raise
+            except OSError as e:
+                # Auto-backup failure is critical - don't proceed with restore
+                raise OSError(f"Failed to create automatic backup: {e}") from e
 
-        for _, filename in enumerate(files_to_restore, start=1):
-            # Extract file to temp location for checksum verification
-            file_data = zf.read(filename)
+        # Open ZIP and read metadata
+        with zipfile.ZipFile(checkpoint_path, "r") as zf:
+            # Check metadata.json exists
+            if "metadata.json" not in zf.namelist():
+                raise ValueError("Invalid checkpoint (missing metadata)")
 
-            # Compute checksum of extracted data
-            import hashlib
+            # Read and parse metadata.json
+            try:
+                metadata_json = zf.read("metadata.json").decode("utf-8")
+                metadata = json.loads(metadata_json)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid metadata JSON: {e}") from e
 
-            computed_checksum = hashlib.sha256(file_data).hexdigest()
+            # Get list of files to restore
+            all_files_in_zip = [
+                name for name in zf.namelist() if name != "metadata.json" and not name.endswith("/")
+            ]
 
-            # Compare with metadata checksum
-            expected_checksum = file_checksums.get(filename)
-            if expected_checksum:
-                # Remove 'sha256:' prefix if present
-                if expected_checksum.startswith("sha256:"):
-                    expected_checksum = expected_checksum[7:]  # len("sha256:") = 7
+            # Filter out Foothold_Ranks.lua if not requested
+            files_to_restore = []
+            for filename in all_files_in_zip:
+                if filename == "Foothold_Ranks.lua" and not restore_ranks:
+                    continue
+                files_to_restore.append(filename)
 
-                if computed_checksum != expected_checksum:
-                    raise ValueError(
-                        f"Checksum mismatch for file {filename}: "
-                        f"expected {expected_checksum}, got {computed_checksum}"
+            if not files_to_restore:
+                return []
+
+            # Verify checksums before extraction (silently - progress during extraction only)
+            # This avoids spinner/progress interference with confirmation prompts
+            file_checksums = metadata.get("files", {})
+
+            for _, filename in enumerate(files_to_restore, start=1):
+                # Extract file to temp location for checksum verification
+                file_data = zf.read(filename)
+
+                # Compute checksum of extracted data
+                import hashlib
+
+                computed_checksum = hashlib.sha256(file_data).hexdigest()
+
+                # Compare with metadata checksum
+                expected_checksum = file_checksums.get(filename)
+                if expected_checksum:
+                    # Remove 'sha256:' prefix if present
+                    if expected_checksum.startswith("sha256:"):
+                        expected_checksum = expected_checksum[7:]  # len("sha256:") = 7
+
+                    if computed_checksum != expected_checksum:
+                        raise ValueError(
+                            f"Checksum mismatch for file {filename}: "
+                            f"expected {expected_checksum}, got {computed_checksum}"
+                        )
+
+            # Check for existing files and prompt for confirmation (unless skipped)
+            if not skip_overwrite_check:
+                existing_files = []
+                for filename in files_to_restore:
+                    target_file = target_dir / filename
+                    if target_file.exists():
+                        existing_files.append(filename)
+
+                if existing_files:
+                    # Prompt for confirmation
+                    confirmation = input(
+                        f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
+                    )
+                    if confirmation.lower() != "y":
+                        raise RuntimeError("Restoration cancelled by user")
+
+            # Extract files (with progress updates)
+            if progress_callback:
+                progress_callback("Extracting files", 0, len(files_to_restore))
+
+            restored_files: list[Path] = []
+
+            # Get campaign_name from metadata for file renaming
+            campaign_name = metadata.get("campaign_name") if config else None
+
+            for idx, filename in enumerate(files_to_restore, start=1):
+                if progress_callback:
+                    progress_callback(f"Extracting {filename}", idx, len(files_to_restore))
+
+                # Trigger on_restore_progress hook
+                if hooks:
+                    await safe_invoke_hook(
+                        hooks.on_restore_progress,
+                        idx,
+                        len(files_to_restore),
+                        hook_name="on_restore_progress",
                     )
 
-        # Check for existing files and prompt for confirmation (unless skipped)
-        if not skip_overwrite_check:
-            existing_files = []
-            for filename in files_to_restore:
-                target_file = target_dir / filename
-                if target_file.exists():
-                    existing_files.append(filename)
+                file_data = zf.read(filename)
 
-            if existing_files:
-                # Prompt for confirmation
-                confirmation = input(
-                    f"Files will be overwritten ({len(existing_files)} files). Continue? (y/n): "
-                )
-                if confirmation.lower() != "y":
-                    raise RuntimeError("Restoration cancelled by user")
+                # Determine target filename (with potential renaming if config provided)
+                target_filename = filename
+                if config and campaign_name:
+                    # Check if file should be renamed to canonical name
+                    target_filename = _get_canonical_filename(filename, campaign_name, config)
 
-        # Extract files (with progress updates)
-        if progress_callback:
-            progress_callback("Extracting files", 0, len(files_to_restore))
+                target_file = target_dir / target_filename
 
-        restored_files: list[Path] = []
+                # Write file
+                target_file.write_bytes(file_data)
+                restored_files.append(target_file)
 
-        # Get campaign_name from metadata for file renaming
-        campaign_name = metadata.get("campaign_name") if config else None
+        # Trigger on_restore_complete hook
+        if hooks:
+            restored_file_names = [str(f) for f in restored_files]
+            await safe_invoke_hook(
+                hooks.on_restore_complete, restored_file_names, hook_name="on_restore_complete"
+            )
 
-        for idx, filename in enumerate(files_to_restore, start=1):
-            if progress_callback:
-                progress_callback(f"Extracting {filename}", idx, len(files_to_restore))
+        return restored_files
 
-            file_data = zf.read(filename)
-
-            # Determine target filename (with potential renaming if config provided)
-            target_filename = filename
-            if config and campaign_name:
-                # Check if file should be renamed to canonical name
-                target_filename = _get_canonical_filename(filename, campaign_name, config)
-
-            target_file = target_dir / target_filename
-
-            # Write file
-            target_file.write_bytes(file_data)
-            restored_files.append(target_file)
-
-    return restored_files
+    except Exception as e:
+        # Trigger on_error hook
+        if hooks:
+            await safe_invoke_hook(hooks.on_error, e, hook_name="on_error")
+        raise
 
 
-def list_checkpoints(
+async def list_checkpoints(
     checkpoint_dir: str | Path,
     server_filter: str | None = None,
     campaign_filter: str | None = None,
@@ -668,22 +790,23 @@ def list_checkpoints(
         - name: Optional user-provided name (str | None)
         - comment: Optional user-provided comment (str | None)
 
-        List is sorted by timestamp (newest first).
+        List is grouped (manual checkpoints first, auto-backups last) and sorted
+        within each group chronologically (oldest first, newest last).
 
     Raises:
         FileNotFoundError: If checkpoint directory doesn't exist.
 
     Examples:
         >>> # List all checkpoints
-        >>> checkpoints = list_checkpoints("/path/to/checkpoints")
+        >>> checkpoints = await list_checkpoints("/path/to/checkpoints")
         >>> for cp in checkpoints:
         ...     print(f"{cp['filename']}: {cp['campaign']} on {cp['server']}")
 
         >>> # Filter by server
-        >>> checkpoints = list_checkpoints("/path/to/checkpoints", server_filter="prod-1")
+        >>> checkpoints = await list_checkpoints("/path/to/checkpoints", server_filter="prod-1")
 
         >>> # Filter by both server and campaign
-        >>> checkpoints = list_checkpoints(
+        >>> checkpoints = await list_checkpoints(
         ...     "/path/to/checkpoints",
         ...     server_filter="prod-1",
         ...     campaign_filter="afghanistan"
@@ -750,6 +873,10 @@ def list_checkpoints(
                     "name": metadata.get("name"),
                     "comment": metadata.get("comment"),
                     "files": files_in_checkpoint,  # List of files in checkpoint
+                    # Check metadata first, fallback to filename for old checkpoints
+                    "is_auto_backup": metadata.get(
+                        "is_auto_backup", checkpoint_path.name.startswith("auto-backup-")
+                    ),
                 }
 
                 checkpoints.append(checkpoint_info)
@@ -758,16 +885,25 @@ def list_checkpoints(
             # Skip corrupted or invalid checkpoint files
             continue
 
-    # Sort by timestamp (newest first)
-    checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=True)
+    # Separate manual and auto-backup checkpoints
+    manual_checkpoints = [cp for cp in checkpoints if not cp["is_auto_backup"]]
+    auto_checkpoints = [cp for cp in checkpoints if cp["is_auto_backup"]]
+
+    # Sort each group by timestamp (oldest first = most recent last)
+    manual_checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=False)
+    auto_checkpoints.sort(key=lambda cp: cp["timestamp"], reverse=False)
+
+    # Combine: manual first, then auto-backups
+    checkpoints = manual_checkpoints + auto_checkpoints
 
     return checkpoints
 
 
-def delete_checkpoint(
+async def delete_checkpoint(
     checkpoint_path: str | Path,
     force: bool = False,
     confirm_callback: Callable[[dict], bool] | None = None,
+    hooks: "EventHooks | None" = None,
 ) -> dict | None:
     """Delete a checkpoint file from storage.
 
@@ -779,6 +915,7 @@ def delete_checkpoint(
         force: If True, delete immediately without confirmation. Default False.
         confirm_callback: Callback function that receives metadata dict and returns bool.
                          Required when force=False. Should return True to confirm deletion.
+        hooks: Optional event hooks for operation notifications.
 
     Returns:
         Metadata dict if deletion successful, None if user cancelled.
@@ -792,73 +929,97 @@ def delete_checkpoint(
 
     Example:
         >>> # Force delete without confirmation
-        >>> metadata = delete_checkpoint("afghan_2024-02-13_14-30-00.zip", force=True)
+        >>> metadata = await delete_checkpoint("afghan_2024-02-13_14-30-00.zip", force=True)
         >>> print(f"Deleted {metadata['campaign_name']} checkpoint")
 
         >>> # Interactive deletion with confirmation
         >>> def confirm(meta):
         ...     print(f"Delete {meta['campaign_name']} from {meta['server_name']}?")
         ...     return input("(y/n): ").lower() == 'y'
-        >>> delete_checkpoint("checkpoint.zip", confirm_callback=confirm)
+        >>> await delete_checkpoint("checkpoint.zip", confirm_callback=confirm)
     """
     import json
     import zipfile
     from zipfile import BadZipFile
 
-    checkpoint_path = Path(checkpoint_path)
+    from .events import safe_invoke_hook
 
-    # Validate file exists
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path.name}")
-
-    # Validate it's a ZIP file
-    if not zipfile.is_zipfile(checkpoint_path):
-        raise ValueError(
-            f"Not a valid checkpoint file: {checkpoint_path.name} is not a ZIP archive"
-        )
-
-    # Read and validate metadata
     try:
-        with zipfile.ZipFile(checkpoint_path, "r") as zf:
-            metadata_content = zf.read("metadata.json")
-            metadata = cast(dict[Any, Any], json.loads(metadata_content))
-    except BadZipFile as e:
-        raise ValueError(f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted") from e
-    except KeyError as e:
-        raise ValueError(
-            f"Not a valid checkpoint (missing metadata): {checkpoint_path.name}"
-        ) from e
-    except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Cannot read checkpoint metadata: {checkpoint_path.name} has invalid JSON"
-        ) from e
+        checkpoint_path = Path(checkpoint_path)
 
-    # Validate metadata has required fields
-    required_fields = ["campaign_name", "server_name", "created_at"]
-    missing_fields = [f for f in required_fields if f not in metadata]
-    if missing_fields:
-        raise ValueError(f"Cannot read checkpoint metadata: missing fields {missing_fields}")
+        # Validate file exists
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path.name}")
 
-    # Handle confirmation
-    if not force:
-        if confirm_callback is None:
-            raise ValueError("Confirmation callback required when force=False")
+        # Validate it's a ZIP file
+        if not zipfile.is_zipfile(checkpoint_path):
+            raise ValueError(
+                f"Not a valid checkpoint file: {checkpoint_path.name} is not a ZIP archive"
+            )
 
-        # Call confirmation callback with metadata
-        if not confirm_callback(metadata):
-            # User cancelled
-            return None
+        # Read and validate metadata
+        try:
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                metadata_content = zf.read("metadata.json")
+                metadata = cast(dict[Any, Any], json.loads(metadata_content))
+        except BadZipFile as e:
+            raise ValueError(
+                f"Not a valid checkpoint file: {checkpoint_path.name} is corrupted"
+            ) from e
+        except KeyError as e:
+            raise ValueError(
+                f"Not a valid checkpoint (missing metadata): {checkpoint_path.name}"
+            ) from e
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Cannot read checkpoint metadata: {checkpoint_path.name} has invalid JSON"
+            ) from e
 
-    # Delete the checkpoint file
-    try:
-        checkpoint_path.unlink()
-    except PermissionError as e:
-        raise PermissionError(f"Permission denied: cannot delete {checkpoint_path.name}") from e
-    except OSError:
-        # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
+        # Validate metadata has required fields
+        required_fields = ["campaign_name", "server_name", "created_at"]
+        missing_fields = [f for f in required_fields if f not in metadata]
+        if missing_fields:
+            raise ValueError(f"Cannot read checkpoint metadata: missing fields {missing_fields}")
+
+        # Trigger on_delete_start hook
+        checkpoint_name = checkpoint_path.stem
+        if hooks:
+            await safe_invoke_hook(
+                hooks.on_delete_start, checkpoint_name, hook_name="on_delete_start"
+            )
+
+        # Handle confirmation
+        if not force:
+            if confirm_callback is None:
+                raise ValueError("Confirmation callback required when force=False")
+
+            # Call confirmation callback with metadata
+            if not confirm_callback(metadata):
+                # User cancelled
+                return None
+
+        # Delete the checkpoint file
+        try:
+            checkpoint_path.unlink()
+        except PermissionError as e:
+            raise PermissionError(f"Permission denied: cannot delete {checkpoint_path.name}") from e
+        except OSError:
+            # Re-raise as-is for other OS errors (file in use, disk errors, etc.)
+            raise
+
+        # Trigger on_delete_complete hook
+        if hooks:
+            await safe_invoke_hook(
+                hooks.on_delete_complete, checkpoint_name, hook_name="on_delete_complete"
+            )
+
+        return metadata
+
+    except Exception as e:
+        # Trigger on_error hook
+        if hooks:
+            await safe_invoke_hook(hooks.on_error, e, hook_name="on_error")
         raise
-
-    return metadata
 
 
 def _format_file_size(size_bytes: int) -> str:
@@ -891,7 +1052,7 @@ def _format_file_size(size_bytes: int) -> str:
     return f"{size:.1f} {units[unit_index]}"
 
 
-def import_checkpoint(
+async def import_checkpoint(
     source_dir: str | Path,
     campaign_name: str,
     server_name: str,
@@ -929,7 +1090,7 @@ def import_checkpoint(
 
     Example:
         >>> # Import from manual backup directory
-        >>> checkpoint = import_checkpoint(
+        >>> checkpoint = await import_checkpoint(
         ...     source_dir="/path/to/backup",
         ...     campaign_name="afghanistan",
         ...     server_name="prod-1",
@@ -939,7 +1100,7 @@ def import_checkpoint(
         ... )
 
         >>> # Get warnings about missing files
-        >>> checkpoint, warnings = import_checkpoint(
+        >>> checkpoint, warnings = await import_checkpoint(
         ...     source_dir="/path/to/incomplete",
         ...     campaign_name="afghanistan",
         ...     server_name="prod-1",
@@ -968,7 +1129,7 @@ def import_checkpoint(
     filenames = [f.name for f in all_files if f.is_file()]
 
     # Use campaign module to detect and group files
-    from foothold_checkpoint.core.campaign import detect_campaigns
+    from .campaign import detect_campaigns
 
     grouped = detect_campaigns(filenames, config)
 
@@ -1006,7 +1167,7 @@ def import_checkpoint(
     warnings = []
 
     # Get campaign config to check for missing required files
-    campaign_config = config.campaigns.get(campaign_name)
+    campaign_config = config.campaigns.get(campaign_name) if config.campaigns else None
     if campaign_config:
         campaign_files_names_lower = [f.lower() for f in campaign_files_names]
 
@@ -1043,7 +1204,7 @@ def import_checkpoint(
         warnings.append("Shared ranks file not found: Foothold_Ranks.lua")
 
     # Use create_checkpoint to build the checkpoint
-    from foothold_checkpoint.core.checkpoint import create_checkpoint
+    from .checkpoint import create_checkpoint
 
     # Set default timestamp to current time
     if created_at is None:

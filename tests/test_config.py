@@ -85,18 +85,25 @@ class TestConfig:
         with pytest.raises(ValidationError, match="checkpoints_dir"):
             Config(servers={}, campaigns={})
 
-    def test_config_requires_servers(self):
-        """Config should raise ValidationError if servers is missing."""
+    def test_config_servers_optional(self):
+        """Config should allow servers to be None (for plugin mode)."""
+        from foothold_checkpoint.core.config import Config
+        from tests.conftest import make_simple_campaign
+
+        # servers=None is allowed when campaigns are provided
+        config = Config(
+            checkpoints_dir=Path("~/.foothold-checkpoints"),
+            campaigns={"test": make_simple_campaign("Test", ["test.lua"])},
+            servers=None,
+        )
+        assert config.servers is None
+
+    def test_config_requires_campaigns_or_campaigns_file(self):
+        """Config should raise ValidationError if neither campaigns nor campaigns_file is provided."""
         from foothold_checkpoint.core.config import Config
 
-        with pytest.raises(ValidationError, match="servers"):
-            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), campaigns={})
-
-    def test_config_requires_campaigns(self):
-        """Config should raise ValidationError if campaigns is missing."""
-        from foothold_checkpoint.core.config import Config
-
-        with pytest.raises(ValidationError, match="campaigns"):
+        # Should fail when both campaigns and campaigns_file are missing
+        with pytest.raises(ValidationError, match="At least one campaign"):
             Config(checkpoints_dir=Path("~/.foothold-checkpoints"), servers={})
 
     def test_config_campaigns_values_must_be_campaign_configs(self):
@@ -552,24 +559,8 @@ class TestErrorMessages:
         assert "checkpoints_dir" in error_str.lower()
         assert "required" in error_str.lower() or "missing" in error_str.lower()
 
-    def test_missing_servers_error_message(self):
-        """Config should provide clear error when servers is missing."""
-        from pathlib import Path
-
-        from pydantic import ValidationError
-
-        from foothold_checkpoint.core.config import Config
-
-        with pytest.raises(ValidationError) as exc_info:
-            Config(checkpoints_dir=Path("~/.foothold-checkpoints"), campaigns={})
-
-        # Error should mention the missing field
-        error_str = str(exc_info.value)
-        assert "servers" in error_str.lower()
-        assert "required" in error_str.lower() or "missing" in error_str.lower()
-
     def test_missing_campaigns_error_message(self):
-        """Config should provide clear error when campaigns is missing."""
+        """Config should provide clear error when neither campaigns nor campaigns_file is provided."""
         from pathlib import Path
 
         from pydantic import ValidationError
@@ -579,10 +570,33 @@ class TestErrorMessages:
         with pytest.raises(ValidationError) as exc_info:
             Config(checkpoints_dir=Path("~/.foothold-checkpoints"), servers={})
 
-        # Error should mention the missing field
+        # Error should mention campaigns and campaigns_file
         error_str = str(exc_info.value)
+        assert "campaign" in error_str.lower()
+        assert "campaigns_file" in error_str.lower() or "campaign" in error_str.lower()
+
+    def test_both_campaigns_and_campaigns_file_error(self):
+        """Config should raise error if both campaigns and campaigns_file are provided."""
+        from pathlib import Path
+
+        from pydantic import ValidationError
+
+        from foothold_checkpoint.core.config import Config
+        from tests.conftest import make_simple_campaign
+
+        with pytest.raises(ValidationError) as exc_info:
+            Config(
+                checkpoints_dir=Path("~/.foothold-checkpoints"),
+                servers={},
+                campaigns={"test": make_simple_campaign("Test", ["test.lua"])},
+                campaigns_file=Path("campaigns.yaml"),
+            )
+
+        # Error should mention that both cannot be specified
+        error_str = str(exc_info.value)
+        assert "both" in error_str.lower()
         assert "campaigns" in error_str.lower()
-        assert "required" in error_str.lower() or "missing" in error_str.lower()
+        assert "campaigns_file" in error_str.lower()
 
     def test_invalid_campaign_structure_error_message(self):
         """Config should provide clear error when campaign structure is invalid."""

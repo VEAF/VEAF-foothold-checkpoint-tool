@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "foothold-checkpoint"
-version = "1.1.0"
+version = "2.1.0"
 description = "CLI tool for managing DCS Foothold campaign checkpoints with integrity verification"
 authors = ["VEAF <contact@veaf.org>"]
 license = "MIT"
@@ -42,6 +42,17 @@ ruff = "^0.3.0"
 black = "^24.0.0"
 mypy = "^1.8.0"
 types-pyyaml = "^6.0.0"
+pytest-asyncio = "^1.3.0"
+
+[tool.poetry.group.plugin]
+optional = true
+
+[tool.poetry.group.plugin.dependencies]
+"discord.py" = "^2.3.0"
+
+# Extras for pip install foothold-checkpoint[plugin]
+[tool.poetry.extras]
+plugin = ["discord.py"]
 
 [tool.poetry.scripts]
 foothold-checkpoint = "foothold_checkpoint.cli:main"
@@ -123,7 +134,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
-strict_concatenate = true
+extra_checks = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -131,3 +142,11 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
 warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "foothold_checkpoint.plugin.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ruamel.*"
+ignore_missing_imports = true

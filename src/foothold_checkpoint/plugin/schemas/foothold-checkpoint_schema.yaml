@@ -1,0 +1,95 @@
+# DCSServerBot validation schema for foothold-checkpoint plugin configuration
+# This schema validates the structure of foothold-checkpoint.yaml
+
+type: map
+nullable: false
+mapping:
+  campaigns_file:
+    type: str
+    nullable: false
+    required: true
+    desc: Path to campaigns.yaml defining all campaign settings
+  
+  checkpoints_dir:
+    type: str
+    nullable: false
+    required: true
+    desc: Directory where checkpoints are stored
+  
+  permissions:
+    type: map
+    nullable: false
+    required: false
+    desc: Role-based permission configuration for Discord commands
+    mapping:
+      save:
+        type: seq
+        nullable: false
+        required: false
+        desc: Roles allowed to save checkpoints
+        sequence:
+          - type: str
+            nullable: false
+      
+      restore:
+        type: seq
+        nullable: false
+        required: false
+        desc: Roles allowed to restore checkpoints
+        sequence:
+          - type: str
+            nullable: false
+      
+      list:
+        type: seq
+        nullable: false
+        required: false
+        desc: Roles allowed to list checkpoints
+        sequence:
+          - type: str
+            nullable: false
+      
+      delete:
+        type: seq
+        nullable: false
+        required: false
+        desc: Roles allowed to delete checkpoints
+        sequence:
+          - type: str
+            nullable: false
+  
+  notifications:
+    type: map
+    nullable: false
+    required: false
+    desc: Discord notification settings for checkpoint events
+    mapping:
+      channel:
+        type: int
+        nullable: false
+        required: false
+        desc: Discord channel ID for checkpoint notifications
+      
+      on_save:
+        type: bool
+        nullable: false
+        required: false
+        desc: Send notification when checkpoint is saved
+      
+      on_restore:
+        type: bool
+        nullable: false
+        required: false
+        desc: Send notification when checkpoint is restored
+      
+      on_delete:
+        type: bool
+        nullable: false
+        required: false
+        desc: Send notification when checkpoint is deleted
+      
+      on_error:
+        type: bool
+        nullable: false
+        required: false
+        desc: Send notification on operation errors

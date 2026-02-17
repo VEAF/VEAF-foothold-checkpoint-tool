@@ -93,3 +93,65 @@ jobs:
           else
             echo "✅ All tests passed"
           fi
+
+  build-plugin:
+    name: Build DCSServerBot Plugin
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+      
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-ubuntu-latest-3.12-${{ hashFiles('**/poetry.lock') }}
+      
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+      
+      - name: Install project
+        run: poetry install --no-interaction
+      
+      - name: Build plugin package
+        run: poetry run python scripts/build_plugin.py
+      
+      - name: Get version
+        id: version
+        run: echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+      
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foothold-checkpoint-plugin-v${{ steps.version.outputs.version }}
+          path: dist/foothold-checkpoint-plugin-v*.zip
+          if-no-files-found: error
+          retention-days: 30
+      
+      - name: Display build info
+        run: |
+          echo "✅ Plugin built successfully"
+          echo "📦 Version: v${{ steps.version.outputs.version }}"
+          ls -lh dist/foothold-checkpoint-plugin-v*.zip

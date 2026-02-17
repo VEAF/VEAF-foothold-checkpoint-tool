@@ -1,0 +1,110 @@
+##############################################################
+# Configuration for the Foothold Checkpoint plugin          #
+##############################################################
+# Place this file in: DCSServerBot/config/plugins/foothold-checkpoint.yaml
+#
+# This plugin provides Discord slash commands for managing Foothold
+# campaign checkpoints (save, restore, list, delete operations).
+#
+# Configuration follows DCSServerBot standard structure:
+# - DEFAULT section applies to all servers
+# - Server-specific sections override DEFAULT settings
+##############################################################
+
+DEFAULT:
+  # Enable or disable the plugin (set to false to disable)
+  enabled: true
+  
+  # Path to campaigns.yaml file (required)
+  # Can be relative to DCSServerBot root or absolute path
+  # This file contains all campaign definitions shared between CLI and plugin
+  campaigns_file: ./campaigns.yaml
+  
+  # Directory where all checkpoints are stored (required)
+  # Can be relative to bot root or absolute path
+  # Bot will create this directory if it doesn't exist
+  checkpoints_dir: ./checkpoints
+  
+  # Discord role-based permissions for checkpoint operations
+  # Users must have one of the listed roles to execute each operation
+  # Discord Administrators always have access regardless of configuration
+  permissions:
+    # Roles allowed to create checkpoints
+    save:
+      - DCS Admin
+      - Mission Designer
+    
+    # Roles allowed to restore checkpoints (most dangerous operation)
+    restore:
+      - DCS Admin
+    
+    # Roles allowed to list checkpoints (read-only)
+    list:
+      - DCS Admin
+      - Mission Designer
+      - Mission Controller
+      # Uncomment to allow everyone:
+      # - @everyone
+    
+    # Roles allowed to delete checkpoints (permanent action)
+    delete:
+      - DCS Admin
+  
+  # Discord notification configuration
+  # Controls how and when the bot sends checkpoint event notifications
+  notifications:
+    # Discord channel ID where notifications will be sent
+    # To get channel ID: Right-click channel → Copy Channel ID (requires Developer Mode)
+    # Bot must have permission to view and send messages to this channel
+    # 
+    # IMPORTANT: Replace the example value below with your actual channel ID
+    # Example: channel: 1234567890123456789
+    # 
+    # Troubleshooting if notifications don't appear:
+    # 1. Check DCSServerBot logs for warnings about notification channel
+    # 2. Verify the bot has "View Channel" and "Send Messages" permissions
+    # 3. Ensure Developer Mode is enabled in Discord settings to copy channel IDs
+    channel: 1234567890123456789  # ⚠️ REPLACE THIS WITH YOUR ACTUAL CHANNEL ID
+    
+    # Notify when checkpoint is saved successfully
+    on_save: true
+    
+    # Notify when checkpoint is restored successfully
+    on_restore: true
+    
+    # Notify when checkpoint is deleted
+    on_delete: true
+    
+    # Notify when an operation fails with an error
+    on_error: true
+    
+    # Optional: Notify on auto-backup creation
+    # Uncomment to enable:
+    # on_backup: true
+
+# Per-server configuration examples (uncomment and adjust to use)
+# Server names must match your servers.yaml configuration
+
+# Example: Disable plugin for a specific server
+# DCS.release_server:
+#   enabled: false
+
+# Example: Different notification channel per server
+# DCS.openbeta_server:
+#   enabled: true
+#   notifications:
+#     channel: 9876543210987654321  # Different channel ID
+
+# Example: More restrictive permissions for production server
+# DCS.production_server:
+#   enabled: true
+#   permissions:
+#     save:
+#       - Admin  # Only admins
+#     restore:
+#       - Admin
+#     list:
+#       - Admin
+#       - DCS Admin
+#     delete:
+#       - Admin

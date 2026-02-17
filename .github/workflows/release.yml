@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-release:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+      
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Verify version matches pyproject.toml
+        run: |
+          PYPROJECT_VERSION=$(poetry version -s)
+          if [ "${{ steps.version.outputs.version }}" != "$PYPROJECT_VERSION" ]; then
+            echo "❌ Version mismatch: tag=${{ steps.version.outputs.version }}, pyproject.toml=$PYPROJECT_VERSION"
+            exit 1
+          fi
+          echo "✅ Version matches: $PYPROJECT_VERSION"
+      
+      - name: Run tests
+        run: poetry run pytest --cov=foothold_checkpoint --cov-report=term
+      
+      - name: Run quality checks
+        run: |
+          poetry run ruff check .
+          poetry run mypy src --ignore-missing-imports
+      
+      - name: Build plugin package
+        run: poetry run python scripts/build_plugin.py
+      
+      - name: Verify plugin artifact
+        run: |
+          PLUGIN_FILE="dist/foothold-checkpoint-plugin-v${{ steps.version.outputs.version }}.zip"
+          if [ ! -f "$PLUGIN_FILE" ]; then
+            echo "❌ Plugin file not found: $PLUGIN_FILE"
+            exit 1
+          fi
+          echo "✅ Plugin built: $PLUGIN_FILE"
+          ls -lh "$PLUGIN_FILE"
+      
+      - name: Extract release notes
+        id: release_notes
+        run: |
+          # Extract release notes from RELEASE_NOTES.md for this version
+          VERSION="${{ steps.version.outputs.version }}"
+          if grep -q "## Version $VERSION" RELEASE_NOTES.md; then
+            awk "/## Version $VERSION/,/## Version [0-9]/" RELEASE_NOTES.md | head -n -1 > release_notes.txt
+            echo "✅ Extracted release notes for version $VERSION"
+          else
+            echo "⚠️ No release notes found for version $VERSION, using default"
+            echo "Release v$VERSION" > release_notes.txt
+          fi
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.tag }}
+          body_path: release_notes.txt
+          draft: false
+          prerelease: false
+          files: |
+            dist/foothold-checkpoint-plugin-v${{ steps.version.outputs.version }}.zip
+            CHANGELOG.md
+            RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foothold-checkpoint-plugin-v${{ steps.version.outputs.version }}
+          path: dist/foothold-checkpoint-plugin-v*.zip
+          if-no-files-found: error
+          retention-days: 90
