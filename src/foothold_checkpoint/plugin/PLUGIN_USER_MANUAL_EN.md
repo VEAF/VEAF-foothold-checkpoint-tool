@@ -1,6 +1,6 @@
 # Foothold Checkpoint Tool - Discord User Manual
 
-**Version 1.1.0** | English
+**Version 2.1.0** | English
 
 Complete guide for managing DCS Foothold campaign checkpoints using Discord commands.
 
@@ -104,7 +104,7 @@ Create a new checkpoint of a campaign's current state.
 #### Command Syntax
 
 ```
-/foothold-checkpoint save
+/foothold-checkpoint save server:<server_name>
 ```
 
 #### Parameters
@@ -112,51 +112,48 @@ Create a new checkpoint of a campaign's current state.
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `server` | ✅ Yes | Server name (autocomplete available) |
-| `campaign` | ❌ No | Campaign to save (or leave empty for interactive selection) |
-| `name` | ❌ No | Custom checkpoint name |
-| `comment` | ❌ No | Description or notes |
+
+**All other options are selected interactively** through dropdown menus and modal windows.
 
 #### How to Use
 
-**Option 1: Interactive Mode (Recommended)**
-
-1. Type `/foothold-checkpoint save`
-2. Select the **server** from autocomplete
-3. Press Enter - a dropdown menu appears
-4. Select which campaign(s) to save
-5. (Optional) Enter a name and comment in the popup window
-6. Click Submit
-
-**Option 2: Direct Mode**
-
-Type everything in one command:
-```
-/foothold-checkpoint save server:Afghanistan campaign:afghanistan name:Pre-Mission-14 comment:Before enemy counterattack
-```
+1. Type `/foothold-checkpoint save server:Production`
+2. Press Enter - an interactive campaign selection menu appears
+3. Select which campaign(s) to save from the dropdown
+4. (Optional) A modal window appears where you can enter:
+   - **Name**: Custom checkpoint name
+   - **Comment**: Description or notes  
+5. Click Submit
 
 #### Examples
 
-**Save a single campaign interactively:**
+**Save a single campaign:**
 ```
 /foothold-checkpoint save server:Caucasus
 ```
-Then select "Syria Modern" from the dropdown.
-
-**Save with a descriptive name:**
-```
-/foothold-checkpoint save server:Afghanistan campaign:afghanistan name:End-of-Week-Backup
-```
-
-**Save before testing:**
-```
-/foothold-checkpoint save server:TestServer campaign:syria comment:Before testing new CTLD features
-```
+Then select "Syria Modern" from the dropdown menu.
 
 **Save all campaigns on a server:**
 ```
 /foothold-checkpoint save server:Production
 ```
 Then select **"📦 All Campaigns"** from the dropdown.
+
+**Save with custom name and comment:**
+```
+/foothold-checkpoint save server:Afghanistan
+```
+Select campaign, then fill in the modal:
+- Name: `End-of-Week-Backup`
+- Comment: `Before testing new CTLD features`
+
+#### Screenshots
+
+![Save Command - Campaign Selection](images/save1.png)
+*Step 1: Select campaign from dropdown menu*
+
+![Save Command - Name and Comment Modal](images/save2.png)
+*Step 2: Enter custom name and comment (optional)*
 
 #### What Happens
 
@@ -246,7 +243,7 @@ afghanistan • 02-16 20:10 • 2.4 MB
 
 #### Auto-Backup Protection
 
-By default, the bot creates an **automatic backup** before restoring to prevent data loss.
+The bot **always creates an automatic backup** before restoring to prevent data loss.
 
 The auto-backup:
 - Is created with filename pattern: `auto-backup-YYYYMMDD-HHMMSS.zip`
@@ -254,45 +251,40 @@ The auto-backup:
 - Appears in the "AUTO-BACKUPS" section when listing
 - Can be restored like any other checkpoint
 
-**To disable auto-backup** (not recommended):
-```
-/foothold-checkpoint restore server:TestServer checkpoint:old_save.zip auto_backup:false
-```
-
-⚠️ **Warning**: Only disable auto-backup if you're certain you don't need a safety backup.
+⚠️ **Note**: Auto-backup cannot be disabled - it's a mandatory safety feature in v2.1.0.
 
 #### Examples
 
-**Restore interactively:**
+**Restore to production server:**
 ```
-/foothold-checkpoint restore server:Caucasus
+/foothold-checkpoint restore server:Production
 ```
-Then select checkpoint from dropdown.
+Then select the checkpoint from the interactive browser.
 
-**Restore specific checkpoint:**
+**Restore to test server:**
 ```
-/foothold-checkpoint restore server:TestServer checkpoint:afghanistan_2026-02-16_20-15-30.zip
+/foothold-checkpoint restore server:TestServer
 ```
+Select checkpoint, review details, and confirm.
 
 **Cross-server restore (move checkpoint between servers):**
 ```
-/foothold-checkpoint restore server:ProductionServer checkpoint:afghanistan_test_2026-02-15.zip
+/foothold-checkpoint restore server:ProductionServer
 ```
+Select a checkpoint from any server/campaign - the bot automatically handles file renaming.
 
-**Restore to different campaign:**
-```
-/foothold-checkpoint restore server:TestServer checkpoint:old_campaign.zip campaign:new_campaign
-```
+#### Screenshots
 
-**Restore without auto-backup:**
-```
-/foothold-checkpoint restore server:DevServer checkpoint:test.zip auto_backup:false
-```
+![Restore Command - Checkpoint Browser](images/restore1.png)
+*Step 1: Browse and select checkpoint from interactive dropdown*
+
+![Restore Command - Confirmation Dialog](images/restore2.png)
+*Step 2: Review details and confirm restoration*
 
 #### What Happens
 
 1. ✅ Bot validates checkpoint integrity (checksums)
-2. ✅ Creates automatic backup of current state (unless disabled)
+2. ✅ Creates automatic backup of current state (mandatory)
 3. ✅ Extracts checkpoint files to server's `Missions/Saves` folder
 4. ✅ Renames files to match current campaign naming conventions
 5. ✅ Sends confirmation with details
@@ -319,12 +311,13 @@ Restored At: 2026-02-16 22:10:45
 - 🔄 **Files are automatically renamed** to match current campaign file conventions
 - ⚙️ **Server must be stopped** - DCS locks files when running
 - 📁 **Ranks file not restored** - `Foothold_Ranks.lua` is excluded by default to preserve player rankings
+- 👁️ **Single message UI** - all updates appear in the same message for cleaner Discord interface
 
 ---
 
 ### List Checkpoints
 
-Display all available checkpoints with their details.
+Browse and view all available checkpoints with their details in an interactive browser.
 
 #### Command Syntax
 
@@ -334,19 +327,19 @@ Display all available checkpoints with their details.
 
 #### Parameters
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `campaign` | ❌ No | Filter by campaign name |
-| `server` | ❌ No | Filter by server name |
+**None** - All navigation is done through the interactive browser interface.
 
 #### How to Use
 
-**List all checkpoints:**
-```
-/foothold-checkpoint list
-```
-
-**Filter by campaign:**
+1. Type `/foothold-checkpoint list`
+2. An interactive browser appears with pagination controls
+3. Use the navigation buttons to browse checkpoints:
+   - ⏪ First page
+   - ◀️ Previous page  
+   - ▶️ Next page
+   - ⏩ Last page
+4. Use the filter dropdown to filter by campaign
+5. Click 🔄 Refresh to reload the list
 ```
 /foothold-checkpoint list campaign:afghanistan
 ```
@@ -382,23 +375,25 @@ auto-backup-20260216-221045       2024-02-16   2.4 MB
 
 #### Examples
 
-**Weekly backup review:**
-```
-/foothold-checkpoint list server:Production
-```
-See all production server backups.
-
-**Check specific campaign history:**
-```
-/foothold-checkpoint list campaign:syria
-```
-See all Syria campaign checkpoints across all servers.
-
-**Find recent saves:**
+**Browse all checkpoints:**
 ```
 /foothold-checkpoint list
 ```
-Shows everything (most recent at bottom).
+Navigate through pages and use filter dropdown to find specific campaigns.
+
+**Quick checkpoint review:**
+```
+/foothold-checkpoint list
+```
+Use filter to show only "afghanistan" checkpoints, then browse.
+
+#### Screenshots
+
+![List Command - Checkpoint Browser](images/list1.png)
+*Interactive checkpoint browser with pagination*
+
+![List Command - Filter Dropdown](images/list2.png)
+*Filter checkpoints by campaign or server*
 
 ---
 
@@ -414,27 +409,17 @@ Remove old or unwanted checkpoints to free up storage.
 
 #### Parameters
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `checkpoint` | ❌ No | Checkpoint filename (or leave empty for dropdown) |
-| `campaign` | ❌ No | Filter dropdown by campaign |
+**None** - All selection is done through the interactive browser interface.
 
 #### How to Use
 
-**Option 1: Interactive Mode (Recommended)**
-
 1. Type `/foothold-checkpoint delete`
-2. (Optional) Add `campaign:name` to filter
-3. Press Enter - dropdown appears with checkpoints
-4. Select the checkpoint to delete
-5. Click **"Confirm Delete"** button (60 second timeout)
-
-**Option 2: Direct Mode**
-
-Type everything in one command:
-```
-/foothold-checkpoint delete checkpoint:old_backup_2026-01-15.zip
-```
+2. An interactive checkpoint browser appears
+3. Use the filter dropdown to narrow down checkpoints (optional)
+4. Select the checkpoint to delete from the dropdown
+5. Review the confirmation dialog with checkpoint details
+6. Click **"🗑️ Confirm Delete"** to proceed or **"❌ Cancel"** to abort
+7. Confirmation must be clicked within 60 seconds
 
 #### Interactive Selection
 
@@ -468,22 +453,25 @@ This action cannot be undone!
 
 #### Examples
 
-**Delete interactively:**
+**Delete old checkpoints:**
 ```
 /foothold-checkpoint delete
 ```
-Browse all checkpoints and select one.
+Browse all checkpoints, filter by campaign if needed, select one and confirm.
 
-**Delete with filter:**
+**Clean up auto-backups:**
 ```
-/foothold-checkpoint delete campaign:afghanistan
+/foothold-checkpoint delete
 ```
-Only shows afghanistan checkpoints.
+Look for entries in the AUTO-BACKUPS section and delete old ones.
 
-**Delete specific file:**
-```
-/foothold-checkpoint delete checkpoint:old_test_2026-01-10.zip
-```
+#### Screenshots
+
+![Delete Command - Checkpoint Selection](images/delete1.png)
+*Step 1: Select checkpoint to delete from browser*
+
+![Delete Command - Confirmation Dialog](images/delete2.png)
+*Step 2: Confirm deletion within 60 seconds*
 
 #### What Happens
 
@@ -520,12 +508,6 @@ Deleted At: 2026-02-16 22:30:00
 **Every Friday evening, create end-of-week backups:**
 
 ```
-/foothold-checkpoint save server:Production campaign:afghanistan name:Week-7-Backup comment:End of week 7
-/foothold-checkpoint save server:Production campaign:syria name:Week-7-Backup comment:End of week 7
-```
-
-You can also use "All Campaigns" option:
-```
 /foothold-checkpoint save server:Production
 → Select: 📦 All Campaigns
 → Name: Week-7-Backup
@@ -538,7 +520,10 @@ You can also use "All Campaigns" option:
 
 ```
 # 1. Save current state
-/foothold-checkpoint save server:TestServer campaign:afghanistan name:Pre-Mission-15-Test comment:Before testing new enemy AI
+/foothold-checkpoint save server:TestServer
+→ Select: afghanistan
+→ Name: Pre-Mission-15-Test
+→ Comment: Before testing new enemy AI
 
 # 2. Test the mission
 # ... play mission, see if it works ...
@@ -546,9 +531,13 @@ You can also use "All Campaigns" option:
 # 3a. If broken, restore previous state
 /foothold-checkpoint restore server:TestServer
 → Select: afghanistan_2026-02-16_20-15-30.zip
+→ Confirm
 
 # 3b. If good, create new checkpoint
-/foothold-checkpoint save server:TestServer campaign:afghanistan name:Post-Mission-15 comment:Mission 15 completed successfully
+/foothold-checkpoint save server:TestServer
+→ Select: afghanistan
+→ Name: Post-Mission-15
+→ Comment: Mission 15 completed successfully
 ```
 
 ### Moving Campaign Between Servers
@@ -557,10 +546,15 @@ You can also use "All Campaigns" option:
 
 ```
 # 1. Save production state
-/foothold-checkpoint save server:Production campaign:afghanistan name:Pre-Update-Backup
+/foothold-checkpoint save server:Production
+→ Select: afghanistan
+→ Name: Pre-Update-Backup
 
 # 2. Save current test state
-/foothold-checkpoint save server:TestServer campaign:afghanistan name:Updated-Version comment:After content update
+/foothold-checkpoint save server:TestServer
+→ Select: afghanistan
+→ Name: Updated-Version
+→ Comment: After content update
 
 # 3. Test thoroughly on test server
 # ... testing ...
@@ -568,10 +562,12 @@ You can also use "All Campaigns" option:
 # 4. Deploy to production
 /foothold-checkpoint restore server:Production
 → Select: afghanistan_updated_2026-02-16.zip (from test server)
+→ Confirm
 
 # 5. If problems occur, roll back
 /foothold-checkpoint restore server:Production
 → Select: afghanistan_2026-02-16_pre-update.zip
+→ Confirm
 ```
 
 ### Monthly Cleanup
@@ -597,8 +593,9 @@ You can also use "All Campaigns" option:
 **Campaign files corrupted by DCS bug:**
 
 ```
-# 1. Check available backups
-/foothold-checkpoint list campaign:afghanistan
+# 1. Browse available backups
+/foothold-checkpoint list
+→ Use filter to show "afghanistan" checkpoints
 
 # 2. Restore most recent good checkpoint
 /foothold-checkpoint restore server:Production
@@ -916,4 +913,4 @@ If you find a bug in the bot:
 
 ---
 
-**End of User Manual** | Version 1.1.0 | February 2026
+**End of User Manual** | Version 2.1.0 | February 2026
