@@ -179,9 +179,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             app_commands.Choice(name=server, value=server)
             for server in servers
             if current.lower() in server.lower()
-        ][
-            :25
-        ]  # Discord autocomplete limit
+        ][:25]  # Discord autocomplete limit
 
     # Discord Command: /foothold-checkpoint save
     @checkpoint_group.command(name="save", description="Save a checkpoint for a campaign")

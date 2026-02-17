@@ -33,9 +33,7 @@ def format_checkpoint_list_embed(
     page_checkpoints = checkpoints[start:end]
 
     # Create embed
-    title = (
-        f"📦 Checkpoints for {campaign_filter}" if campaign_filter else "📦 All Checkpoints"
-    )
+    title = f"📦 Checkpoints for {campaign_filter}" if campaign_filter else "📦 All Checkpoints"
 
     embed = discord.Embed(
         title=title,

@@ -562,7 +562,9 @@ class CheckpointSelectView(ui.View):
 
             options.append(
                 discord.SelectOption(
-                    label=label, value=filename, description=description  # Use filename as value
+                    label=label,
+                    value=filename,
+                    description=description,  # Use filename as value
                 )
             )
 
@@ -644,9 +646,7 @@ class CheckpointDeleteConfirm(ui.View):
         self.restore_browser_func = restore_browser_func
 
     @ui.button(label="Confirm Delete", style=discord.ButtonStyle.danger, emoji="🗑️")
-    async def confirm_button(
-        self, interaction: discord.Interaction, _button: ui.Button
-    ) -> None:
+    async def confirm_button(self, interaction: discord.Interaction, _button: ui.Button) -> None:
         """Handle confirmation button click."""
         self.confirmed = True
         await interaction.response.edit_message(
@@ -655,9 +655,7 @@ class CheckpointDeleteConfirm(ui.View):
         self.stop()
 
     @ui.button(label="Cancel", style=discord.ButtonStyle.secondary, emoji="❌")
-    async def cancel_button(
-        self, interaction: discord.Interaction, _button: ui.Button
-    ) -> None:
+    async def cancel_button(self, interaction: discord.Interaction, _button: ui.Button) -> None:
         """Handle cancel button click."""
         self.confirmed = False
 
@@ -702,9 +700,7 @@ class CheckpointRestoreConfirm(ui.View):
         self.confirmed: bool | None = None
 
     @ui.button(label="Confirm Restore", style=discord.ButtonStyle.primary, emoji="♻️")
-    async def confirm_button(
-        self, interaction: discord.Interaction, _button: ui.Button
-    ) -> None:
+    async def confirm_button(self, interaction: discord.Interaction, _button: ui.Button) -> None:
         """Handle confirmation button click."""
         self.confirmed = True
         backup_msg = " (creating auto-backup)" if self.auto_backup else " (⚠️ no backup)"
@@ -715,9 +711,7 @@ class CheckpointRestoreConfirm(ui.View):
         self.stop()
 
     @ui.button(label="Cancel", style=discord.ButtonStyle.secondary, emoji="❌")
-    async def cancel_button(
-        self, interaction: discord.Interaction, _button: ui.Button
-    ) -> None:
+    async def cancel_button(self, interaction: discord.Interaction, _button: ui.Button) -> None:
         """Handle cancel button click."""
         self.confirmed = False
         await interaction.response.edit_message(content="❌ Restoration cancelled.", view=None)
