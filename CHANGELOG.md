@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-13
+
 ### Fixed
 - **DCSServerBot plugin checkpoint browser**: Fixed Discord API error when more than 25 checkpoints exist
   - Previous error: `400 Bad Request - Must be between 1 and 25 in length` when dropdown exceeded Discord's 25-option limit
