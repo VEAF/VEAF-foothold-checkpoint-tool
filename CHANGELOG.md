@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added type filters: Manual, Auto-backups, All
   - Added campaign filter dropdown (when multiple campaigns exist)
   - Pagination controls: Previous/Next buttons with page indicator
-  - Applies to `/foothold-checkpoint list` and `/foothold-checkpoint delete` commands
+  - Applies to `/foothold-checkpoint list`, `/foothold-checkpoint delete`, and `/foothold-checkpoint restore` commands
 
 ### Improved
 - **DCSServerBot plugin UI**: Enhanced checkpoint browser with advanced filtering

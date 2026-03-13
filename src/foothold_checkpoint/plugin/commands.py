@@ -37,9 +37,9 @@ from .ui import (
     CampaignSelectView,
     CheckpointDeleteConfirm,
     CheckpointRestoreConfirm,
-    CheckpointSelectView,
     PaginatedCheckpointBrowserView,
     PaginatedCheckpointDeleteBrowserView,
+    PaginatedCheckpointSelectView,
 )
 
 
@@ -521,10 +521,10 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             )
             return
 
-        # Show checkpoint selection view
-        view = CheckpointSelectView(checkpoints_list)
+        # Show paginated checkpoint selection view
+        view = PaginatedCheckpointSelectView(checkpoints_list)
         await interaction.followup.send(
-            f"🔄 **Select checkpoint to restore to server `{server}`:**",
+            view._get_header_text(),
             view=view,
             ephemeral=True,
         )
