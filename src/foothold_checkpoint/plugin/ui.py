@@ -622,6 +622,382 @@ class CheckpointSelectView(ui.View):
         self.stop()
 
 
+class PaginatedCheckpointSelectView(ui.View):
+    """Paginated interactive view for selecting a checkpoint.
+
+    Provides pagination, type filtering, and campaign filtering
+    to handle large numbers of checkpoints within Discord's 25-option limit.
+    """
+
+    CHECKPOINTS_PER_PAGE = 20  # Safe margin below Discord's 25-option limit
+
+    def __init__(self, checkpoints: list[dict[str, Any]], timeout: float = 180.0):
+        """Initialize the paginated checkpoint selection view.
+
+        Args:
+            checkpoints: List of checkpoint dicts with name, campaign, timestamp
+            timeout: View timeout in seconds (default: 3 minutes)
+        """
+        super().__init__(timeout=timeout)
+        self.selected_checkpoint: dict[str, Any] | None = None
+        self.all_checkpoints = checkpoints
+        self.type_filter: str = "all"  # "all", "manual", "auto"
+        self.campaign_filter: str | None = None  # None = all campaigns
+        self.current_page = 0
+
+        # Build initial UI
+        self._build_ui()
+
+    def _get_filtered_checkpoints(self) -> list[dict[str, Any]]:
+        """Get checkpoints filtered by type and campaign.
+
+        Returns:
+            Filtered checkpoint list
+        """
+        filtered = self.all_checkpoints
+
+        # Apply type filter
+        if self.type_filter == "manual":
+            filtered = [cp for cp in filtered if not cp.get("is_auto_backup", False)]
+        elif self.type_filter == "auto":
+            filtered = [cp for cp in filtered if cp.get("is_auto_backup", False)]
+
+        # Apply campaign filter
+        if self.campaign_filter:
+            filtered = [cp for cp in filtered if cp.get("campaign") == self.campaign_filter]
+
+        return filtered
+
+    def _get_page_checkpoints(self) -> list[dict[str, Any]]:
+        """Get checkpoints for current page.
+
+        Returns:
+            Checkpoints for current page
+        """
+        filtered = self._get_filtered_checkpoints()
+        start_idx = self.current_page * self.CHECKPOINTS_PER_PAGE
+        end_idx = start_idx + self.CHECKPOINTS_PER_PAGE
+        return filtered[start_idx:end_idx]
+
+    def _get_total_pages(self) -> int:
+        """Get total number of pages.
+
+        Returns:
+            Total pages (minimum 1)
+        """
+        filtered = self._get_filtered_checkpoints()
+        if not filtered:
+            return 1
+        return (len(filtered) + self.CHECKPOINTS_PER_PAGE - 1) // self.CHECKPOINTS_PER_PAGE
+
+    def _build_select_options(
+        self, page_checkpoints: list[dict[str, Any]]
+    ) -> list[discord.SelectOption]:
+        """Build checkpoint select options for current page.
+
+        Args:
+            page_checkpoints: Checkpoints to display
+
+        Returns:
+            List of SelectOption objects
+        """
+        if not page_checkpoints:
+            return [
+                discord.SelectOption(
+                    label="No checkpoints match filters",
+                    value="__none__",
+                    description="Adjust filters to see more checkpoints",
+                )
+            ]
+
+        options = []
+        for cp in page_checkpoints:
+            filename = cp["filename"]
+            campaign = cp.get("campaign", "unknown")
+
+            # Format timestamp for display
+            timestamp_str = cp.get("timestamp", "")
+            if timestamp_str:
+                date_part = timestamp_str[5:10] if len(timestamp_str) > 10 else ""
+                time_part = timestamp_str[11:16] if len(timestamp_str) > 16 else ""
+                display_time = f"{date_part} {time_part}"
+            else:
+                display_time = ""
+
+            label = filename
+            if len(label) > 100:
+                label = f"{label[:97]}..."
+
+            # Build description
+            description_parts = [campaign, display_time, cp.get("size_human", "")]
+            if cp.get("name"):
+                description_parts.append(f"[{cp['name']}]")
+
+            description = " • ".join(filter(None, description_parts))
+            if len(description) > 100:
+                description = f"{description[:97]}..."
+
+            emoji = "🔄" if cp.get("is_auto_backup") else "💾"
+
+            options.append(
+                discord.SelectOption(
+                    label=label,
+                    value=filename,
+                    description=description,
+                    emoji=emoji,
+                )
+            )
+
+        return options
+
+    def _get_available_campaigns(self) -> list[str]:
+        """Get sorted list of unique campaigns.
+
+        Returns:
+            List of campaign names
+        """
+        campaigns = {cp.get("campaign", "unknown") for cp in self.all_checkpoints}
+        return sorted(campaigns)
+
+    def _get_header_text(self) -> str:
+        """Generate header text with filter status.
+
+        Returns:
+            Formatted header string
+        """
+        total = len(self._get_filtered_checkpoints())
+        total_pages = self._get_total_pages()
+
+        # Type filter label
+        type_label = {"all": "All", "manual": "Manual", "auto": "Auto-backups"}[self.type_filter]
+
+        # Campaign filter label
+        if self.campaign_filter:
+            campaign_label = f" • Campaign: {self.campaign_filter}"
+        else:
+            campaign_label = " • All Campaigns"
+
+        return (
+            f"🔄 **Select Checkpoint to Restore** (Page {self.current_page + 1}/{total_pages})\n"
+            f"Type: {type_label}{campaign_label} • Total: {total}"
+        )
+
+    def _build_ui(self) -> None:
+        """Build the complete UI with filters, pagination, and checkpoint selection."""
+        self.clear_items()
+
+        page_checkpoints = self._get_page_checkpoints()
+        total_pages = self._get_total_pages()
+
+        # ROW 0: Type filter buttons
+        manual_btn = ui.Button(
+            label="Manual",
+            style=discord.ButtonStyle.primary
+            if self.type_filter == "manual"
+            else discord.ButtonStyle.secondary,
+            emoji="💾",
+            row=0,
+        )
+        manual_btn.callback = self._type_filter_callback
+        self.add_item(manual_btn)
+
+        auto_btn = ui.Button(
+            label="Auto-backups",
+            style=discord.ButtonStyle.primary
+            if self.type_filter == "auto"
+            else discord.ButtonStyle.secondary,
+            emoji="🔄",
+            row=0,
+        )
+        auto_btn.callback = self._type_filter_callback
+        self.add_item(auto_btn)
+
+        all_btn = ui.Button(
+            label="All",
+            style=discord.ButtonStyle.primary
+            if self.type_filter == "all"
+            else discord.ButtonStyle.secondary,
+            emoji="📋",
+            row=0,
+        )
+        all_btn.callback = self._type_filter_callback
+        self.add_item(all_btn)
+
+        # ROW 1: Campaign filter (only if multiple campaigns exist)
+        campaigns = self._get_available_campaigns()
+        if len(campaigns) > 1:
+            campaign_options = [
+                discord.SelectOption(
+                    label="All Campaigns",
+                    value="__all__",
+                    emoji="🌐",
+                    default=self.campaign_filter is None,
+                )
+            ]
+            for campaign in campaigns:
+                campaign_options.append(
+                    discord.SelectOption(
+                        label=campaign,
+                        value=campaign,
+                        default=self.campaign_filter == campaign,
+                    )
+                )
+
+            campaign_select = ui.Select(
+                placeholder="Filter by campaign...",
+                options=campaign_options,
+                row=1,
+            )
+            campaign_select.callback = self._campaign_filter_callback
+            self.add_item(campaign_select)
+
+        # ROW 2: Checkpoint selection
+        checkpoint_options = self._build_select_options(page_checkpoints)
+        checkpoint_select = ui.Select(
+            placeholder="Select checkpoint to restore...",
+            options=checkpoint_options,
+            row=2,
+        )
+        checkpoint_select.callback = self._checkpoint_select_callback
+        self.add_item(checkpoint_select)
+
+        # ROW 3: Pagination controls (only if multiple pages)
+        if total_pages > 1:
+            prev_btn = ui.Button(
+                label="Previous",
+                style=discord.ButtonStyle.secondary,
+                emoji="◀",
+                disabled=self.current_page == 0,
+                row=3,
+            )
+            prev_btn.callback = self._prev_page_callback
+            self.add_item(prev_btn)
+
+            page_btn = ui.Button(
+                label=f"Page {self.current_page + 1}/{total_pages}",
+                style=discord.ButtonStyle.secondary,
+                disabled=True,
+                row=3,
+            )
+            self.add_item(page_btn)
+
+            next_btn = ui.Button(
+                label="Next",
+                style=discord.ButtonStyle.secondary,
+                emoji="▶",
+                disabled=self.current_page >= total_pages - 1,
+                row=3,
+            )
+            next_btn.callback = self._next_page_callback
+            self.add_item(next_btn)
+
+    async def _type_filter_callback(self, interaction: discord.Interaction) -> None:
+        """Handle type filter button clicks.
+
+        Args:
+            interaction: Discord interaction
+        """
+        import discord.ui
+
+        label = ""
+
+        # Find button label from components
+        for child in self.children:
+            if isinstance(child, discord.ui.Button) and child.label:
+                if child.label == "Manual":
+                    label = "Manual"
+                    break
+                elif child.label == "Auto-backups":
+                    label = "Auto-backups"
+                    break
+                elif child.label == "All":
+                    label = "All"
+                    break
+
+        # Try extracting from interaction data
+        if not label and "component" in interaction.data:  # type: ignore
+            component_data = interaction.data["component"]  # type: ignore
+            label = component_data.get("label", "")
+
+        # Map label to filter
+        if label == "Manual":
+            self.type_filter = "manual"
+        elif label == "Auto-backups":
+            self.type_filter = "auto"
+        else:
+            self.type_filter = "all"
+
+        self.current_page = 0  # Reset to first page
+        self._build_ui()
+
+        await interaction.response.edit_message(content=self._get_header_text(), view=self)
+
+    async def _campaign_filter_callback(self, interaction: discord.Interaction) -> None:
+        """Handle campaign filter selection.
+
+        Args:
+            interaction: Discord interaction
+        """
+        selected = interaction.data["values"][0]  # type: ignore
+        self.campaign_filter = None if selected == "__all__" else selected
+        self.current_page = 0  # Reset to first page
+        self._build_ui()
+
+        await interaction.response.edit_message(content=self._get_header_text(), view=self)
+
+    async def _checkpoint_select_callback(self, interaction: discord.Interaction) -> None:
+        """Handle checkpoint selection.
+
+        Args:
+            interaction: Discord interaction
+        """
+        selected_filename = interaction.data["values"][0]  # type: ignore
+
+        if selected_filename == "__none__":
+            await interaction.response.send_message(
+                "❌ No checkpoints available with current filters.", ephemeral=True
+            )
+            return
+
+        # Find checkpoint
+        self.selected_checkpoint = next(
+            (cp for cp in self.all_checkpoints if cp["filename"] == selected_filename), None
+        )
+
+        await interaction.response.defer()
+        self.stop()
+
+    async def _prev_page_callback(self, interaction: discord.Interaction) -> None:
+        """Handle previous page button.
+
+        Args:
+            interaction: Discord interaction
+        """
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._build_ui()
+
+        await interaction.response.edit_message(content=self._get_header_text(), view=self)
+
+    async def _next_page_callback(self, interaction: discord.Interaction) -> None:
+        """Handle next page button.
+
+        Args:
+            interaction: Discord interaction
+        """
+        total_pages = self._get_total_pages()
+        if self.current_page < total_pages - 1:
+            self.current_page += 1
+            self._build_ui()
+
+        await interaction.response.edit_message(content=self._get_header_text(), view=self)
+
+    async def on_timeout(self) -> None:
+        """Handle view timeout."""
+        self.selected_checkpoint = None
+        self.stop()
+
+
 class CheckpointDeleteConfirm(ui.View):
     """Confirmation dialog for checkpoint deletion.
 

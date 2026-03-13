@@ -200,64 +200,71 @@ Restaurer une campagne à un état de checkpoint précédent.
 | Paramètre | Requis | Description |
 |-----------|----------|-------------|
 | `server` | ✅ Oui | Nom du serveur cible |
-| `checkpoint` | ❌ Non | Nom du fichier checkpoint (ou laisser vide pour menu déroulant) |
-| `campaign` | ❌ Non | Nom de campagne (par défaut la campagne d'origine du checkpoint) |
-| `auto_backup` | ❌ Non | Créer un backup avant restauration (par défaut : true) |
+
+**Note** : Toute la sélection via l'interface interactive (pas de mode direct).
 
 #### Comment Utiliser
 
-**Option 1 : Mode Interactif (Recommandé)**
-
 1. Tapez `/foothold-checkpoint restore`
 2. Sélectionnez le **serveur** sur lequel restaurer
-3. Appuyez sur Entrée - un menu déroulant apparaît avec tous les checkpoints
-4. Sélectionnez le checkpoint que vous voulez restaurer
-5. Confirmez la restauration
+3. Appuyez sur Entrée - un navigateur interactif apparaît avec filtres et pagination
+4. **Filtrer par type** (optionnel) : Cliquez sur Manual, Auto-backups ou All
+5. **Filtrer par campagne** (optionnel) : Utilisez le menu déroulant si plusieurs campagnes existent
+6. **Sélectionner checkpoint** : Choisissez dans le menu déroulant (20 max par page)
+7. **Naviguer entre pages** (si nécessaire) : Utilisez les boutons Previous/Next
+8. **Confirmer la restauration** : Vérifiez les détails et confirmez
 
-**Option 2 : Mode Direct**
+#### Navigateur Interactif de Checkpoints
 
-Tapez tout dans une seule commande :
-```
-/foothold-checkpoint restore server:TestServer checkpoint:afghanistan_2026-02-15_14-00-00.zip
-```
-
-#### Menu Déroulant de Sélection des Checkpoints
-
-Les checkpoints sont groupés et triés pour une navigation facile :
+Le navigateur offre filtrage avancé et pagination :
 
 ```
-Checkpoints Manuels (plus récent en bas)
+🔄 Select Checkpoint to Restore (Page 1/3)
+Type: All • All Campaigns • Total: 47
 
-afghanistan_2026-02-14_10-00-00.zip
-afghanistan • 02-14 10:00 • 2.3 MB
+Ligne 0: [Manual] [Auto-backups] [All] ← Clic pour filtrer par type
 
-afghanistan_2026-02-16_20-15-30.zip
-afghanistan • 02-16 20:15 • 2.4 MB • [Pre-Mi...
+Ligne 1: [Campaign Dropdown ▼]         ← Sélectionner campagne spécifique
 
-─────────── AUTO-BACKUPS ───────────
+Ligne 2: [Checkpoint Selection ▼]      ← Choisir checkpoint (20 max)
+         afghanistan_2026-02-14_10-00-00.zip
+         afghanistan • 02-14 10:00 • 2.3 MB
 
-auto-backup-20260216-201000.zip
-afghanistan • 02-16 20:10 • 2.4 MB
+Ligne 3: [◀ Previous] [Page 1/3] [Next ▶] ← Naviguer entre pages
 ```
 
-- **Les checkpoints manuels** apparaissent en premier (plus récent en bas)
-- **Les auto-backups** apparaissent après le séparateur
-- Affiche : nom de campagne, date/heure, taille du fichier, et nom/commentaire si disponible
+**Options de Filtrage :**
+
+- **Filtres de type** (Ligne 0) :
+  - **Manual** : Afficher seulement les sauvegardes manuelles
+  - **Auto-backups** : Afficher seulement les backups automatiques
+  - **All** : Afficher tous les checkpoints (par défaut)
+
+- **Filtre de campagne** (Ligne 1) :
+  - Apparaît seulement si plusieurs campagnes détectées
+  - "All Campaigns" affiche tout
+  - Sélectionner une campagne spécifique pour filtrer
+
+- **Sélection de checkpoint** (Ligne 2) :
+  - Affiche jusqu'à 20 checkpoints par page
+  - Format : `nom_fichier • campagne • date heure • taille`
+  - Checkpoints manuels ont l'emoji 💾
+  - Auto-backups ont l'emoji 🔄
+
+- **Pagination** (Ligne 3) :
+  - Apparaît seulement quand >20 checkpoints correspondent aux filtres
+  - Boutons Previous/Next pour naviguer entre pages
+  - Indicateur de page montrant la position
 
 #### Protection par Auto-Backup
 
-Par défaut, le bot crée un **backup automatique** avant de restaurer pour éviter toute perte de données.
+**Important** : Le bot crée **toujours un backup automatique** avant de restaurer pour éviter toute perte de données.
 
 L'auto-backup :
 - Est créé avec le pattern de nom : `auto-backup-YYYYMMDD-HHMMSS.zip`
 - Contient l'état actuel avant la restauration
-- Apparaît dans la section "AUTO-BACKUPS" lors du listage
+- Apparaît dans le navigateur quand on filtre par "Auto-backups"
 - Peut être restauré comme n'importe quel autre checkpoint
-
-**Pour désactiver l'auto-backup** (non recommandé) :
-```
-/foothold-checkpoint restore server:TestServer checkpoint:old_save.zip auto_backup:false
-```
 
 ⚠️ **Attention** : Ne désactivez l'auto-backup que si vous êtes certain de ne pas avoir besoin d'un backup de sécurité.
 

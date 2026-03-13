@@ -200,64 +200,71 @@ Restore a campaign to a previous checkpoint state.
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `server` | ✅ Yes | Target server name |
-| `checkpoint` | ❌ No | Checkpoint filename (or leave empty for dropdown) |
-| `campaign` | ❌ No | Campaign name (defaults to checkpoint's original campaign) |
-| `auto_backup` | ❌ No | Create backup before restore (default: true) |
+
+**Note**: All selection via interactive UI (no direct mode).
 
 #### How to Use
 
-**Option 1: Interactive Mode (Recommended)**
-
 1. Type `/foothold-checkpoint restore`
 2. Select the **server** to restore to
-3. Press Enter - a dropdown appears with all checkpoints
-4. Select the checkpoint you want to restore
-5. Confirm the restoration
+3. Press Enter - an interactive browser appears with filtering and pagination
+4. **Filter by type** (optional): Click Manual, Auto-backups, or All buttons
+5. **Filter by campaign** (optional): Use dropdown if multiple campaigns exist
+6. **Select checkpoint**: Choose from dropdown (max 20 per page)
+7. **Navigate pages** (if needed): Use Previous/Next buttons
+8. **Confirm restoration**: Review details and confirm
 
-**Option 2: Direct Mode**
+#### Interactive Checkpoint Browser
 
-Type everything in one command:
-```
-/foothold-checkpoint restore server:TestServer checkpoint:afghanistan_2026-02-15_14-00-00.zip
-```
-
-#### Checkpoint Selection Dropdown
-
-Checkpoints are grouped and sorted for easy browsing:
+The browser provides advanced filtering and pagination:
 
 ```
-Checkpoints Manuels (plus récent en bas)
+🔄 Select Checkpoint to Restore (Page 1/3)
+Type: All • All Campaigns • Total: 47
 
-afghanistan_2026-02-14_10-00-00.zip
-afghanistan • 02-14 10:00 • 2.3 MB
+Row 0: [Manual] [Auto-backups] [All] ← Click to filter by type
 
-afghanistan_2026-02-16_20-15-30.zip
-afghanistan • 02-16 20:15 • 2.4 MB • [Pre-Mi...
+Row 1: [Campaign Dropdown ▼]         ← Select specific campaign
 
-─────────── AUTO-BACKUPS ───────────
+Row 2: [Checkpoint Selection ▼]      ← Choose checkpoint (20 max)
+       afghanistan_2026-02-14_10-00-00.zip
+       afghanistan • 02-14 10:00 • 2.3 MB
 
-auto-backup-20260216-201000.zip
-afghanistan • 02-16 20:10 • 2.4 MB
+Row 3: [◀ Previous] [Page 1/3] [Next ▶] ← Navigate pages
 ```
 
-- **Manual checkpoints** appear first (newest at bottom)
-- **Auto-backups** appear after the separator
-- Shows: campaign name, date/time, file size, and name/comment if available
+**Filter Options:**
+
+- **Type filters** (Row 0):
+  - **Manual**: Show only manual saves
+  - **Auto-backups**: Show only automatic backups
+  - **All**: Show all checkpoints (default)
+
+- **Campaign filter** (Row 1):
+  - Only appears if multiple campaigns detected
+  - "All Campaigns" shows everything
+  - Select specific campaign to filter
+
+- **Checkpoint selection** (Row 2):
+  - Shows up to 20 checkpoints per page
+  - Format: `filename • campaign • date time • size`
+  - Manual checkpoints have 💾 emoji
+  - Auto-backups have 🔄 emoji
+
+- **Pagination** (Row 3):
+  - Only appears when >20 checkpoints match filters
+  - Previous/Next buttons navigate pages
+  - Current page indicator shows position
 
 #### Auto-Backup Protection
 
-By default, the bot creates an **automatic backup** before restoring to prevent data loss.
+**Important**: The bot **always creates an automatic backup** before restoring to prevent data loss.
 
 The auto-backup:
 - Is created with filename pattern: `auto-backup-YYYYMMDD-HHMMSS.zip`
 - Contains the current state before restore
-- Appears in the "AUTO-BACKUPS" section when listing
+- Appears in the browser when filtering by "Auto-backups"
 - Can be restored like any other checkpoint
-
-**To disable auto-backup** (not recommended):
-```
-/foothold-checkpoint restore server:TestServer checkpoint:old_save.zip auto_backup:false
-```
 
 ⚠️ **Warning**: Only disable auto-backup if you're certain you don't need a safety backup.
 
