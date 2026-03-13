@@ -324,7 +324,7 @@ Restored At: 2026-02-16 22:10:45
 
 ### List Checkpoints
 
-Display all available checkpoints with their details.
+Browse all available checkpoints with an interactive interface.
 
 #### Command Syntax
 
@@ -334,71 +334,80 @@ Display all available checkpoints with their details.
 
 #### Parameters
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `campaign` | ❌ No | Filter by campaign name |
-| `server` | ❌ No | Filter by server name |
+**None** - All filtering and navigation is done through the interactive interface.
 
 #### How to Use
 
-**List all checkpoints:**
+1. Type `/foothold-checkpoint list`
+2. Press Enter - an interactive checkpoint browser appears
+3. Use **type filter buttons** to show:
+   - 🔹 **Manual** - Only manual checkpoints
+   - 🔄 **Auto-backups** - Only automatic backups
+   - 📦 **All** - All checkpoints
+4. Use **campaign filter dropdown** to select specific campaign (if multiple campaigns exist)
+5. Use **Previous/Next buttons** to navigate pages (20 checkpoints per page)
+6. Select a checkpoint from the dropdown to view full details
+
+#### Interactive Browser Features
+
+**Type Filters (Row 1)**:
 ```
-/foothold-checkpoint list
+🔹 Manual (32)  🔄 Auto-backups (15)  📦 All (47)
+```
+Click buttons to filter by checkpoint type.
+
+**Campaign Filter (Row 2)** - *Only shown if multiple campaigns exist*:
+```
+Campaign: All ▼
+  ○ All Campaigns (47)
+  ○ afghanistan (23)
+  ○ syria (18)
+  ○ caucasus (6)
 ```
 
-**Filter by campaign:**
+**Checkpoint Selection (Row 3)**:
 ```
-/foothold-checkpoint list campaign:afghanistan
-```
-
-**Filter by server:**
-```
-/foothold-checkpoint list server:Production
-```
-
-**Combined filters:**
-```
-/foothold-checkpoint list server:Production campaign:afghanistan
+Select a checkpoint... ▼
+  ○ afghan_2026-03-01_14-30-00.zip
+    afghanistan • 03-01 14:30 • 2.4 MB
+  ○ afghan_2026-03-02_18-45-00.zip  
+    afghanistan • 03-02 18:45 • 2.3 MB • [Pre-Mission-14]
+  ... (18 more)
 ```
 
-#### Output Format
-
-Checkpoints are displayed in an aligned table:
-
+**Pagination (Row 4)** - *Only shown if more than 20 checkpoints*:
 ```
-FILE                              DATE         SIZE
-────────────────────────────────────────────────────
-afghanistan_20260214_100000       2024-02-14   2.3 MB
-afghanistan_20260216_201530       2024-02-16   2.4 MB
-syria_20260215_140000             2024-02-15   3.1 MB
-─────────────── AUTO-BACKUPS ─────────────────
-auto-backup-20260216-201000       2024-02-16   2.4 MB
-auto-backup-20260216-221045       2024-02-16   2.4 MB
+◀️ Previous    Page 1/3    Next ▶️
 ```
 
-- **Manual checkpoints** appear first (chronologically)
-- **Auto-backups** appear below the separator
-- Shows filename, date created, and file size
+#### Header Information
+
+The browser shows your current filter status:
+- `📦 **42 checkpoints**` (no filters)
+- `📦 **Showing 1-20 of 47 checkpoints** (Type: Manual)`
+- `📦 **Showing 21-40 of 47 checkpoints** (Type: Manual, Campaign: afghanistan)`
 
 #### Examples
 
-**Weekly backup review:**
-```
-/foothold-checkpoint list server:Production
-```
-See all production server backups.
-
-**Check specific campaign history:**
-```
-/foothold-checkpoint list campaign:syria
-```
-See all Syria campaign checkpoints across all servers.
-
-**Find recent saves:**
+**Browse all checkpoints:**
 ```
 /foothold-checkpoint list
 ```
-Shows everything (most recent at bottom).
+Navigate through pages and use filter dropdown to find specific campaigns.
+
+**View only manual checkpoints:**
+```
+/foothold-checkpoint list
+```
+Click "🔹 Manual" button after opening browser.
+
+**Find Afghanistan auto-backups:**
+```
+/foothold-checkpoint list
+```
+1. Click "🔄 Auto-backups" button
+2. Select "afghanistan" from campaign dropdown
+3. Browse filtered results
 
 ---
 
@@ -414,38 +423,57 @@ Remove old or unwanted checkpoints to free up storage.
 
 #### Parameters
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `checkpoint` | ❌ No | Checkpoint filename (or leave empty for dropdown) |
-| `campaign` | ❌ No | Filter dropdown by campaign |
+**None** - All selection is done through the interactive browser interface.
 
 #### How to Use
 
-**Option 1: Interactive Mode (Recommended)**
-
 1. Type `/foothold-checkpoint delete`
-2. (Optional) Add `campaign:name` to filter
-3. Press Enter - dropdown appears with checkpoints
-4. Select the checkpoint to delete
-5. Click **"Confirm Delete"** button (60 second timeout)
+2. An interactive checkpoint browser appears (same as list command)
+3. Use **type filter buttons** to narrow down:
+   - 🔹 **Manual** - Only manual checkpoints
+   - 🔄 **Auto-backups** - Only automatic backups  
+   - 📦 **All** - All checkpoints
+4. Use **campaign filter dropdown** to select specific campaign (optional)
+5. Use **Previous/Next buttons** to navigate pages if needed
+6. Select the checkpoint to delete from the dropdown
+7. Review the confirmation dialog with checkpoint details
+8. Click **"🗑️ Confirm Delete"** to proceed or **"❌ Cancel"** to abort
+9. Confirmation must be clicked within 60 seconds
 
-**Option 2: Direct Mode**
+#### Interactive Browser
 
-Type everything in one command:
+Same interface as list command with an additional **Delete button** (Row 5):
 ```
-/foothold-checkpoint delete checkpoint:old_backup_2026-01-15.zip
+🔹 Manual (32)  🔄 Auto-backups (15)  📦 All (47)
+
+Campaign: All ▼
+
+Select a checkpoint... ▼
+  ○ afghan_2026-01-15_10-00-00.zip
+    afghanistan • 01-15 10:00 • 2.2 MB
+  ○ syria_2026-02-01_14-00-00.zip
+    syria • 02-01 14:00 • 3.0 MB • [Old test]
+
+◀️ Previous    Page 1/2    Next ▶️
+
+        🗑️ Delete
 ```
 
-#### Interactive Selection
+#### Confirmation Dialog
 
-The dropdown shows checkpoint details to help you choose:
-
+After clicking Delete, you'll see:
 ```
-afghanistan_2026-01-15_10-00-00.zip
-afghanistan • 01-15 10:00 • 2.2 MB
+⚠️ Confirm Deletion
 
-syria_2026-02-01_14-00-00.zip
-syria • 02-01 14:00 • 3.0 MB • [Old test]
+Checkpoint: afghanistan_2026-01-15_10-00-00.zip
+Campaign: afghanistan
+Created: 2026-01-15 10:00:00
+Size: 2.2 MB
+Files: 4
+
+This action cannot be undone!
+
+[🗑️ Confirm Delete]  [❌ Cancel]
 ```
 
 #### Confirmation Required

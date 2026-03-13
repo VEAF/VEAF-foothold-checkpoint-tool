@@ -212,7 +212,7 @@ DEFAULT:
   
   # Discord notifications
   notifications:
-    # Discord channel ID where notifications will be sent
+    # Use channel ID (recommended) or channel name
     # To get ID: Right-click channel → Copy Channel ID (requires Developer Mode)
     channel: 1234567890123456789  # Replace with your channel ID
     on_save: true
@@ -239,7 +239,7 @@ DEFAULT:
 - **enabled**: Set to `false` to disable the plugin without removing it
 - **campaigns_file**: Path to campaigns configuration (see Step 3)
 - **checkpoints_dir**: Where checkpoint ZIP files are stored
-- **notifications.channel**: Replace `1234567890123456789` with your actual Discord channel ID (integer)
+- **notifications.channel**: Replace `1234567890123456789` with your actual Discord channel ID or use channel name like `"foothold-checkpoints"`
 - **Server sections**: Add `DCS.your_server_name:` sections to override defaults per server
 
 ### Step 3: Configure Campaigns
@@ -534,9 +534,9 @@ Notifications use a simple on/off toggle per event type with a single channel:
 
 ```yaml
 notifications:
-  # Discord channel ID where all notifications are sent
+  # Discord channel ID (recommended) or name where all notifications are sent
   # To get channel ID: Right-click channel → Copy Channel ID (Developer Mode required)
-  channel: 1234567890123456789
+  channel: 1234567890123456789  # Or use channel name: "foothold-notifications"
   
   # Enable/disable notifications per event type
   on_save: true      # Notify when checkpoint saved
