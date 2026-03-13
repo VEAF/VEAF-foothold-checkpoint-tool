@@ -197,61 +197,73 @@ Restore a campaign to a previous checkpoint state.
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `server` | ✅ Yes | Target server name |
-| `checkpoint` | ❌ No | Checkpoint filename (or leave empty for dropdown) |
-| `campaign` | ❌ No | Campaign name (defaults to checkpoint's original campaign) |
-| `auto_backup` | ❌ No | Create backup before restore (default: true) |
+
+**Note**: All selection via interactive UI (no direct mode).
 
 #### How to Use
 
-**Option 1: Interactive Mode (Recommended)**
-
 1. Type `/foothold-checkpoint restore`
 2. Select the **server** to restore to
-3. Press Enter - a dropdown appears with all checkpoints
-4. Select the checkpoint you want to restore
-5. Confirm the restoration
+3. Press Enter - an interactive browser appears with filtering and pagination
+4. **Filter by type** (optional): Click Manual, Auto-backups, or All buttons
+5. **Filter by campaign** (optional): Use dropdown if multiple campaigns exist
+6. **Select checkpoint**: Choose from dropdown (max 20 per page)
+7. **Navigate pages** (if needed): Use Previous/Next buttons
+8. **Confirm restoration**: Review details and confirm
 
-**Option 2: Direct Mode**
+#### Interactive Checkpoint Browser
 
-Type everything in one command:
-```
-/foothold-checkpoint restore server:TestServer checkpoint:afghanistan_2026-02-15_14-00-00.zip
-```
-
-#### Checkpoint Selection Dropdown
-
-Checkpoints are grouped and sorted for easy browsing:
+The browser provides advanced filtering and pagination:
 
 ```
-Checkpoints Manuels (plus récent en bas)
+🔄 Select Checkpoint to Restore (Page 1/3)
+Type: All • All Campaigns • Total: 47
 
-afghanistan_2026-02-14_10-00-00.zip
-afghanistan • 02-14 10:00 • 2.3 MB
+Row 0: [Manual] [Auto-backups] [All] ← Click to filter by type
 
-afghanistan_2026-02-16_20-15-30.zip
-afghanistan • 02-16 20:15 • 2.4 MB • [Pre-Mi...
+Row 1: [Campaign Dropdown ▼]         ← Select specific campaign
 
-─────────── AUTO-BACKUPS ───────────
+Row 2: [Checkpoint Selection ▼]      ← Choose checkpoint (20 max)
+       afghanistan_2026-02-14_10-00-00.zip
+       afghanistan • 02-14 10:00 • 2.3 MB
 
-auto-backup-20260216-201000.zip
-afghanistan • 02-16 20:10 • 2.4 MB
+Row 3: [◀ Previous] [Page 1/3] [Next ▶] ← Navigate pages
 ```
 
-- **Manual checkpoints** appear first (newest at bottom)
-- **Auto-backups** appear after the separator
-- Shows: campaign name, date/time, file size, and name/comment if available
+**Filter Options:**
+
+- **Type filters** (Row 0):
+  - **Manual**: Show only manual saves
+  - **Auto-backups**: Show only automatic backups
+  - **All**: Show all checkpoints (default)
+
+- **Campaign filter** (Row 1):
+  - Only appears if multiple campaigns detected
+  - "All Campaigns" shows everything
+  - Select specific campaign to filter
+
+- **Checkpoint selection** (Row 2):
+  - Shows up to 20 checkpoints per page
+  - Format: `filename • campaign • date time • size`
+  - Manual checkpoints have 💾 emoji
+  - Auto-backups have 🔄 emoji
+
+- **Pagination** (Row 3):
+  - Only appears when >20 checkpoints match filters
+  - Previous/Next buttons navigate pages
+  - Current page indicator shows position
 
 #### Auto-Backup Protection
 
-The bot **always creates an automatic backup** before restoring to prevent data loss.
+**Important**: The bot **always creates an automatic backup** before restoring to prevent data loss.
 
 The auto-backup:
 - Is created with filename pattern: `auto-backup-YYYYMMDD-HHMMSS.zip`
 - Contains the current state before restore
-- Appears in the "AUTO-BACKUPS" section when listing
+- Appears in the browser when filtering by "Auto-backups"
 - Can be restored like any other checkpoint
 
-⚠️ **Note**: Auto-backup cannot be disabled - it's a mandatory safety feature in v2.1.0.
+⚠️ **Warning**: Only disable auto-backup if you're certain you don't need a safety backup.
 
 #### Examples
 
@@ -317,7 +329,7 @@ Restored At: 2026-02-16 22:10:45
 
 ### List Checkpoints
 
-Browse and view all available checkpoints with their details in an interactive browser.
+Browse all available checkpoints with an interactive interface.
 
 #### Command Syntax
 
@@ -327,51 +339,58 @@ Browse and view all available checkpoints with their details in an interactive b
 
 #### Parameters
 
-**None** - All navigation is done through the interactive browser interface.
+**None** - All filtering and navigation is done through the interactive interface.
 
 #### How to Use
 
 1. Type `/foothold-checkpoint list`
-2. An interactive browser appears with pagination controls
-3. Use the navigation buttons to browse checkpoints:
-   - ⏪ First page
-   - ◀️ Previous page  
-   - ▶️ Next page
-   - ⏩ Last page
-4. Use the filter dropdown to filter by campaign
-5. Click 🔄 Refresh to reload the list
+2. Press Enter - an interactive checkpoint browser appears
+3. Use **type filter buttons** to show:
+   - 🔹 **Manual** - Only manual checkpoints
+   - 🔄 **Auto-backups** - Only automatic backups
+   - 📦 **All** - All checkpoints
+4. Use **campaign filter dropdown** to select specific campaign (if multiple campaigns exist)
+5. Use **Previous/Next buttons** to navigate pages (20 checkpoints per page)
+6. Select a checkpoint from the dropdown to view full details
+
+#### Interactive Browser Features
+
+**Type Filters (Row 1)**:
 ```
-/foothold-checkpoint list campaign:afghanistan
+🔹 Manual (32)  🔄 Auto-backups (15)  📦 All (47)
+```
+Click buttons to filter by checkpoint type.
+
+**Campaign Filter (Row 2)** - *Only shown if multiple campaigns exist*:
+```
+Campaign: All ▼
+  ○ All Campaigns (47)
+  ○ afghanistan (23)
+  ○ syria (18)
+  ○ caucasus (6)
 ```
 
-**Filter by server:**
+**Checkpoint Selection (Row 3)**:
 ```
-/foothold-checkpoint list server:Production
-```
-
-**Combined filters:**
-```
-/foothold-checkpoint list server:Production campaign:afghanistan
-```
-
-#### Output Format
-
-Checkpoints are displayed in an aligned table:
-
-```
-FILE                              DATE         SIZE
-────────────────────────────────────────────────────
-afghanistan_20260214_100000       2024-02-14   2.3 MB
-afghanistan_20260216_201530       2024-02-16   2.4 MB
-syria_20260215_140000             2024-02-15   3.1 MB
-─────────────── AUTO-BACKUPS ─────────────────
-auto-backup-20260216-201000       2024-02-16   2.4 MB
-auto-backup-20260216-221045       2024-02-16   2.4 MB
+Select a checkpoint... ▼
+  ○ afghan_2026-03-01_14-30-00.zip
+    afghanistan • 03-01 14:30 • 2.4 MB
+  ○ afghan_2026-03-02_18-45-00.zip  
+    afghanistan • 03-02 18:45 • 2.3 MB • [Pre-Mission-14]
+  ... (18 more)
 ```
 
-- **Manual checkpoints** appear first (chronologically)
-- **Auto-backups** appear below the separator
-- Shows filename, date created, and file size
+**Pagination (Row 4)** - *Only shown if more than 20 checkpoints*:
+```
+◀️ Previous    Page 1/3    Next ▶️
+```
+
+#### Header Information
+
+The browser shows your current filter status:
+- `📦 **42 checkpoints**` (no filters)
+- `📦 **Showing 1-20 of 47 checkpoints** (Type: Manual)`
+- `📦 **Showing 21-40 of 47 checkpoints** (Type: Manual, Campaign: afghanistan)`
 
 #### Examples
 
@@ -381,19 +400,19 @@ auto-backup-20260216-221045       2024-02-16   2.4 MB
 ```
 Navigate through pages and use filter dropdown to find specific campaigns.
 
-**Quick checkpoint review:**
+**View only manual checkpoints:**
 ```
 /foothold-checkpoint list
 ```
-Use filter to show only "afghanistan" checkpoints, then browse.
+Click "🔹 Manual" button after opening browser.
 
-#### Screenshots
-
-![List Command - Checkpoint Browser](images/list1.png)
-*Interactive checkpoint browser with pagination*
-
-![List Command - Filter Dropdown](images/list2.png)
-*Filter checkpoints by campaign or server*
+**Find Afghanistan auto-backups:**
+```
+/foothold-checkpoint list
+```
+1. Click "🔄 Auto-backups" button
+2. Select "afghanistan" from campaign dropdown
+3. Browse filtered results
 
 ---
 
@@ -414,23 +433,52 @@ Remove old or unwanted checkpoints to free up storage.
 #### How to Use
 
 1. Type `/foothold-checkpoint delete`
-2. An interactive checkpoint browser appears
-3. Use the filter dropdown to narrow down checkpoints (optional)
-4. Select the checkpoint to delete from the dropdown
-5. Review the confirmation dialog with checkpoint details
-6. Click **"🗑️ Confirm Delete"** to proceed or **"❌ Cancel"** to abort
-7. Confirmation must be clicked within 60 seconds
+2. An interactive checkpoint browser appears (same as list command)
+3. Use **type filter buttons** to narrow down:
+   - 🔹 **Manual** - Only manual checkpoints
+   - 🔄 **Auto-backups** - Only automatic backups  
+   - 📦 **All** - All checkpoints
+4. Use **campaign filter dropdown** to select specific campaign (optional)
+5. Use **Previous/Next buttons** to navigate pages if needed
+6. Select the checkpoint to delete from the dropdown
+7. Review the confirmation dialog with checkpoint details
+8. Click **"🗑️ Confirm Delete"** to proceed or **"❌ Cancel"** to abort
+9. Confirmation must be clicked within 60 seconds
 
-#### Interactive Selection
+#### Interactive Browser
 
-The dropdown shows checkpoint details to help you choose:
-
+Same interface as list command with an additional **Delete button** (Row 5):
 ```
-afghanistan_2026-01-15_10-00-00.zip
-afghanistan • 01-15 10:00 • 2.2 MB
+🔹 Manual (32)  🔄 Auto-backups (15)  📦 All (47)
 
-syria_2026-02-01_14-00-00.zip
-syria • 02-01 14:00 • 3.0 MB • [Old test]
+Campaign: All ▼
+
+Select a checkpoint... ▼
+  ○ afghan_2026-01-15_10-00-00.zip
+    afghanistan • 01-15 10:00 • 2.2 MB
+  ○ syria_2026-02-01_14-00-00.zip
+    syria • 02-01 14:00 • 3.0 MB • [Old test]
+
+◀️ Previous    Page 1/2    Next ▶️
+
+        🗑️ Delete
+```
+
+#### Confirmation Dialog
+
+After clicking Delete, you'll see:
+```
+⚠️ Confirm Deletion
+
+Checkpoint: afghanistan_2026-01-15_10-00-00.zip
+Campaign: afghanistan
+Created: 2026-01-15 10:00:00
+Size: 2.2 MB
+Files: 4
+
+This action cannot be undone!
+
+[🗑️ Confirm Delete]  [❌ Cancel]
 ```
 
 #### Confirmation Required

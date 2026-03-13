@@ -13,6 +13,36 @@ This document outlines the past, present, and future development of the VEAF Foo
 
 ## Completed Releases
 
+### ✅ v2.2.0 - Paginated Checkpoint Browser (March 13, 2026)
+
+**Status:** Released
+
+**Key Features:**
+- **Paginated checkpoint browser** for Discord commands
+  - Fixes Discord API error when >25 checkpoints exist
+  - 20 checkpoints per page (safe margin below 25-option limit)
+  - Type filters: Manual, Auto-backups, All
+  - Campaign filter: Dynamic dropdown with all detected campaigns
+  - Pagination controls: Previous/Next buttons with page indicator
+  - Applies to `/foothold-checkpoint list`, `delete`, and `restore` commands
+- **Enhanced UI/UX**
+  - Dynamic header showing active filters and result count
+  - Visual separation: Manual checkpoints (💾) vs Auto-backups (🔄)
+  - Example: `📦 Showing 1-20 of 47 checkpoints (Type: Manual, Campaign: afghanistan)`
+  - Cleaner, more intuitive interface
+
+**Quality Metrics:**
+- 285 tests passing (3 skipped)
+- 41% overall coverage (core: 71-100%)
+- Full mypy type checking
+- Cross-platform support (Windows, Linux, macOS)
+
+**Related:**
+- GitHub Branch: `feat-new-ui` (merged into develop)
+- GitHub Release: [v2.2.0](https://github.com/VEAF/VEAF-foothold-checkpoint-tool/releases/tag/v2.2.0)
+
+---
+
 ### ✅ v2.0.0 - DCSServerBot Plugin Integration (February 16, 2026)
 
 **Status:** Released

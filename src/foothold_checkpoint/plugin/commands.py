@@ -35,11 +35,11 @@ from .notifications import send_notification
 from .permissions import check_permission, format_permission_denied
 from .ui import (
     CampaignSelectView,
-    CheckpointBrowserView,
-    CheckpointDeleteBrowserView,
     CheckpointDeleteConfirm,
     CheckpointRestoreConfirm,
-    CheckpointSelectView,
+    PaginatedCheckpointBrowserView,
+    PaginatedCheckpointDeleteBrowserView,
+    PaginatedCheckpointSelectView,
 )
 
 
@@ -505,7 +505,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # Auto-backup is always enabled for safety
         auto_backup = True
 
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
         config_dict = self._get_config()
         checkpoints_dir = Path(config_dict["checkpoints_dir"])
@@ -521,11 +521,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             )
             return
 
-        # Show checkpoint selection view (edit original message)
-        view = CheckpointSelectView(checkpoints_list)
-        await interaction.edit_original_response(
-            content=f"🔄 **Select checkpoint to restore to server `{server}`:**",
+        # Show paginated checkpoint selection view
+        view = PaginatedCheckpointSelectView(checkpoints_list)
+        await interaction.followup.send(
+            view._get_header_text(),
             view=view,
+            ephemeral=True,
         )
 
         # Wait for user selection
@@ -558,11 +559,8 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
         details_embed.add_field(name="⚠️ Warning", value=warning_text, inline=False)
 
-        # Edit original message to show confirmation
-        await interaction.edit_original_response(
-            content=None,
-            embed=details_embed,
-            view=confirm_view,
+        await interaction.followup.send(
+            embed=details_embed, view=confirm_view, ephemeral=True, wait=True
         )
 
         # Wait for confirmation
@@ -651,12 +649,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 backup_created=auto_backup,
                 backup_filename=backup_filename,
             )
-            # Edit original message to show final result
-            await interaction.edit_original_response(
-                content=None,
-                embed=embed,
-                view=None,
-            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
             # Send notification
             if interaction.guild:
@@ -674,12 +667,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         except Exception as e:
             self.log.error(f"Failed to restore checkpoint: {e}", exc_info=True)
             embed = format_error_embed("restore", e)
-            # Edit original message to show error
-            await interaction.edit_original_response(
-                content=None,
-                embed=embed,
-                view=None,
-            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
             # Send error notification
             if interaction.guild:
@@ -723,17 +711,23 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 await interaction.followup.send("❌ No checkpoints found.", ephemeral=True)
                 return
 
-            # Create interactive browser view
-            view = CheckpointBrowserView(
+            # Create interactive paginated browser view with filters
+            view = PaginatedCheckpointBrowserView(
                 checkpoints=checkpoints_list, format_details_func=format_checkpoint_details_embed
             )
 
-            # Get initial embed (first checkpoint)
-            initial_embed = format_checkpoint_details_embed(checkpoints_list[0])
+            # Get initial embed (first checkpoint after applying default filter)
+            filtered = view._get_filtered_checkpoints()
+            if filtered:
+                initial_embed = format_checkpoint_details_embed(filtered[0])
+                header_text = view._get_header_text(filtered)
+            else:
+                initial_embed = None
+                header_text = "📦 No checkpoints found"
 
             # Build initial message
             await interaction.followup.send(
-                content=f"📦 **Checkpoint 1/{len(checkpoints_list)}** - Select from dropdown to view details:",
+                content=header_text,
                 embed=initial_embed,
                 view=view,
                 ephemeral=True,
@@ -779,17 +773,23 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # Import formatter before using it
         from .formatters import format_checkpoint_details_embed
 
-        # Create interactive browser view with Delete button
-        view = CheckpointDeleteBrowserView(
+        # Create interactive paginated browser view with Delete button and filters
+        view = PaginatedCheckpointDeleteBrowserView(
             checkpoints=checkpoints_list, format_details_func=format_checkpoint_details_embed
         )
 
-        # Get initial embed (first checkpoint)
-        initial_embed = format_checkpoint_details_embed(checkpoints_list[0])
+        # Get initial embed (first checkpoint after applying default filter)
+        filtered = view._get_filtered_checkpoints()
+        if filtered:
+            initial_embed = format_checkpoint_details_embed(filtered[0])
+            header_text = view._get_header_text(filtered)
+        else:
+            initial_embed = None
+            header_text = "🗑️ No checkpoints found"
 
         # Build initial message
         await interaction.followup.send(
-            content=f"🗑️ **Checkpoint 1/{len(checkpoints_list)}** - Select from dropdown to view details, then click Delete:",
+            content=header_text,
             embed=initial_embed,
             view=view,
             ephemeral=True,
@@ -810,24 +810,33 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # Store the browser state for potential restoration on cancel
         browser_checkpoints = checkpoints_list
         browser_index = view.current_index
+        browser_type_filter = view.type_filter
+        browser_campaign_filter = view.campaign_filter
+        browser_page = view.current_page
 
         # Create restore function for cancel button
         async def restore_browser(cancel_interaction: discord.Interaction) -> None:
             """Restore the browser view after cancellation."""
             from .formatters import format_checkpoint_details_embed
 
-            # Recreate the browser view
-            new_view = CheckpointDeleteBrowserView(
+            # Recreate the browser view with same filters
+            new_view = PaginatedCheckpointDeleteBrowserView(
                 checkpoints=browser_checkpoints, format_details_func=format_checkpoint_details_embed
             )
             new_view.current_index = browser_index
+            new_view.type_filter = browser_type_filter
+            new_view.campaign_filter = browser_campaign_filter
+            new_view.current_page = browser_page
+            new_view._build_ui()
 
-            # Get the current checkpoint embed
-            current_embed = format_checkpoint_details_embed(browser_checkpoints[browser_index])
+            # Get the filtered checkpoints and current checkpoint embed
+            filtered = new_view._get_filtered_checkpoints()
+            current_embed = format_checkpoint_details_embed(filtered[browser_index])
+            header_text = new_view._get_header_text(filtered)
 
             # Update message to show browser again
             await cancel_interaction.response.edit_message(
-                content=f"🗑️ **Checkpoint {browser_index + 1}/{len(browser_checkpoints)}** - Select from dropdown to view details, then click Delete:",
+                content=header_text,
                 embed=current_embed,
                 view=new_view,
             )

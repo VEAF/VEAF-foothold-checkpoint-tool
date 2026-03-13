@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-13
+
+### Fixed
+- **DCSServerBot plugin checkpoint browser**: Fixed Discord API error when more than 25 checkpoints exist
+  - Previous error: `400 Bad Request - Must be between 1 and 25 in length` when dropdown exceeded Discord's 25-option limit
+  - Implemented paginated browser with 20 checkpoints per page (safety margin)
+  - Added type filters: Manual, Auto-backups, All
+  - Added campaign filter dropdown (when multiple campaigns exist)
+  - Pagination controls: Previous/Next buttons with page indicator
+  - Applies to `/foothold-checkpoint list`, `/foothold-checkpoint delete`, and `/foothold-checkpoint restore` commands
+
+### Improved
+- **DCSServerBot plugin UI**: Enhanced checkpoint browser with advanced filtering
+  - Filter by type: Manual checkpoints, Auto-backups, or All
+  - Filter by campaign: Dropdown with all detected campaigns
+  - Dynamic header showing active filters and result count
+  - Example: `📦 **Showing 1-20 of 47 checkpoints** (Type: Manual, Campaign: afghanistan)`
+  - Cleaner separation of manual saves vs automatic backups
+
 ## [2.1.0] - 2026-02-17
 
 ### Changed
