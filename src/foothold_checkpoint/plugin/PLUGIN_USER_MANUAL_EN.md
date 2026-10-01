@@ -797,33 +797,37 @@ Keep only recent auto-backups (last 24-48 hours).
 
 ## Troubleshooting
 
-### "Aborted — nothing was changed" with a list of files
+### "Files on <server> that this plugin cannot see", with a list
 
-**Cause**: the campaign files on the server have names the bot does not recognise. This normally
+**Cause**: some campaign files on the server have names the bot does not recognise. This normally
 happens after a campaign is updated and its save files are renamed — for example from
 `FootHold_CA_v0.2.lua` to `FootHold_CA_v0.3.lua`.
 
-**Why the bot stops instead of continuing**: files it does not recognise are files it cannot see.
-It would not include them in a backup, and a restore would put its own files next to them rather
-than replacing them. The mission would keep reading the old files, so **nothing would change in
-game** — while the bot told you everything went fine.
+**Why it matters even though your command worked**: files the bot does not recognise are files it
+cannot see. It never includes them in a backup, and a restore puts its own files next to them rather
+than replacing them. If one of them belongs to a campaign you rely on, **its backups are empty** —
+and a restore of it would report success while nothing changes in game.
+
+The bot does not stop for this, because an unconfigured campaign on the server is no reason to stop
+backing up the ones that are configured.
 
 **Solution**: this one is for your server admin. The new file names have to be added to the bot's
 campaign configuration. The message lists exactly which files are involved, so copy it to them as
 it is.
 
-Until that is done, both `save` and `restore` will refuse for that server. That is deliberate: a
-backup that captures nothing is worse than no backup, because you think you have one.
-
 ### "Restore aborted — nothing was changed" after confirming
 
 **Cause**: before overwriting a campaign, the bot always saves its current state first. That safety
-copy came back empty, so the restore was stopped.
+copy came back empty, while unrecognised campaign files were sitting in the target directory — so
+the restore was stopped rather than overwrite something it could not back up.
 
 **What happened to your campaign**: nothing. No file was touched.
 
 **Solution**: this is almost always the same problem as above — ask your admin to check the campaign
 file names. Do not retry until it is fixed; it will stop again, for the same good reason.
+
+Restoring onto a server with no campaign files at all does **not** trigger this: starting a campaign
+from a checkpoint on a fresh server is a normal thing to do.
 
 ### "You don't have permission to use this command"
 

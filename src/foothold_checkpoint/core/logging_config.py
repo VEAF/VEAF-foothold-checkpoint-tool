@@ -77,8 +77,8 @@ def setup_file_logging(
 
     package_logger = logging.getLogger(PACKAGE_LOGGER_NAME)
 
-    _remove_existing_handler(package_logger)
-
+    # Build the replacement before discarding what works: a reconfiguration that
+    # fails must leave logging exactly as it was, not silently switch it off.
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         handler = RotatingFileHandler(
@@ -95,6 +95,7 @@ def setup_file_logging(
     handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT))
     handler.setLevel(level)
 
+    _remove_existing_handler(package_logger)
     package_logger.addHandler(handler)
 
     # Only lower the logger's own threshold, never raise it above what a host

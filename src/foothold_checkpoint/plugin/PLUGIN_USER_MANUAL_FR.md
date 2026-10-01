@@ -805,36 +805,40 @@ Conservez uniquement les auto-backups récents (dernières 24-48 heures).
 
 ## Dépannage
 
-### « Opération annulée — rien n'a été modifié », avec une liste de fichiers
+### « Fichiers sur <serveur> que ce plugin ne voit pas », avec une liste
 
-**Cause** : les fichiers de campagne présents sur le serveur portent des noms que le bot ne
+**Cause** : certains fichiers de campagne présents sur le serveur portent des noms que le bot ne
 reconnaît pas. Cela arrive normalement après une mise à jour de la campagne, quand ses fichiers de
 sauvegarde sont renommés — par exemple de `FootHold_CA_v0.2.lua` vers `FootHold_CA_v0.3.lua`.
 
-**Pourquoi le bot s'arrête au lieu de continuer** : un fichier qu'il ne reconnaît pas est un fichier
-qu'il ne voit pas. Il ne l'inclurait pas dans une sauvegarde, et une restauration poserait ses
-propres fichiers **à côté** au lieu de les remplacer. La mission continuerait de lire les anciens
-fichiers, donc **rien ne changerait en jeu** — pendant que le bot vous annonce que tout s'est bien
-passé.
+**Pourquoi c'est important même si votre commande a fonctionné** : un fichier que le bot ne
+reconnaît pas est un fichier qu'il ne voit pas. Il ne l'inclut jamais dans une sauvegarde, et une
+restauration pose ses propres fichiers **à côté** au lieu de les remplacer. Si l'un d'eux appartient
+à une campagne à laquelle vous tenez, **ses sauvegardes sont vides** — et une restauration de cette
+campagne annoncerait un succès pendant que rien ne change en jeu.
+
+Le bot ne s'arrête pas pour autant : une campagne non configurée sur le serveur n'est pas une raison
+d'arrêter de sauvegarder celles qui le sont.
 
 **Solution** : celle-ci est pour votre administrateur serveur. Les nouveaux noms de fichiers doivent
 être ajoutés à la configuration des campagnes du bot. Le message liste exactement quels fichiers
 sont concernés : transmettez-le-lui tel quel.
 
-Tant que ce n'est pas fait, `save` et `restore` refuseront de s'exécuter sur ce serveur. C'est
-volontaire : une sauvegarde qui ne capture rien est pire que pas de sauvegarde du tout, parce que
-vous croyez en avoir une.
-
 ### « Restauration annulée — rien n'a été modifié » après confirmation
 
 **Cause** : avant d'écraser une campagne, le bot sauvegarde toujours son état actuel. Cette copie de
-sécurité est revenue vide, la restauration a donc été arrêtée.
+sécurité est revenue vide alors que des fichiers de campagne non reconnus se trouvaient dans le
+répertoire cible — la restauration a donc été arrêtée plutôt que d'écraser quelque chose qu'elle ne
+savait pas sauvegarder.
 
 **Ce qui est arrivé à votre campagne** : rien. Aucun fichier n'a été touché.
 
 **Solution** : c'est presque toujours le même problème que ci-dessus — demandez à votre
 administrateur de vérifier les noms des fichiers de campagne. N'insistez pas avant que ce soit
 corrigé : le bot s'arrêtera de nouveau, pour la même bonne raison.
+
+Restaurer sur un serveur qui ne contient **aucun** fichier de campagne ne déclenche pas ce refus :
+démarrer une campagne depuis un checkpoint sur un serveur neuf est une opération normale.
 
 ### "Vous n'avez pas la permission d'utiliser cette commande"
 

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import zipfile
 from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
@@ -9,6 +10,13 @@ from pathlib import Path
 from typing import cast
 
 from pydantic import BaseModel, Field, field_validator
+
+logger = logging.getLogger(__name__)
+
+#: How many times to re-pick a checkpoint filename when another process takes it
+#: first. Losing this race repeatedly means something is badly wrong; giving up
+#: beats spinning forever.
+MAX_NAME_ATTEMPTS = 10
 
 
 class CheckpointMetadata(BaseModel):
@@ -387,15 +395,31 @@ def create_checkpoint(
     # Create output directory if it doesn't exist
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Full path to ZIP file, never overwriting an existing checkpoint
-    zip_path = resolve_free_checkpoint_path(output_dir, zip_filename)
-
     # Report progress for ZIP creation
     if progress_callback:
         progress_callback("Creating ZIP archive", total_files, total_files)
 
-    # Create ZIP archive
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    # Choosing a free name and opening the archive must be one decision, not
+    # two: the name only resolves to the second, so a scheduled save and a
+    # restore's automatic backup can pick the same one at the same instant.
+    # Mode "x" fails instead of truncating, so losing the race costs a retry
+    # rather than somebody else's checkpoint.
+    zip_path = resolve_free_checkpoint_path(output_dir, zip_filename)
+
+    for attempt in range(MAX_NAME_ATTEMPTS):
+        try:
+            zf = zipfile.ZipFile(zip_path, "x", zipfile.ZIP_DEFLATED)
+            break
+        except FileExistsError:
+            logger.warning(
+                "Checkpoint name %s was taken while being written; picking another",
+                zip_path.name,
+            )
+            if attempt == MAX_NAME_ATTEMPTS - 1:
+                raise
+            zip_path = resolve_free_checkpoint_path(output_dir, zip_path.name)
+
+    with zf:
         # Add all campaign files
         for file_path in campaign_files:
             # Add file with just its name (not full path)
@@ -405,5 +429,22 @@ def create_checkpoint(
         metadata_json = metadata.model_dump(mode="json")
         metadata_str = json.dumps(metadata_json, indent=2, ensure_ascii=False)
         zf.writestr("metadata.json", metadata_str)
+
+    if zip_path.name != zip_filename:
+        logger.warning(
+            "Checkpoint name %s was already taken; wrote %s instead",
+            zip_filename,
+            zip_path.name,
+        )
+
+    # Logged here rather than in save_checkpoint because the CLI bypasses that
+    # layer and calls this function directly: both front ends must leave a trace.
+    logger.info(
+        "Created checkpoint %s for campaign '%s' on server '%s' (%d file(s))",
+        zip_path,
+        campaign_name,
+        server_name,
+        total_files,
+    )
 
     return zip_path

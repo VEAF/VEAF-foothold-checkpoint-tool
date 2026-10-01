@@ -366,19 +366,68 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
         message = str(exc_info.value)
         assert "FootHold_CA_v0.3.lua" in message, "the message must name the unknown files"
 
-    def test_says_so_when_the_directory_holds_no_campaign_file_at_all(
+    def test_allows_restoring_into_an_empty_directory(
         self, caucasus_checkpoint, tmp_path, caucasus_config
     ):
-        from foothold_checkpoint.core.storage import EmptyBackupError, restore_checkpoint
+        """Seeding a fresh server is legitimate: there is nothing to protect.
+
+        The guard exists to stop a restore from overwriting state the tool cannot
+        see. An empty Saves directory holds no state at all, so refusing would
+        block the normal way of deploying a campaign to a new server.
+        """
+        from foothold_checkpoint.core.storage import restore_checkpoint
 
         empty_target = tmp_path / "empty_target"
         empty_target.mkdir()
+
+        restored = asyncio.run(
+            restore_checkpoint(
+                checkpoint_path=caucasus_checkpoint,
+                target_dir=empty_target,
+                config=caucasus_config,
+                server_name="srv",
+                auto_backup=True,
+                skip_overwrite_check=True,
+            )
+        )
+
+        assert [p.name for p in restored] == ["FootHold_CA_v0.2.lua"]
+
+    def test_allows_restoring_when_only_unrelated_files_are_present(
+        self, caucasus_checkpoint, tmp_path, caucasus_config
+    ):
+        """Non-campaign files are not state this tool is responsible for."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / "mission.miz").write_text("a mission", encoding="utf-8")
+        (target / "Foothold_Ranks.lua").write_text("ranks", encoding="utf-8")
+
+        restored = asyncio.run(
+            restore_checkpoint(
+                checkpoint_path=caucasus_checkpoint,
+                target_dir=target,
+                config=caucasus_config,
+                server_name="srv",
+                auto_backup=True,
+                skip_overwrite_check=True,
+            )
+        )
+
+        assert [p.name for p in restored] == ["FootHold_CA_v0.2.lua"]
+
+    def test_the_refusal_message_names_no_command_line_flag(
+        self, caucasus_checkpoint, renamed_saves_dir, caucasus_config
+    ):
+        """The message is shown in Discord too, where CLI flags do not exist."""
+        from foothold_checkpoint.core.storage import EmptyBackupError, restore_checkpoint
 
         with pytest.raises(EmptyBackupError) as exc_info:
             asyncio.run(
                 restore_checkpoint(
                     checkpoint_path=caucasus_checkpoint,
-                    target_dir=empty_target,
+                    target_dir=renamed_saves_dir,
                     config=caucasus_config,
                     server_name="srv",
                     auto_backup=True,
@@ -386,7 +435,7 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
                 )
             )
 
-        assert "right one" in str(exc_info.value), "should point at the wrong-server case"
+        assert "--" not in str(exc_info.value), "no CLI flag in a message shared by both front ends"
 
     def test_leaves_the_target_directory_untouched_when_it_refuses(
         self, caucasus_checkpoint, renamed_saves_dir, caucasus_config

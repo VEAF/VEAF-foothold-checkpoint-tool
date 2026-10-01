@@ -174,6 +174,11 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
     ) -> str:
         """Build the Discord message shown when the Saves directory holds unknown files.
 
+        This warns, it does not refuse: an unconfigured campaign sitting on the
+        server is no reason to stop backing up the configured ones. The operation
+        that would actually lose data - a restore whose backup captured nothing -
+        is stopped in the core instead.
+
         Args:
             server: Name of the DCS server being operated on.
             target_dir: The Missions/Saves directory that was inspected.
@@ -185,13 +190,13 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         listed = "\n".join(f"- `{name}`" for name in unknown_files)
 
         return (
-            f"⛔ **Aborted — nothing was changed on `{server}`.**\n\n"
-            f"These files are in `{target_dir}` but are missing from the campaign "
+            f"⚠️ **Files on `{server}` that this plugin cannot see**\n\n"
+            f"These are in `{target_dir}` but are missing from the campaign "
             f"configuration:\n{listed}\n\n"
-            "They are invisible to this plugin: they are never backed up, and a restore "
-            "would write its files beside them under names the running mission does not "
-            "read. The campaign files were most likely renamed on the server.\n\n"
-            "Add these names to `campaigns.yaml` before saving or restoring again."
+            "They are never backed up, and a restore would write its files beside them "
+            "rather than over them. If they belong to a campaign you rely on, its "
+            "backups are not protecting anything.\n\n"
+            "Ask your server admin to add these names to `campaigns.yaml`."
         )
 
     async def _check_permission(self, interaction: discord.Interaction, operation: str) -> bool:
@@ -409,22 +414,22 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             checkpoints_dir=self.core_config.checkpoints_dir, campaigns=self.campaigns, servers=None
         )
 
-        # A file the configuration does not know is never captured by a save, and
-        # the failure is invisible: the campaign simply produces nothing. Refuse
-        # the whole operation rather than write reassuring but empty checkpoints.
+        # Files the configuration does not know are never captured by a save, and
+        # the omission is invisible. Say so loudly - but do not block: an
+        # unconfigured campaign on the server is no reason to stop backing up the
+        # ones that are configured. A campaign whose own files are unrecognised
+        # fails on its own below, with "No campaign files found".
+        unknown_files: list[str] = []
         try:
             saves_dir = Path(self.bot.servers[server_name].instance.home) / "Missions" / "Saves"
+        except (AttributeError, KeyError) as e:
+            self.log.warning(f"Cannot locate Missions/Saves for {server_name}: {e}")
+        else:
             unknown_files = check_unknown_campaign_files(saves_dir, temp_config)
-        except (AttributeError, KeyError):
-            unknown_files = []
-
-        if unknown_files:
-            await interaction.delete_original_response()
-            await interaction.followup.send(
-                self._format_unknown_files_warning(server_name, saves_dir, unknown_files),
-                ephemeral=True,
-            )
-            return
+            if unknown_files:
+                self.log.warning(
+                    f"Unconfigured Foothold files in {saves_dir}: {', '.join(unknown_files)}"
+                )
 
         for camp in campaigns_to_save:
             try:
@@ -507,6 +512,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # Send results
         # Always delete "Please wait..." message from interactive selector
         await interaction.delete_original_response()
+
+        if unknown_files:
+            await interaction.followup.send(
+                self._format_unknown_files_warning(server_name, saves_dir, unknown_files),
+                ephemeral=True,
+            )
 
         if len(campaigns_to_save) == 1:
             # Single campaign - use detailed embed
@@ -693,16 +704,16 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 servers=None,
             )
 
-            # Refuse to restore over files the configuration does not know: they
-            # would not be backed up, and the restored files would land beside
-            # them under names the running mission does not read.
+            # Files the configuration does not know are flagged here, but the
+            # decision to stop belongs to restore_checkpoint: it refuses only when
+            # its automatic backup captured nothing, which is the case where state
+            # would actually be lost. Refusing on their mere presence would block
+            # restoring one campaign because another is unconfigured.
             unknown_files = check_unknown_campaign_files(target_dir, temp_config)
             if unknown_files:
-                await interaction.followup.send(
-                    self._format_unknown_files_warning(server, target_dir, unknown_files),
-                    ephemeral=True,
+                self.log.warning(
+                    f"Unconfigured Foothold files in {target_dir}: {', '.join(unknown_files)}"
                 )
-                return
 
             # Create event hooks. The backup path is captured here rather than
             # guessed afterwards: auto-backups are named after their campaign,

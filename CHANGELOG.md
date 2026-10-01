@@ -12,16 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   renamed without `campaigns.yaml` following became invisible to the tool. Saves captured nothing,
   restores reported success while writing files the running mission no longer reads, and nothing
   anywhere said so.
-  - `save` and `restore` now refuse to run when the server's `Missions/Saves` holds Foothold files
-    that no campaign in the configuration lists, and name the offending files
-  - `restore` aborts with `EmptyBackupError` when its automatic backup captured nothing, instead of
-    overwriting an unprotected campaign state and reporting success. Nothing is written in that case
+  - `save` and `restore` now warn, on both the CLI and Discord, when the server's `Missions/Saves`
+    holds Foothold files that no campaign in the configuration lists, and name them. This warns
+    rather than blocks: an unconfigured campaign on the server is no reason to stop backing up the
+    configured ones
+  - `restore` aborts with `EmptyBackupError` when its automatic backup captured nothing *and*
+    unrecognised campaign files are present, instead of overwriting a state it could not protect and
+    reporting success. Nothing is written in that case. Restoring into a directory holding no
+    campaign file at all stays allowed: seeding a fresh server has nothing to lose
   - `save --all` no longer discards per-campaign failures without a trace
 - **Checkpoints could overwrite each other**: filenames carry a one-second timestamp and the archive
   was opened in truncating mode, so two checkpoints of one campaign taken in the same second
   collided and the first was destroyed. Since the pre-restore backup lands in the same directory
   with the same naming scheme, it could wipe the very checkpoint being restored. A numeric suffix is
-  now added rather than overwriting
+  now added rather than overwriting, and the archive is created exclusively so that two processes
+  racing for the same name cannot both win
 - **DCSServerBot plugin success message never named the backup**: it searched for `auto-backup-*.zip`
   while checkpoints are always named after their campaign, so the search matched nothing. The name
   now comes from the operation itself
@@ -34,7 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Log file**: the tool wrote nothing to disk, so a misbehaving operation left no trace once the
   console scrolled. Saves and restores now record the campaign, the server, the source or target
-  directory, the resulting files, and failures with their traceback
+  directory, the resulting files, and failures with their traceback. Checkpoint creation is logged
+  in `create_checkpoint`, which both front ends go through, so a CLI save leaves the same trace as a
+  Discord one
   - CLI: `--log-file PATH`, defaulting to `~/.foothold-checkpoint/logs/foothold-checkpoint.log`,
     rotating at 5 MB over three files
   - DCSServerBot plugin: records go to the bot's own log; the plugin installs no handler of its own

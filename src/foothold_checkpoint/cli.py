@@ -24,6 +24,7 @@ from foothold_checkpoint.core.config import load_config
 from foothold_checkpoint.core.logging_config import get_logger, setup_file_logging
 from foothold_checkpoint.core.storage import (
     check_restore_conflicts,
+    check_unknown_campaign_files,
     delete_checkpoint,
     import_checkpoint,
     list_checkpoints,
@@ -507,6 +508,27 @@ def save_command(
         # Step 2: Detect campaigns in mission directory
         campaign_files = [f for f in mission_dir.iterdir() if f.is_file()]
         campaigns = detect_campaigns([f.name for f in campaign_files], config)
+
+        # Files that look like campaign files but are configured nowhere are
+        # invisible to this tool: they are never captured, and the omission is
+        # silent. Warn without blocking - the campaigns that ARE configured are
+        # still worth saving.
+        unknown_files = check_unknown_campaign_files(mission_dir, config)
+        if unknown_files:
+            logger.warning(
+                "Unconfigured Foothold files in %s: %s", mission_dir, ", ".join(unknown_files)
+            )
+            if not _quiet_mode:
+                console.print(
+                    f"\n[yellow]Warning:[/yellow] {len(unknown_files)} file(s) in {mission_dir} "
+                    "are not listed in any campaign and will NOT be saved:"
+                )
+                for filename in unknown_files:
+                    console.print(f"  [yellow]-[/yellow] {filename}")
+                console.print(
+                    "[dim]If these belong to a campaign you rely on, add them to your "
+                    "configuration: its backups are not protecting anything.[/dim]"
+                )
 
         if not campaigns:
             console.print(f"[red]Error:[/red] No campaigns detected in {mission_dir}")
@@ -997,11 +1019,6 @@ def restore_command(
     except (typer.Exit, typer.Abort):
         # A deliberate exit is not a failure: let it through untouched
         raise
-    except RuntimeError as e:
-        # Raised when the user declines the overwrite prompt: expected, not a fault
-        console.print(f"[yellow]Warning:[/yellow] {e}")
-        logger.info("Restore cancelled: %s", e)
-        raise typer.Exit(1) from e
     except Exception as e:
         report_error("restore", e)
         raise typer.Exit(1) from e

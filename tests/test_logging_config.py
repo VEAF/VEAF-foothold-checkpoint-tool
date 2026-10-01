@@ -132,6 +132,21 @@ class TestSetupFileLogging:
 
         assert setup_file_logging(log_file=blocker / "foothold.log") is None
 
+    def test_a_failed_reconfiguration_keeps_the_working_log(self, tmp_path):
+        """Swapping to a bad path must not take the good handler down with it."""
+        from foothold_checkpoint.core.logging_config import get_logger, setup_file_logging
+
+        good_log = tmp_path / "good.log"
+        setup_file_logging(log_file=good_log)
+
+        blocker = tmp_path / "blocker"
+        blocker.write_text("not a directory", encoding="utf-8")
+        assert setup_file_logging(log_file=blocker / "bad.log") is None
+
+        get_logger("foothold_checkpoint.core.storage").info("still recorded")
+
+        assert "still recorded" in good_log.read_text(encoding="utf-8")
+
 
 class TestGetLogger:
     """get_logger() hands out loggers under the package namespace."""

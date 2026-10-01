@@ -140,12 +140,21 @@ class TestUnknownFilesWarning:
         assert "FootHold_CA_v0.3.lua" in message
         assert "FootHold_CA_v0.3_CTLD_Save.csv" in message
 
-    def test_states_that_nothing_was_changed(self, plugin_commands):
+    def test_warns_without_claiming_the_operation_was_refused(self, plugin_commands):
+        """It is a warning, not a refusal: the save it accompanies did run."""
         message = plugin_commands.FootholdCheckpoint._format_unknown_files_warning(
             "foothold1", Path("C:/Saves"), ["FootHold_CA_v0.3.lua"]
         )
 
-        assert "nothing was changed" in message.lower()
+        assert "aborted" not in message.lower()
+        assert "nothing was changed" not in message.lower()
+
+    def test_explains_that_those_files_are_not_protected(self, plugin_commands):
+        message = plugin_commands.FootholdCheckpoint._format_unknown_files_warning(
+            "foothold1", Path("C:/Saves"), ["FootHold_CA_v0.3.lua"]
+        )
+
+        assert "never backed up" in message.lower()
 
     def test_names_the_server_and_the_directory(self, plugin_commands):
         message = plugin_commands.FootholdCheckpoint._format_unknown_files_warning(

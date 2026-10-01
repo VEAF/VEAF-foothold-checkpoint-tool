@@ -68,14 +68,17 @@ def check_unknown_campaign_files(
 def _format_empty_backup_message(
     target_dir: Path,
     campaign_name: str,
-    config: "Config",
+    unknown_files: list[str],
 ) -> str:
     """Build the message shown when the pre-restore backup captured nothing.
+
+    Shown by the CLI and relayed verbatim into Discord by the plugin, so it must
+    not name an option that exists on only one of them.
 
     Args:
         target_dir: Directory that was supposed to be backed up.
         campaign_name: Campaign the restore is about.
-        config: Configuration object containing campaign definitions.
+        unknown_files: Campaign-looking files present but absent from the config.
 
     Returns:
         A multi-line, actionable error message.
@@ -83,29 +86,20 @@ def _format_empty_backup_message(
     msg = (
         f"Restore aborted: the automatic backup of '{campaign_name}' captured no files, "
         f"so the current state of {target_dir} is not protected.\n"
+        "\nThe directory does contain Foothold files that are missing from the "
+        "configuration:\n"
     )
 
-    unknown = check_unknown_campaign_files(target_dir, config)
+    for filename in unknown_files:
+        msg += f"  - {filename}\n"
 
-    if unknown:
-        msg += (
-            "\nThe directory does contain Foothold files that are missing from the "
-            "configuration:\n"
-        )
-        for filename in unknown:
-            msg += f"  - {filename}\n"
-        msg += (
-            "\nThe campaign files were most likely renamed on the server. Until these "
-            "names are added to the campaign configuration, saves capture nothing and a "
-            "restore writes files the running mission does not read.\n"
-        )
-    else:
-        msg += (
-            f"\nNo campaign file for '{campaign_name}' was found in that directory at all. "
-            "Check that the target server is the right one.\n"
-        )
-
-    msg += "\nRestore again with --no-auto-backup once you have verified this is intended."
+    msg += (
+        "\nThe campaign files were most likely renamed on the server. Until these names are "
+        "added to the campaign configuration, saves capture nothing and a restore writes "
+        "files the running mission does not read.\n"
+        "\nFix the configuration, or disable the automatic backup if you have verified that "
+        "losing the current state is intended."
+    )
 
     return msg
 
@@ -780,8 +774,20 @@ async def restore_checkpoint(
                 raise OSError(f"Failed to create automatic backup: {e}") from e
 
             if backup_path is None and require_backup:
-                raise EmptyBackupError(
-                    _format_empty_backup_message(target_dir, campaign_name_for_hook, config)
+                # An empty backup only matters when there is state to protect.
+                # A directory holding no campaign file at all - a fresh server,
+                # or one that was deliberately cleared - has nothing to lose, and
+                # seeding it from a checkpoint is a normal operation.
+                unprotected = check_unknown_campaign_files(target_dir, config)
+                if unprotected:
+                    raise EmptyBackupError(
+                        _format_empty_backup_message(
+                            target_dir, campaign_name_for_hook, unprotected
+                        )
+                    )
+                logger.info(
+                    "No existing campaign files in %s: restoring into an empty directory",
+                    target_dir,
                 )
 
         # Open ZIP and read metadata
