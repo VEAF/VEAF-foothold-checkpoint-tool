@@ -192,6 +192,13 @@ async def save_checkpoint(
         source_dir = Path(source_dir)
         output_dir = Path(output_dir)
 
+        logger.info(
+            "Saving campaign '%s' for server '%s' from %s",
+            campaign_name,
+            server_name,
+            source_dir,
+        )
+
         # Validate source directory exists and is accessible
         if not source_dir.exists():
             raise FileNotFoundError(
@@ -280,6 +287,13 @@ async def save_checkpoint(
             progress_callback=combined_progress_callback,
         )
 
+        logger.info(
+            "Saved campaign '%s' to %s (%d file(s))",
+            campaign_name,
+            checkpoint_path,
+            len(campaign_files),
+        )
+
         # Trigger on_save_complete hook
         if hooks:
             await safe_invoke_hook(
@@ -289,6 +303,14 @@ async def save_checkpoint(
         return checkpoint_path
 
     except Exception as e:
+        logger.error(
+            "Failed to save campaign '%s' for server '%s' from %s: %s",
+            campaign_name,
+            server_name,
+            source_dir,
+            e,
+            exc_info=True,
+        )
         # Trigger on_error hook
         if hooks:
             await safe_invoke_hook(hooks.on_error, e, hook_name="on_error")
@@ -691,6 +713,14 @@ async def restore_checkpoint(
         except zipfile.BadZipFile as e:
             raise ValueError(f"Invalid checkpoint file (not a valid ZIP archive): {e}") from e
 
+        logger.info(
+            "Restoring checkpoint %s (campaign '%s') for server '%s' into %s",
+            checkpoint_path.name,
+            campaign_name_for_hook,
+            server_name or "unknown",
+            target_dir,
+        )
+
         # Trigger on_restore_start hook
         if hooks:
             await safe_invoke_hook(
@@ -854,11 +884,27 @@ async def restore_checkpoint(
                     # Check if file should be renamed to canonical name
                     target_filename = _get_canonical_filename(filename, campaign_name, config)
 
+                if target_filename != filename:
+                    # A silent rename is exactly how a restore ends up writing
+                    # files the running mission does not read.
+                    logger.info(
+                        "Restoring '%s' under its canonical name '%s'",
+                        filename,
+                        target_filename,
+                    )
+
                 target_file = target_dir / target_filename
 
                 # Write file
                 target_file.write_bytes(file_data)
                 restored_files.append(target_file)
+
+        logger.info(
+            "Restored %d file(s) into %s: %s",
+            len(restored_files),
+            target_dir,
+            ", ".join(f.name for f in restored_files),
+        )
 
         # Trigger on_restore_complete hook
         if hooks:
@@ -870,6 +916,14 @@ async def restore_checkpoint(
         return restored_files
 
     except Exception as e:
+        logger.error(
+            "Failed to restore %s for server '%s' into %s: %s",
+            Path(checkpoint_path).name,
+            server_name or "unknown",
+            target_dir,
+            e,
+            exc_info=True,
+        )
         # Trigger on_error hook
         if hooks:
             await safe_invoke_hook(hooks.on_error, e, hook_name="on_error")
