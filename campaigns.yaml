@@ -64,6 +64,25 @@ campaigns:
           - "FootHold_CA_v0.2_storage.csv"
         optional: true
 
+  caucasus_coldwar:
+    display_name: "Caucasus Cold War"
+    files:
+      # A separate era, not an alias of the modern campaign: its files coexist
+      # with them on the servers and must never be folded into one campaign.
+      persistence:
+        - "FootHold_CA_v0.2_Coldwar.lua"
+      ctld_save:
+        files:
+          - "FootHold_CA_CTLD_Save_Coldwar.csv"
+        optional: true
+      ctld_farps:
+        files:
+          - "Foothold_CA_CTLD_FARPS_Coldwar.csv"
+        optional: true
+      storage:
+        files: []
+        optional: true
+
   germany_modern:
     display_name: "Germany Modern"
     files:
@@ -182,6 +201,22 @@ campaigns:
         files:
           - "foothold_persiangulf_storage.csv"
           - "FootHold_PersianGulf_storage.csv"
+        optional: true
+
+  persian_gulf_coldwar:
+    display_name: "Persian Gulf Cold War"
+    files:
+      persistence:
+        - "foothold_persiangulf_Coldwar.lua"
+      ctld_save:
+        files: []
+        optional: true
+      ctld_farps:
+        files:
+          - "Foothold_PG_CTLD_FARPS_Coldwar.csv"
+        optional: true
+      storage:
+        files: []
         optional: true
 
   sinai:
