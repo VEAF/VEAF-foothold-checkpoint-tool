@@ -249,6 +249,132 @@ class TestCheckpointsNeverOverwriteEachOther:
         assert restored == "first state", "the first checkpoint's contents must be intact"
 
 
+class TestRestoreRefusesToCollapseTwoFilesIntoOne:
+    """Aliased names must not silently overwrite each other on restore.
+
+    A campaign's file list doubles as a rename history: every name in it is
+    rewritten to the first one. That is right when the old file is gone, and
+    destructive when both exist - the checkpoint then holds two distinct states
+    that would both be written to the same target, last one winning.
+
+    The caucasus campaign is in exactly that position: v0.2 leftovers sit beside
+    the live v0.3 files on the servers.
+    """
+
+    @pytest.fixture
+    def two_era_config(self, tmp_path):
+        from tests.conftest import make_simple_campaign, make_test_config
+
+        return make_test_config(
+            checkpoints_dir=tmp_path / "checkpoints",
+            campaigns={
+                "caucasus": make_simple_campaign(
+                    "Caucasus",
+                    persistence_files=["FootHold_CA_v0.3.lua", "FootHold_CA_v0.2.lua"],
+                )
+            },
+        )
+
+    @pytest.fixture
+    def two_era_checkpoint(self, tmp_path, two_era_config):
+        """A checkpoint holding both eras, as a save of the real servers would."""
+        from foothold_checkpoint.core.storage import save_checkpoint
+
+        saves = tmp_path / "Saves"
+        saves.mkdir()
+        (saves / "FootHold_CA_v0.3.lua").write_text("live state", encoding="utf-8")
+        (saves / "FootHold_CA_v0.2.lua").write_text("dead leftover", encoding="utf-8")
+
+        return asyncio.run(
+            save_checkpoint(
+                campaign_name="caucasus",
+                server_name="srv",
+                source_dir=saves,
+                output_dir=two_era_config.checkpoints_dir,
+                config=two_era_config,
+                created_at=SAME_INSTANT,
+            )
+        )
+
+    def test_refuses_rather_than_overwriting_one_with_the_other(
+        self, two_era_checkpoint, two_era_config, tmp_path
+    ):
+        from foothold_checkpoint.core.storage import AmbiguousRestoreError, restore_checkpoint
+
+        target = tmp_path / "target"
+        target.mkdir()
+
+        with pytest.raises(AmbiguousRestoreError) as exc_info:
+            asyncio.run(
+                restore_checkpoint(
+                    checkpoint_path=two_era_checkpoint,
+                    target_dir=target,
+                    config=two_era_config,
+                    server_name="srv",
+                    auto_backup=False,
+                    skip_overwrite_check=True,
+                )
+            )
+
+        message = str(exc_info.value)
+        assert "FootHold_CA_v0.3.lua" in message
+        assert "FootHold_CA_v0.2.lua" in message
+
+    def test_writes_nothing_when_it_refuses(self, two_era_checkpoint, two_era_config, tmp_path):
+        from foothold_checkpoint.core.storage import AmbiguousRestoreError, restore_checkpoint
+
+        target = tmp_path / "target"
+        target.mkdir()
+
+        with pytest.raises(AmbiguousRestoreError):
+            asyncio.run(
+                restore_checkpoint(
+                    checkpoint_path=two_era_checkpoint,
+                    target_dir=target,
+                    config=two_era_config,
+                    server_name="srv",
+                    auto_backup=False,
+                    skip_overwrite_check=True,
+                )
+            )
+
+        assert list(target.iterdir()) == [], "nothing must be written"
+
+    def test_a_single_era_checkpoint_still_restores_and_is_renamed(self, two_era_config, tmp_path):
+        """The rename itself must keep working: that is what the list is for."""
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        legacy_saves = tmp_path / "legacy"
+        legacy_saves.mkdir()
+        (legacy_saves / "FootHold_CA_v0.2.lua").write_text("april state", encoding="utf-8")
+        checkpoint = asyncio.run(
+            save_checkpoint(
+                campaign_name="caucasus",
+                server_name="srv",
+                source_dir=legacy_saves,
+                output_dir=two_era_config.checkpoints_dir,
+                config=two_era_config,
+                created_at=SAME_INSTANT,
+            )
+        )
+        target = tmp_path / "target"
+        target.mkdir()
+
+        restored = asyncio.run(
+            restore_checkpoint(
+                checkpoint_path=checkpoint,
+                target_dir=target,
+                config=two_era_config,
+                server_name="srv",
+                auto_backup=False,
+                skip_overwrite_check=True,
+            )
+        )
+
+        assert [p.name for p in restored] == ["FootHold_CA_v0.3.lua"]
+        assert (target / "FootHold_CA_v0.3.lua").read_text(encoding="utf-8") == "april state"
+
+
 class TestSaveAllCampaignsReportsFailures:
     """save_all_campaigns() must never discard a failure without a trace."""
 

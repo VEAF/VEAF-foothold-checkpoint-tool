@@ -41,20 +41,26 @@ campaigns:
   caucasus:
     display_name: "Caucasus"
     files:
+      # First name = canonical: what the running mission reads, and what a
+      # restore writes to. The servers moved to v0.3 at the end of July 2026.
       persistence:
+        - "FootHold_CA_v0.3.lua"
         - "FootHold_CA_v0.2.lua"
       ctld_save:
         files:
+          - "FootHold_CA_v0.3_CTLD_Save.csv"
           - "FootHold_CA_v0.2_CTLD_Save.csv"
           - "FootHold_CA_CTLD_Save_Modern.csv"
         optional: true
       ctld_farps:
         files:
+          - "FootHold_CA_v0.3_CTLD_FARPS.csv"
           - "FootHold_CA_v0.2_CTLD_FARPS.csv"
           - "Foothold_CA_CTLD_FARPS_Modern.csv"
         optional: true
       storage:
         files:
+          - "FootHold_CA_v0.3_storage.csv"
           - "FootHold_CA_v0.2_storage.csv"
         optional: true
 
@@ -158,17 +164,23 @@ campaigns:
     display_name: "Persian Gulf"
     files:
       persistence:
+        - "foothold_persiangulf.lua"
         - "FootHold_PersianGulf.lua"
       ctld_save:
         files:
+          - "foothold_persiangulf_CTLD_Save.csv"
+          - "FootHold_PG_CTLD_Save_Modern.csv"
           - "FootHold_PersianGulf_CTLD_Save.csv"
         optional: true
       ctld_farps:
         files:
+          - "foothold_persiangulf_CTLD_FARPS.csv"
+          - "Foothold_PG_CTLD_FARPS_Modern.csv"
           - "FootHold_PersianGulf_CTLD_FARPS.csv"
         optional: true
       storage:
         files:
+          - "foothold_persiangulf_storage.csv"
           - "FootHold_PersianGulf_storage.csv"
         optional: true
 
@@ -176,17 +188,21 @@ campaigns:
     display_name: "Sinai"
     files:
       persistence:
+        - "FootHold_SI_v0.3.lua"
         - "FootHold_Sinai.lua"
       ctld_save:
         files:
+          - "FootHold_SI_v0.3_CTLD_Save.csv"
           - "FootHold_Sinai_CTLD_Save.csv"
         optional: true
       ctld_farps:
         files:
+          - "FootHold_SI_v0.3_CTLD_FARPS.csv"
           - "FootHold_Sinai_CTLD_FARPS.csv"
         optional: true
       storage:
         files:
+          - "FootHold_SI_v0.3_storage.csv"
           - "FootHold_Sinai_storage.csv"
         optional: true
 
@@ -211,17 +227,25 @@ campaigns:
   syria:
     display_name: "Syria"
     files:
+      # The running campaign is "Syria Extended", whose files never matched the
+      # names declared here - which is why no Syria checkpoint has ever existed.
       persistence:
+        - "footholdSyria_Extended_0.1.lua"
         - "FootHold_Syria.lua"
       ctld_save:
         files:
+          - "footholdSyria_Extended_0.1_CTLD_Save.csv"
+          - "FootHold_SY_Extended_CTLD_Modern.csv"
           - "FootHold_Syria_CTLD_Save.csv"
         optional: true
       ctld_farps:
         files:
+          - "footholdSyria_Extended_0.1_CTLD_FARPS.csv"
+          - "Foothold_SY_Extended_CTLD_FARPS_Modern.csv"
           - "FootHold_Syria_CTLD_FARPS.csv"
         optional: true
       storage:
         files:
+          - "footholdSyria_Extended_0.1_storage.csv"
           - "FootHold_Syria_storage.csv"
         optional: true

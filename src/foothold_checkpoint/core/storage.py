@@ -21,6 +21,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class AmbiguousRestoreError(Exception):
+    """Raised when two archived files would be restored to the same target name.
+
+    A campaign's file list doubles as a rename history: every name in it is
+    rewritten to the first one. That is correct while only one of those files
+    exists. When several coexist - a campaign updated in place, its previous
+    files left behind - a checkpoint captures them all, and restoring would write
+    them one over another, keeping whichever came last.
+    """
+
+
 class EmptyBackupError(Exception):
     """Raised when the pre-restore automatic backup captured no campaign files.
 
@@ -63,6 +74,39 @@ def check_unknown_campaign_files(
     filenames = [f.name for f in source_dir.iterdir() if f.is_file()]
 
     return sorted(detect_unknown_files(filenames, config))
+
+
+def _format_ambiguous_restore_message(
+    campaign_name: str,
+    collisions: dict[str, list[str]],
+) -> str:
+    """Build the message shown when several archived files share one target name.
+
+    Args:
+        campaign_name: Campaign the restore is about.
+        collisions: Target filename mapped to the archived files competing for it.
+
+    Returns:
+        A multi-line, actionable error message.
+    """
+    msg = (
+        f"Restore aborted: this checkpoint of '{campaign_name}' holds several files that "
+        "would be written to the same name, so one would silently replace the other. "
+        "Nothing was written.\n"
+    )
+
+    for target, sources in sorted(collisions.items()):
+        msg += f"\n  {', '.join(sorted(sources))}\n    -> all restored as {target}\n"
+
+    msg += (
+        "\nThose names are listed as alternatives for one file in the campaign "
+        "configuration, which treats them as the same file renamed over time. They are "
+        "not: they coexisted when this checkpoint was taken.\n"
+        "\nRemove the files that are no longer read by the mission from the server, so a "
+        "checkpoint captures one state rather than several."
+    )
+
+    return msg
 
 
 def _format_empty_backup_message(
@@ -868,6 +912,20 @@ async def restore_checkpoint(
 
             # Get campaign_name from metadata for file renaming
             campaign_name = metadata.get("campaign_name") if config else None
+
+            # Work out every target name before writing anything: two archived
+            # files collapsing onto one target would silently keep only the last.
+            if config and campaign_name:
+                targets: dict[str, list[str]] = {}
+                for filename in files_to_restore:
+                    canonical = _get_canonical_filename(filename, campaign_name, config)
+                    targets.setdefault(canonical, []).append(filename)
+
+                collisions = {t: sources for t, sources in targets.items() if len(sources) > 1}
+                if collisions:
+                    raise AmbiguousRestoreError(
+                        _format_ambiguous_restore_message(campaign_name, collisions)
+                    )
 
             for idx, filename in enumerate(files_to_restore, start=1):
                 if progress_callback:
