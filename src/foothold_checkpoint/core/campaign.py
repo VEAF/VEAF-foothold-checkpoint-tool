@@ -134,6 +134,71 @@ def group_campaign_files(filenames: Sequence[str | Path], config: "Config") -> d
     return dict(groups)
 
 
+#: The mission writes this file next to its saves, holding the absolute path of
+#: the persistence file it is currently using, and rewrites it on every save.
+STATUS_FILENAME = "foothold.status"
+
+
+def read_live_persistence_file(saves_dir: str | Path) -> str | None:
+    """Return the persistence filename the running mission is actually writing.
+
+    Foothold names its persistence file after the mission version, so every
+    update invents a name the configuration does not know. This file is the
+    mission's own record of which one it uses, so it follows version bumps
+    without anyone editing anything.
+
+    The format belongs to Foothold, not to this tool: anything unexpected yields
+    None rather than an error, so a format change degrades to the previous
+    behaviour instead of breaking saves.
+
+    Args:
+        saves_dir: The server's Missions/Saves directory.
+
+    Returns:
+        The persistence filename, or None when the file is absent, empty, or not
+        in the expected shape.
+
+    Examples:
+        >>> read_live_persistence_file("C:/DCS/Missions/Saves")
+        'FootHold_CA_v0.3.lua'
+    """
+    status_path = Path(saves_dir) / STATUS_FILENAME
+
+    try:
+        content = status_path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return None
+
+    if not content:
+        return None
+
+    # The mission writes a Windows path with mixed separators, for example
+    # C:\Users\veaf\Saved Games\srv\Missions/Saves/FootHold_CA_v0.3.lua
+    candidate = content.replace("\\", "/").rsplit("/", 1)[-1].strip()
+
+    if not candidate.lower().endswith(".lua"):
+        return None
+
+    return candidate
+
+
+def find_campaign_for_file(filename: str, config: "Config") -> str | None:
+    """Return the id of the campaign that declares a given filename.
+
+    Args:
+        filename: A campaign file name, without directory.
+        config: Configuration object containing campaign definitions.
+
+    Returns:
+        The campaign id, or None when no campaign lists that name.
+
+    Examples:
+        >>> find_campaign_for_file("FootHold_CA_v0.3.lua", config)
+        'caucasus'
+    """
+    return build_file_to_campaign_map(config).get(filename)
+
+
 def detect_unknown_files(filenames: Sequence[str | Path], config: "Config") -> list[str]:
     """Detect files that look like foothold campaign files but aren't configured.
 

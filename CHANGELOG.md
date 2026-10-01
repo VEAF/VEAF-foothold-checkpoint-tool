@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **The tool now asks the mission what it is writing**, instead of trusting the configuration alone.
+  Foothold names its persistence file after the mission version, so every mission update invents a
+  filename no campaign declares and the campaign silently stops being captured. That had already
+  happened four times on the VEAF servers, twice unnoticed.
+  - `foothold.status`, written by the mission beside its saves on every save, holds the path of the
+    file actually in use. It is read once per server, around the save rather than inside it
+  - Everything that *is* configured is still saved. The report then names the live campaign and
+    lists the files to add, read from the directory rather than guessed from the file name - the
+    Cold War campaigns use a CSV naming that no amount of stem arithmetic produces. Files another
+    campaign already declares are left out: the modern and Cold War campaigns share a name prefix
+    and must never be folded into one
+  - It is reported as a failure, not a footnote: the Discord command sends a separate error message
+    and the CLI exits non-zero, after the checkpoints are safely written
+  - It deliberately does not abort the save. A save runs once per campaign, so aborting would have
+    refused every campaign on the server - turning one unprotected campaign into an unprotected
+    server on the very event this feature exists to catch, a Foothold version bump
+  - Degrades quietly: a missing, empty or unexpected `foothold.status` leaves the previous behaviour
+    untouched. The format belongs to Foothold, not to this tool
+
 ### Fixed
+- **DCSServerBot refused to load the plugin after an upgrade**: the plugin declared a three-part
+  version, which DCSServerBot stores in its `plugins` table and later walks with
+  `ver, rev = installed.split('.')`. The first install worked, the first upgrade (2.0.0 to 2.2.0)
+  crashed with `too many values to unpack` and left the plugin unloaded
+  - The ZIP built by `scripts/build_plugin.py` now declares `MAJOR.MINOR` (`2.2`) to DCSServerBot.
+    `pyproject.toml` and `version.py` keep the full release number
+  - A server that already recorded `2.0.0` must be corrected once before starting the new version:
+    `UPDATE plugins SET version = '2.2' WHERE plugin = 'foothold-checkpoint';`
 - **Silent data loss when campaign files are renamed on the server**: a campaign whose files were
   renamed without `campaigns.yaml` following became invisible to the tool. Saves captured nothing,
   restores reported success while writing files the running mission no longer reads, and nothing

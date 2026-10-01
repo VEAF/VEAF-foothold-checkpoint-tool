@@ -19,8 +19,10 @@ from .core.config import CampaignConfig, Config, load_campaigns
 from .core.events import EventHooks
 from .core.storage import (
     EmptyBackupError,
+    check_undeclared_live_campaign,
     check_unknown_campaign_files,
     delete_checkpoint,
+    format_undeclared_live_campaign_warning,
     list_checkpoints,
     restore_checkpoint,
     save_checkpoint,
@@ -420,6 +422,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # ones that are configured. A campaign whose own files are unrecognised
         # fails on its own below, with "No campaign files found".
         unknown_files: list[str] = []
+        undeclared_live: str | None = None
         try:
             saves_dir = Path(self.bot.servers[server_name].instance.home) / "Missions" / "Saves"
         except (AttributeError, KeyError) as e:
@@ -429,6 +432,16 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             if unknown_files:
                 self.log.warning(
                     f"Unconfigured Foothold files in {saves_dir}: {', '.join(unknown_files)}"
+                )
+
+            # Stronger than the warning above, and worth its own message: this is
+            # not some stray file, it is the campaign people are playing right
+            # now, and no checkpoint of it will exist.
+            undeclared_live = check_undeclared_live_campaign(saves_dir, temp_config)
+            if undeclared_live:
+                self.log.error(
+                    f"No checkpoint exists for the campaign running on {server_name}: "
+                    f"the mission writes to {undeclared_live}, declared by no campaign"
                 )
 
         for camp in campaigns_to_save:
@@ -516,6 +529,16 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         if unknown_files:
             await interaction.followup.send(
                 self._format_unknown_files_warning(server_name, saves_dir, unknown_files),
+                ephemeral=True,
+            )
+
+        if undeclared_live:
+            await interaction.followup.send(
+                "❌ **The campaign being played was not saved**\n```\n"
+                + format_undeclared_live_campaign_warning(
+                    undeclared_live, server_name, saves_dir, temp_config
+                )
+                + "```",
                 ephemeral=True,
             )
 

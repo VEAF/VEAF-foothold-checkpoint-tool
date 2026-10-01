@@ -11,7 +11,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 # Use relative imports for DCSSB compatibility (package structure is flattened)
-from .campaign import detect_campaigns, detect_unknown_files
+from .campaign import (
+    STATUS_FILENAME,
+    build_file_to_campaign_map,
+    detect_campaigns,
+    detect_unknown_files,
+    find_campaign_for_file,
+    read_live_persistence_file,
+)
 from .checkpoint import create_checkpoint
 
 if TYPE_CHECKING:
@@ -74,6 +81,105 @@ def check_unknown_campaign_files(
     filenames = [f.name for f in source_dir.iterdir() if f.is_file()]
 
     return sorted(detect_unknown_files(filenames, config))
+
+
+def check_undeclared_live_campaign(
+    source_dir: str | Path,
+    config: "Config",
+) -> str | None:
+    """Return the running mission's persistence file if no campaign declares it.
+
+    Foothold names that file after the mission version, so every mission update
+    invents a name the configuration does not know, and the campaign being played
+    stops being captured. The omission is silent: saving the *other* campaigns
+    still succeeds, so the operation reports success while the only state anyone
+    is actually generating goes unprotected.
+
+    This never blocks a save. The campaigns that are configured are still worth
+    backing up - refusing them because a *different* campaign is misconfigured
+    would turn one unprotected campaign into a whole unprotected server.
+
+    Args:
+        source_dir: Directory to inspect (typically the server Missions/Saves).
+        config: Configuration object containing campaign definitions.
+
+    Returns:
+        The live persistence file name when it is declared nowhere, otherwise
+        None - including when there is no foothold.status to read.
+
+    Examples:
+        >>> # Config declares FootHold_CA_v0.3.lua, the mission moved to v0.4
+        >>> check_undeclared_live_campaign("C:/DCS/Missions/Saves", config)
+        'FootHold_CA_v0.4.lua'
+    """
+    live_file = read_live_persistence_file(source_dir)
+
+    if live_file is None or find_campaign_for_file(live_file, config) is not None:
+        return None
+
+    return live_file
+
+
+def format_undeclared_live_campaign_warning(
+    live_file: str,
+    server_name: str,
+    source_dir: str | Path,
+    config: "Config",
+) -> str:
+    """Build the operator-facing warning naming the unprotected live campaign.
+
+    The suggested file names are files that exist in the directory, never names
+    derived from the persistence file's stem: Foothold's CSV naming is not uniform
+    across campaigns, and inventing names would send the operator to configure
+    files that do not exist.
+
+    They are the files sharing the live file's prefix that no campaign declares
+    yet. A file another campaign already declares is left out: the modern and
+    Cold War campaigns share a prefix (`FootHold_CA_v0.2.lua`,
+    `FootHold_CA_v0.2_Coldwar.lua`) and must never be folded into one campaign.
+    Files whose names carry no version, like `FootHold_CA_CTLD_Save_Coldwar.csv`,
+    are already declared and need no change.
+
+    Args:
+        live_file: Persistence filename read from foothold.status.
+        server_name: Server that was saved.
+        source_dir: The Missions/Saves directory inspected.
+        config: Configuration object containing campaign definitions.
+
+    Returns:
+        A multi-line, actionable message.
+    """
+    source_dir = Path(source_dir)
+    stem = live_file.rsplit(".", 1)[0]
+    declared = build_file_to_campaign_map(config)
+
+    try:
+        siblings = sorted(
+            f.name
+            for f in source_dir.iterdir()
+            if f.is_file()
+            and f.name != live_file
+            and f.name.startswith(stem)
+            and f.name not in declared
+        )
+    except OSError:
+        siblings = []
+
+    listing = "\n".join(f"      - {name}" for name in [live_file, *siblings])
+
+    return (
+        f"The campaign running on '{server_name}' is NOT being backed up. The mission "
+        f"is writing to {live_file}, which no campaign in the configuration declares, "
+        "so no checkpoint of it exists. Everything else was saved normally.\n"
+        f"\nThat name comes from the mission itself, in {source_dir / STATUS_FILENAME}. "
+        "Foothold names the file after the mission version, so each mission update "
+        "renames it and the campaign drops out of the configuration - silently, because "
+        "saving the other campaigns still succeeds.\n"
+        "\nAdd these names to the campaign, keeping the previous ones so existing "
+        "checkpoints stay restorable. The first name in each list is the one a restore "
+        "writes to, so the new name must come first:\n"
+        f"\n{listing}\n"
+    )
 
 
 def _format_ambiguous_restore_message(
@@ -464,6 +570,18 @@ async def save_all_campaigns(
                 e,
                 exc_info=True,
             )
+
+    # Checked once for the whole server, after every campaign has been saved: the
+    # campaign being played may be declared nowhere, in which case it is absent
+    # from `grouped` entirely and its omission would otherwise go unmentioned.
+    undeclared = check_undeclared_live_campaign(source_dir, config)
+    if undeclared is not None:
+        logger.error(
+            "No checkpoint exists for the campaign running on '%s': the mission writes "
+            "to %s, which no campaign declares",
+            server_name,
+            undeclared,
+        )
 
     return results
 
