@@ -792,9 +792,11 @@ class PaginatedCheckpointSelectView(ui.View):
         # ROW 0: Type filter buttons
         manual_btn = ui.Button(
             label="Manual",
-            style=discord.ButtonStyle.primary
-            if self.type_filter == "manual"
-            else discord.ButtonStyle.secondary,
+            style=(
+                discord.ButtonStyle.primary
+                if self.type_filter == "manual"
+                else discord.ButtonStyle.secondary
+            ),
             emoji="💾",
             row=0,
         )
@@ -803,9 +805,11 @@ class PaginatedCheckpointSelectView(ui.View):
 
         auto_btn = ui.Button(
             label="Auto-backups",
-            style=discord.ButtonStyle.primary
-            if self.type_filter == "auto"
-            else discord.ButtonStyle.secondary,
+            style=(
+                discord.ButtonStyle.primary
+                if self.type_filter == "auto"
+                else discord.ButtonStyle.secondary
+            ),
             emoji="🔄",
             row=0,
         )
@@ -814,9 +818,11 @@ class PaginatedCheckpointSelectView(ui.View):
 
         all_btn = ui.Button(
             label="All",
-            style=discord.ButtonStyle.primary
-            if self.type_filter == "all"
-            else discord.ButtonStyle.secondary,
+            style=(
+                discord.ButtonStyle.primary
+                if self.type_filter == "all"
+                else discord.ButtonStyle.secondary
+            ),
             emoji="📋",
             row=0,
         )
