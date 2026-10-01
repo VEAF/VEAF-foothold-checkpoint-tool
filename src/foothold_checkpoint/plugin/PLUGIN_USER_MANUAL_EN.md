@@ -797,6 +797,34 @@ Keep only recent auto-backups (last 24-48 hours).
 
 ## Troubleshooting
 
+### "Aborted — nothing was changed" with a list of files
+
+**Cause**: the campaign files on the server have names the bot does not recognise. This normally
+happens after a campaign is updated and its save files are renamed — for example from
+`FootHold_CA_v0.2.lua` to `FootHold_CA_v0.3.lua`.
+
+**Why the bot stops instead of continuing**: files it does not recognise are files it cannot see.
+It would not include them in a backup, and a restore would put its own files next to them rather
+than replacing them. The mission would keep reading the old files, so **nothing would change in
+game** — while the bot told you everything went fine.
+
+**Solution**: this one is for your server admin. The new file names have to be added to the bot's
+campaign configuration. The message lists exactly which files are involved, so copy it to them as
+it is.
+
+Until that is done, both `save` and `restore` will refuse for that server. That is deliberate: a
+backup that captures nothing is worse than no backup, because you think you have one.
+
+### "Restore aborted — nothing was changed" after confirming
+
+**Cause**: before overwriting a campaign, the bot always saves its current state first. That safety
+copy came back empty, so the restore was stopped.
+
+**What happened to your campaign**: nothing. No file was touched.
+
+**Solution**: this is almost always the same problem as above — ask your admin to check the campaign
+file names. Do not retry until it is fixed; it will stop again, for the same good reason.
+
 ### "You don't have permission to use this command"
 
 **Cause**: Your Discord role doesn't have permission for this operation.
