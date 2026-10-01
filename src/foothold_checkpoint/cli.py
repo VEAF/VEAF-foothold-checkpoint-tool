@@ -24,8 +24,10 @@ from foothold_checkpoint.core.config import load_config
 from foothold_checkpoint.core.logging_config import get_logger, setup_file_logging
 from foothold_checkpoint.core.storage import (
     check_restore_conflicts,
+    check_undeclared_live_campaign,
     check_unknown_campaign_files,
     delete_checkpoint,
+    format_undeclared_live_campaign_warning,
     import_checkpoint,
     list_checkpoints,
     restore_checkpoint,
@@ -530,6 +532,18 @@ def save_command(
                     "configuration: its backups are not protecting anything.[/dim]"
                 )
 
+        # Stronger than the warning above: not a stray file, but the campaign
+        # being played, for which no checkpoint will exist. Reported at the end
+        # too, so it is not scrolled away by the save output.
+        undeclared_live = check_undeclared_live_campaign(mission_dir, config)
+        if undeclared_live:
+            logger.error(
+                "No checkpoint will exist for the campaign running in %s: the mission "
+                "writes to %s, which no campaign declares",
+                mission_dir,
+                undeclared_live,
+            )
+
         if not campaigns:
             console.print(f"[red]Error:[/red] No campaigns detected in {mission_dir}")
             raise typer.Exit(1)
@@ -690,6 +704,16 @@ def save_command(
             # In quiet mode, just print the paths
             for cp_path in created_checkpoints:
                 console.print(str(cp_path))
+
+        # The checkpoints above are real and were kept. The command still exits
+        # non-zero: the campaign people are actually playing has no backup, which
+        # is a failure whatever else succeeded.
+        if undeclared_live:
+            console.print(
+                "\n[red]The campaign being played was NOT saved.[/red]\n"
+                + format_undeclared_live_campaign_warning(undeclared_live, server, mission_dir)
+            )
+            raise typer.Exit(1)
 
     except (typer.Exit, typer.Abort):
         # A deliberate exit is not a failure: let it through untouched

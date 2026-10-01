@@ -454,6 +454,38 @@ To find the real names, list the server's save directory:
 dir "C:\Users\veaf\Saved Games\<server>\Missions\Saves"
 ```
 
+### "The campaign running on ... is NOT being backed up"
+
+**Problem**: the mission is writing its save file under a name no campaign in `campaigns.yaml`
+lists, so no checkpoint of the campaign being played exists. **Every configured campaign was still
+saved** - only this one is missing.
+
+Foothold names its persistence file after the mission version, so each mission update invents a new
+name - `FootHold_CA_v0.3.lua` becomes `FootHold_CA_v0.4.lua` - and the old name stops existing. The
+tool reads `foothold.status`, which the mission writes beside its saves on every save, to learn
+which file is genuinely in use. Expect this at every Foothold mission update.
+
+**Solution**: the message lists the file names found next to it on disk. Add them to the campaign,
+putting the new name **first** in each list and keeping the previous ones after it, so older
+checkpoints stay restorable:
+
+```yaml
+caucasus:
+  files:
+    persistence:
+      - "FootHold_CA_v0.4.lua"   # new: canonical, what a restore writes to
+      - "FootHold_CA_v0.3.lua"   # kept: so older checkpoints still restore
+```
+
+Then run the save again.
+
+The command reports this as a failure - the Discord bot sends a separate error message, the CLI
+exits non-zero - because a campaign with no backup is a failure whatever else succeeded. The
+checkpoints that were written are real and are kept.
+
+This only fires on the file the mission is writing **right now**. Other unrecognised files in the
+directory produce a warning instead - see below.
+
 ### "Restore aborted: the automatic backup captured no files"
 
 **Problem**: before overwriting a campaign, the tool saves its current state. That backup came back
