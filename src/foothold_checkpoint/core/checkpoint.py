@@ -251,6 +251,44 @@ def generate_checkpoint_filename(campaign_name: str, created_at: datetime | None
     return filename
 
 
+def resolve_free_checkpoint_path(output_dir: Path, filename: str) -> Path:
+    """Return a path inside output_dir that does not overwrite an existing file.
+
+    Checkpoint filenames only carry a one-second timestamp, so two checkpoints of
+    the same campaign taken within the same second would otherwise collide - and
+    the archive is written in truncating mode, which would destroy the first one
+    without a word. This matters in practice because the automatic backup taken
+    before a restore lands in the same directory with the same naming scheme.
+
+    Args:
+        output_dir: Directory the checkpoint will be written to.
+        filename: Desired checkpoint filename.
+
+    Returns:
+        Path to use. The desired path when it is free, otherwise the same name
+        with a numeric suffix inserted before the extension.
+
+    Examples:
+        >>> # When caucasus_2026-04-30_22-18-58.zip already exists
+        >>> resolve_free_checkpoint_path(Path("checkpoints"), "caucasus_2026-04-30_22-18-58.zip")
+        Path('checkpoints/caucasus_2026-04-30_22-18-58_2.zip')
+    """
+    candidate = output_dir / filename
+
+    if not candidate.exists():
+        return candidate
+
+    stem = candidate.stem
+    suffix = candidate.suffix
+    counter = 2
+
+    while True:
+        candidate = output_dir / f"{stem}_{counter}{suffix}"
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+
 def create_checkpoint(
     campaign_name: str,
     server_name: str,
@@ -349,8 +387,8 @@ def create_checkpoint(
     # Create output directory if it doesn't exist
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Full path to ZIP file
-    zip_path = output_dir / zip_filename
+    # Full path to ZIP file, never overwriting an existing checkpoint
+    zip_path = resolve_free_checkpoint_path(output_dir, zip_filename)
 
     # Report progress for ZIP creation
     if progress_callback:

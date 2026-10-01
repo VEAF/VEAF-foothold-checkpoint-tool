@@ -4,18 +4,110 @@ This module provides functions for saving, restoring, listing, and deleting
 Foothold campaign checkpoints with integrity verification.
 """
 
+import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 # Use relative imports for DCSSB compatibility (package structure is flattened)
-from .campaign import detect_campaigns
+from .campaign import detect_campaigns, detect_unknown_files
 from .checkpoint import create_checkpoint
 
 if TYPE_CHECKING:
     from .config import Config
     from .events import EventHooks
+
+logger = logging.getLogger(__name__)
+
+
+class EmptyBackupError(Exception):
+    """Raised when the pre-restore automatic backup captured no campaign files.
+
+    Restoring without a usable backup is unsafe: the current campaign state is
+    about to be overwritten with no way back. This almost always means the
+    configuration no longer matches the files actually present on the server
+    (typically after a campaign file was renamed), in which case the restore
+    would also write files the running mission no longer reads.
+    """
+
+
+def check_unknown_campaign_files(
+    source_dir: str | Path,
+    config: "Config",
+) -> list[str]:
+    """List Foothold-looking files in a directory that the configuration ignores.
+
+    A file that looks like a campaign file but is absent from every campaign's
+    file list is invisible to save and restore: it will never be backed up, and
+    a restore will write alongside it instead of over it.
+
+    Args:
+        source_dir: Directory to inspect (typically the server Missions/Saves).
+        config: Configuration object containing campaign definitions.
+
+    Returns:
+        Sorted list of unknown file names. Empty if the directory does not exist
+        or if every Foothold file in it is configured.
+
+    Examples:
+        >>> # Config declares FootHold_CA_v0.2.lua, the server runs v0.3
+        >>> check_unknown_campaign_files("C:/DCS/Missions/Saves", config)
+        ['FootHold_CA_v0.3.lua']
+    """
+    source_dir = Path(source_dir)
+
+    if not source_dir.is_dir():
+        return []
+
+    filenames = [f.name for f in source_dir.iterdir() if f.is_file()]
+
+    return sorted(detect_unknown_files(filenames, config))
+
+
+def _format_empty_backup_message(
+    target_dir: Path,
+    campaign_name: str,
+    config: "Config",
+) -> str:
+    """Build the message shown when the pre-restore backup captured nothing.
+
+    Args:
+        target_dir: Directory that was supposed to be backed up.
+        campaign_name: Campaign the restore is about.
+        config: Configuration object containing campaign definitions.
+
+    Returns:
+        A multi-line, actionable error message.
+    """
+    msg = (
+        f"Restore aborted: the automatic backup of '{campaign_name}' captured no files, "
+        f"so the current state of {target_dir} is not protected.\n"
+    )
+
+    unknown = check_unknown_campaign_files(target_dir, config)
+
+    if unknown:
+        msg += (
+            "\nThe directory does contain Foothold files that are missing from the "
+            "configuration:\n"
+        )
+        for filename in unknown:
+            msg += f"  - {filename}\n"
+        msg += (
+            "\nThe campaign files were most likely renamed on the server. Until these "
+            "names are added to the campaign configuration, saves capture nothing and a "
+            "restore writes files the running mission does not read.\n"
+        )
+    else:
+        msg += (
+            f"\nNo campaign file for '{campaign_name}' was found in that directory at all. "
+            "Check that the target server is the right one.\n"
+        )
+
+    msg += "\nRestore again with --no-auto-backup once you have verified this is intended."
+
+    return msg
 
 
 async def save_checkpoint(
@@ -299,11 +391,19 @@ async def save_all_campaigns(
 
             results[campaign_name] = checkpoint_path
 
-        except Exception:
+        except Exception as e:
             if not continue_on_error:
                 raise
-            # Log error but continue (in production, would use proper logging)
-            # For now, silently skip failed campaigns
+            # Never discard a failure without a trace: a campaign that silently
+            # stops being saved is indistinguishable from one that has nothing
+            # to save.
+            logger.error(
+                "Failed to save campaign '%s' from %s: %s",
+                campaign_name,
+                source_dir,
+                e,
+                exc_info=True,
+            )
 
     return results
 
@@ -508,6 +608,7 @@ async def restore_checkpoint(
     skip_overwrite_check: bool = False,
     server_name: str | None = None,
     auto_backup: bool = True,
+    require_backup: bool = True,
     hooks: "EventHooks | None" = None,
 ) -> list[Path]:
     """Restore a checkpoint to a target directory.
@@ -539,6 +640,10 @@ async def restore_checkpoint(
         auto_backup: If True and config is provided, automatically create a backup
             checkpoint before restoring (default: True). The backup is saved with
             a timestamped name (auto-backup-YYYYMMDD-HHMMSS).
+        require_backup: If True (default), abort the restore when the automatic
+            backup captured no files, rather than overwriting an unprotected
+            state. Only meaningful when auto_backup is enabled. Set to False to
+            restore anyway, which is the explicit "I know what I am doing" path.
         hooks: Optional event hooks for operation notifications.
 
     Returns:
@@ -551,6 +656,8 @@ async def restore_checkpoint(
         PermissionError: If target_dir is not writable.
         RuntimeError: If user cancels overwrite confirmation.
         OSError: If restoration fails (e.g., disk full) or auto-backup creation fails.
+        EmptyBackupError: If require_backup is True and the automatic backup
+            captured no campaign files.
     """
     import json
     import zipfile
@@ -635,12 +742,17 @@ async def restore_checkpoint(
                             hooks.on_backup_complete, backup_path, hook_name="on_backup_complete"
                         )
             except ValueError as e:
-                # If no campaign files to backup, continue with restore
+                # Nothing to back up; handled by the require_backup guard below
                 if "No campaign files found" not in str(e):
                     raise
             except OSError as e:
                 # Auto-backup failure is critical - don't proceed with restore
                 raise OSError(f"Failed to create automatic backup: {e}") from e
+
+            if backup_path is None and require_backup:
+                raise EmptyBackupError(
+                    _format_empty_backup_message(target_dir, campaign_name_for_hook, config)
+                )
 
         # Open ZIP and read metadata
         with zipfile.ZipFile(checkpoint_path, "r") as zf:
