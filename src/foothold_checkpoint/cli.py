@@ -1,8 +1,10 @@
 """Command-line interface for foothold-checkpoint tool."""
 
 import asyncio
+import logging
 import signal
 import sys
+import traceback
 from pathlib import Path
 from types import FrameType
 from typing import Annotated, Any, Optional  # noqa: UP035 - Required for Typer compatibility
@@ -19,6 +21,7 @@ from foothold_checkpoint.core.campaign import (
 )
 from foothold_checkpoint.core.checkpoint import create_checkpoint
 from foothold_checkpoint.core.config import load_config
+from foothold_checkpoint.core.logging_config import get_logger, setup_file_logging
 from foothold_checkpoint.core.storage import (
     check_restore_conflicts,
     delete_checkpoint,
@@ -32,10 +35,44 @@ __version__ = "0.1.0"
 
 # Global state for CLI options
 _quiet_mode = False
+_debug_mode = False
 _config_path: Path | None = None
 
 # Console for Rich output
 console = Console()
+
+logger = get_logger(__name__)
+
+
+def is_debug_mode() -> bool:
+    """Check if debug mode is enabled.
+
+    Returns:
+        True if --debug was provided, False otherwise.
+    """
+    return _debug_mode
+
+
+def report_error(operation: str, error: Exception) -> None:
+    """Print an error to the console and record it in the log file.
+
+    Without --debug the user gets the message alone, which is all most people
+    want. With it, the traceback follows, which is what makes a bug report
+    usable. Either way the traceback reaches the log file.
+
+    Args:
+        operation: Short name of what was being attempted, e.g. "restore".
+        error: The exception that was raised.
+    """
+    logger.error("%s failed: %s", operation, error, exc_info=True)
+
+    console.print(f"[red]Error:[/red] {error}")
+
+    if _debug_mode:
+        console.print("\n[dim]" + "".join(traceback.format_exception(error)).rstrip() + "[/dim]")
+    else:
+        console.print("[dim]Run again with --debug for details.[/dim]")
+
 
 # Create Typer app with metadata
 app = typer.Typer(
@@ -256,6 +293,22 @@ def main_callback(
             help="Suppress non-essential output",
         ),
     ] = False,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            is_flag=True,
+            flag_value=True,
+            help="Show full tracebacks on error and log at DEBUG level",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Optional[str],  # noqa: UP007 - Typer requires Optional
+        typer.Option(
+            "--log-file",
+            help="Write the operation log to this file (default: ~/.foothold-checkpoint/logs)",
+        ),
+    ] = None,
 ) -> None:
     """Foothold Checkpoint Tool - Manage DCS Foothold campaign checkpoints.
 
@@ -268,8 +321,16 @@ def main_callback(
         raise typer.Exit(0)
 
     # Handle quiet flag (reset to False if not provided)
-    global _quiet_mode
+    global _quiet_mode, _debug_mode
     _quiet_mode = quiet
+    _debug_mode = debug
+
+    # Start logging before anything can fail, so failures are recorded too
+    setup_file_logging(
+        log_file=log_file,
+        level=logging.DEBUG if debug else logging.INFO,
+    )
+    logger.debug("CLI invoked: command=%s", ctx.invoked_subcommand or "<interactive>")
 
     # If no subcommand was invoked and not in quiet mode, show interactive menu
     if ctx.invoked_subcommand is None and not _quiet_mode:
@@ -608,11 +669,11 @@ def save_command(
             for cp_path in created_checkpoints:
                 console.print(str(cp_path))
 
-    except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
+    except (typer.Exit, typer.Abort):
+        # A deliberate exit is not a failure: let it through untouched
+        raise
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        report_error("save", e)
         raise typer.Exit(1) from e
 
 
@@ -933,17 +994,16 @@ def restore_command(
                 f"({total_restored} total files) to {server}"
             )
 
-    except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
+    except (typer.Exit, typer.Abort):
+        # A deliberate exit is not a failure: let it through untouched
+        raise
     except RuntimeError as e:
+        # Raised when the user declines the overwrite prompt: expected, not a fault
         console.print(f"[yellow]Warning:[/yellow] {e}")
+        logger.info("Restore cancelled: %s", e)
         raise typer.Exit(1) from e
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        report_error("restore", e)
         raise typer.Exit(1) from e
 
 
@@ -1103,11 +1163,11 @@ def list_command(
 
                 console.print()  # Empty line between checkpoints
 
-    except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
+    except (typer.Exit, typer.Abort):
+        # A deliberate exit is not a failure: let it through untouched
+        raise
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        report_error("list", e)
         raise typer.Exit(1) from e
 
 
@@ -1345,14 +1405,11 @@ def delete_command(
                     if not cp_path.exists():  # File was deleted
                         print(cp_path.name)
 
-    except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
+    except (typer.Exit, typer.Abort):
+        # A deliberate exit is not a failure: let it through untouched
+        raise
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        report_error("delete", e)
         raise typer.Exit(1) from e
 
 
@@ -1608,14 +1665,11 @@ def import_command(
                 for warning in warnings:
                     console.print(f"  [yellow]⚠[/yellow] {warning}")
 
-    except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1) from e
+    except (typer.Exit, typer.Abort):
+        # A deliberate exit is not a failure: let it through untouched
+        raise
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        report_error("import", e)
         raise typer.Exit(1) from e
 
 
