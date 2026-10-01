@@ -5,12 +5,30 @@ import zipfile
 from pathlib import Path
 
 
-def build_plugin_zip() -> None:
+def dcssb_version(version: str) -> str:
+    """Return the version in the "MAJOR.MINOR" form DCSServerBot requires.
+
+    DCSServerBot records each plugin's ``__version__`` in its ``plugins`` table,
+    and when the version rises it walks the gap one step at a time with
+    ``ver, rev = installed.split('.')``. A three-part version is stored fine on
+    first install, then makes the next upgrade crash with ``ValueError: too many
+    values to unpack`` and the plugin is not loaded at all. That is what happened
+    going from 2.0.0 to 2.2.0. Patch releases therefore look identical to
+    DCSServerBot, which is harmless: the plugin owns no database table to migrate.
+    """
+    parts = version.split(".")
+    if len(parts) < 2 or not all(part.isdigit() for part in parts[:2]):
+        raise ValueError(f"Cannot derive a MAJOR.MINOR version from {version!r}")
+    return f"{int(parts[0])}.{int(parts[1])}"
+
+
+def build_plugin_zip(dist_dir: Path | None = None) -> Path:
     """Create plugin distribution ZIP with all required files for DCSSB installation."""
     # Define paths
     repo_root = Path(__file__).parent.parent
     foothold_src = repo_root / "src" / "foothold_checkpoint"
-    dist_dir = repo_root / "dist"
+    if dist_dir is None:
+        dist_dir = repo_root / "dist"
 
     # Read version from pyproject.toml
     pyproject = repo_root / "pyproject.toml"
@@ -34,10 +52,13 @@ def build_plugin_zip() -> None:
         # DCSSB expects commands.py directly in plugin root, not in plugin/ subdirectory
         # So we flatten the plugin/ folder structure to the root
 
-        # Add __init__.py (version import only, setup is in commands.py)
-        init_content = '''"""DCSServerBot plugin for Foothold Checkpoint management."""
+        # Add __init__.py (version only, setup is in commands.py). DCSServerBot
+        # reads __version__ from here, so it gets the MAJOR.MINOR form it can
+        # migrate; version.py keeps the full release number for humans.
+        init_content = f'''"""DCSServerBot plugin for Foothold Checkpoint management."""
 
-from .version import __version__
+# DCSServerBot requires MAJOR.MINOR; the full release number is in version.py.
+__version__ = "{dcssb_version(version)}"
 
 __all__ = ["__version__"]
 '''
@@ -124,6 +145,7 @@ __all__ = ["__version__"]
     print("  2. Configure config\\plugins\\foothold-checkpoint.yaml")
     print("  3. Configure config\\campaigns.yaml")
     print("  4. Restart DCSServerBot")
+    return zip_path
 
 
 if __name__ == "__main__":

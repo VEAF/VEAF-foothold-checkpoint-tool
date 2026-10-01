@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     untouched. The format belongs to Foothold, not to this tool
 
 ### Fixed
+- **DCSServerBot refused to load the plugin after an upgrade**: the plugin declared a three-part
+  version, which DCSServerBot stores in its `plugins` table and later walks with
+  `ver, rev = installed.split('.')`. The first install worked, the first upgrade (2.0.0 to 2.2.0)
+  crashed with `too many values to unpack` and left the plugin unloaded
+  - The ZIP built by `scripts/build_plugin.py` now declares `MAJOR.MINOR` (`2.2`) to DCSServerBot.
+    `pyproject.toml` and `version.py` keep the full release number
+  - A server that already recorded `2.0.0` must be corrected once before starting the new version:
+    `UPDATE plugins SET version = '2.2' WHERE plugin = 'foothold-checkpoint';`
 - **Silent data loss when campaign files are renamed on the server**: a campaign whose files were
   renamed without `campaigns.yaml` following became invisible to the tool. Saves captured nothing,
   restores reported success while writing files the running mission no longer reads, and nothing

@@ -636,6 +636,15 @@ DCSServerBot/
 **Cause**: `campaigns.yaml` not configured or invalid  
 **Fix**: Verify `config/campaigns.yaml` exists and contains valid campaign definitions
 
+### "Plugin Foothold-Checkpoint not loaded! ... too many values to unpack (expected 2)"
+
+**Cause**: DCSServerBot recorded the plugin under a three-part version (`2.0.0`, from releases before 2.2) and cannot upgrade from it. Recent builds declare `MAJOR.MINOR` instead
+**Fix**: Correct the recorded version once in the DCSServerBot database, then restart the bot:
+
+```sql
+UPDATE plugins SET version = '2.2' WHERE plugin = 'foothold-checkpoint';
+```
+
 ## Development
 
 ### Development Mode
