@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Silent data loss when campaign files are renamed on the server**: a campaign whose files were
+  renamed without `campaigns.yaml` following became invisible to the tool. Saves captured nothing,
+  restores reported success while writing files the running mission no longer reads, and nothing
+  anywhere said so.
+  - `save` and `restore` now warn, on both the CLI and Discord, when the server's `Missions/Saves`
+    holds Foothold files that no campaign in the configuration lists, and name them. This warns
+    rather than blocks: an unconfigured campaign on the server is no reason to stop backing up the
+    configured ones
+  - `restore` aborts with `EmptyBackupError` when its automatic backup captured nothing *and*
+    unrecognised campaign files are present, instead of overwriting a state it could not protect and
+    reporting success. Nothing is written in that case. Restoring into a directory holding no
+    campaign file at all stays allowed: seeding a fresh server has nothing to lose
+  - `save --all` no longer discards per-campaign failures without a trace
+- **Checkpoints could overwrite each other**: filenames carry a one-second timestamp and the archive
+  was opened in truncating mode, so two checkpoints of one campaign taken in the same second
+  collided and the first was destroyed. Since the pre-restore backup lands in the same directory
+  with the same naming scheme, it could wipe the very checkpoint being restored. A numeric suffix is
+  now added rather than overwriting, and the archive is created exclusively so that two processes
+  racing for the same name cannot both win
+- **DCSServerBot plugin success message never named the backup**: it searched for `auto-backup-*.zip`
+  while checkpoints are always named after their campaign, so the search matched nothing. The name
+  now comes from the operation itself
+- **DCSServerBot plugin rejected campaigns on letter case**: a checkpoint whose campaign was renamed
+  to a different case became unrestorable. Lookup is now case-insensitive, as it already was in the CLI
+- **Deliberate CLI exits were reported as crashes**: `typer.Exit` subclasses `RuntimeError`, so a
+  normal exit inside a command was caught by that command's own error handler and echoed back as
+  `Error: 1` or `Warning: 1` on top of the real message
+
+### Added
+- **Log file**: the tool wrote nothing to disk, so a misbehaving operation left no trace once the
+  console scrolled. Saves and restores now record the campaign, the server, the source or target
+  directory, the resulting files, and failures with their traceback. Checkpoint creation is logged
+  in `create_checkpoint`, which both front ends go through, so a CLI save leaves the same trace as a
+  Discord one
+  - CLI: `--log-file PATH`, defaulting to `~/.foothold-checkpoint/logs/foothold-checkpoint.log`,
+    rotating at 5 MB over three files
+  - DCSServerBot plugin: records go to the bot's own log; the plugin installs no handler of its own
+  - Restoring a file under a different canonical name is logged, since that silent rename is how a
+    restore ends up writing files the running mission does not read
+- **CLI `--debug`**: prints the full traceback on failure and raises the log level to `DEBUG`.
+  Without it, failures now at least tell the user the flag exists
+- **First automated tests for the DCSServerBot plugin**, which had none. CI installs the plugin
+  dependency group so they run
+
 ## [2.2.0] - 2026-03-13
 
 ### Fixed

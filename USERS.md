@@ -7,6 +7,8 @@ Complete guide for using the Foothold Checkpoint Tool to manage DCS Foothold cam
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+  - [Global Options](#global-options)
+  - [The Log File](#the-log-file)
   - [Save Checkpoints](#save-checkpoints)
   - [List Checkpoints](#list-checkpoints)
   - [Restore Checkpoints](#restore-checkpoints)
@@ -152,6 +154,38 @@ campaigns:
 See `config.yaml.example` for complete examples.
 
 ## Usage
+
+### Global Options
+
+These apply to every command and go **before** it:
+
+```powershell
+poetry run foothold-checkpoint --debug restore
+poetry run foothold-checkpoint --log-file D:\logs\foothold.log save --all --server production-1
+```
+
+- `--config PATH`: use a specific configuration file
+- `--quiet`: suppress non-essential output
+- `--debug`: print the full traceback when something fails, and log at `DEBUG` level
+- `--log-file PATH`: where to write the operation log
+
+### The Log File
+
+Every save and restore is recorded: the campaign, the target server, the directory the files came
+from or went to, the resulting files, and any failure with its traceback. When a restore does not
+do what you expected, this is the file to read.
+
+By default it is written to:
+
+```
+~/.foothold-checkpoint/logs/foothold-checkpoint.log
+```
+
+It rotates at 5 MB and keeps three older files, so it cannot grow without bound. If the log file
+cannot be opened, the command still runs - logging never blocks the work.
+
+When running as a DCSServerBot plugin, there is no separate file: everything goes to the bot's own
+log, alongside the rest of its activity.
 
 ### Save Checkpoints
 
@@ -382,6 +416,57 @@ poetry run foothold-checkpoint delete afghanistan_2024-01-18_14-30-00.zip
 ```
 
 ## Troubleshooting
+
+### "N file(s) are not listed in any campaign and will NOT be saved"
+
+**Problem**: the server's `Missions/Saves` directory contains files that look like Foothold campaign
+files but are not listed in any campaign in your configuration. The tool names them and carries on
+with the campaigns it does recognise.
+
+**Why this matters even though the command succeeded**: a file the configuration does not know is
+invisible to the tool. It is never captured by a save, and a restore writes *beside* it rather than
+over it. The usual cause is a campaign file being renamed on the server - say from
+`FootHold_CA_v0.2.lua` to `FootHold_CA_v0.3.lua` - without `campaigns.yaml` following. Left alone,
+this is silent: that campaign's checkpoints contain nothing, and a restore reports success while the
+running mission keeps reading the old file and nothing changes in game.
+
+The warning does not block the operation, because an unconfigured campaign sitting on the server is
+no reason to stop backing up the others. The case that would actually lose data - a restore whose
+safety backup captured nothing - is stopped, and has its own entry below.
+
+**Solution**: add the real names to the campaign, keeping the previous ones so older checkpoints stay
+restorable. The **first** name in each list is the one a restore writes to, so it must be the name
+the mission currently reads:
+
+```yaml
+campaigns:
+  caucasus:
+    display_name: "Caucasus"
+    files:
+      persistence:
+        - "FootHold_CA_v0.3.lua"   # current name - restores write to this one
+        - "FootHold_CA_v0.2.lua"   # kept so older checkpoints still restore
+```
+
+To find the real names, list the server's save directory:
+
+```powershell
+dir "C:\Users\veaf\Saved Games\<server>\Missions\Saves"
+```
+
+### "Restore aborted: the automatic backup captured no files"
+
+**Problem**: before overwriting a campaign, the tool saves its current state. That backup came back
+empty *while campaign files it does not recognise are sitting in the target directory*, so the
+restore stopped. **Nothing was written.**
+
+**Solution**: this is almost always the same cause as above - fix the file names in `campaigns.yaml`
+and run the restore again. If you genuinely want to restore over a state that cannot be backed up,
+and you accept that there is no way back, use `--no-auto-backup`.
+
+Note that restoring into a directory with **no** campaign files at all is allowed and does not
+trigger this: seeding a fresh server from a checkpoint is a normal operation, and there is nothing
+to protect.
 
 ### "Server not found in configuration"
 

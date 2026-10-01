@@ -18,6 +18,8 @@ from .core.campaign import detect_campaigns
 from .core.config import CampaignConfig, Config, load_campaigns
 from .core.events import EventHooks
 from .core.storage import (
+    EmptyBackupError,
+    check_unknown_campaign_files,
     delete_checkpoint,
     list_checkpoints,
     restore_checkpoint,
@@ -41,6 +43,9 @@ from .ui import (
     PaginatedCheckpointDeleteBrowserView,
     PaginatedCheckpointSelectView,
 )
+
+#: Discord refuses more than 25 autocomplete choices in a single response.
+AUTOCOMPLETE_LIMIT = 25
 
 
 class FootholdCheckpoint(Plugin[FootholdEventListener]):
@@ -138,6 +143,62 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         """
         return self.locals
 
+    def _find_campaign(self, campaign: str) -> str | None:
+        """Resolve a campaign name against the configuration, ignoring case.
+
+        Checkpoint metadata is written at save time and outlives the config it
+        came from, so an exact match is too strict: a campaign that was renamed
+        to a different case would make an old checkpoint unrestorable.
+
+        Args:
+            campaign: Campaign name as stored in checkpoint metadata.
+
+        Returns:
+            The configured campaign id, or None when no campaign matches.
+        """
+        if campaign in self.campaigns:
+            return campaign
+
+        lowered = campaign.lower()
+        for configured in self.campaigns:
+            if configured.lower() == lowered:
+                return configured
+
+        return None
+
+    @staticmethod
+    def _format_unknown_files_warning(
+        server: str,
+        target_dir: Path,
+        unknown_files: list[str],
+    ) -> str:
+        """Build the Discord message shown when the Saves directory holds unknown files.
+
+        This warns, it does not refuse: an unconfigured campaign sitting on the
+        server is no reason to stop backing up the configured ones. The operation
+        that would actually lose data - a restore whose backup captured nothing -
+        is stopped in the core instead.
+
+        Args:
+            server: Name of the DCS server being operated on.
+            target_dir: The Missions/Saves directory that was inspected.
+            unknown_files: Campaign-looking files missing from the configuration.
+
+        Returns:
+            A Discord-formatted warning message.
+        """
+        listed = "\n".join(f"- `{name}`" for name in unknown_files)
+
+        return (
+            f"⚠️ **Files on `{server}` that this plugin cannot see**\n\n"
+            f"These are in `{target_dir}` but are missing from the campaign "
+            f"configuration:\n{listed}\n\n"
+            "They are never backed up, and a restore would write its files beside them "
+            "rather than over them. If they belong to a campaign you rely on, its "
+            "backups are not protecting anything.\n\n"
+            "Ask your server admin to add these names to `campaigns.yaml`."
+        )
+
     async def _check_permission(self, interaction: discord.Interaction, operation: str) -> bool:
         """Check if user has permission for operation.
 
@@ -175,11 +236,13 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             List of matching server choices
         """
         servers = list(self.bot.servers.keys())
-        return [
+        matches = [
             app_commands.Choice(name=server, value=server)
             for server in servers
             if current.lower() in server.lower()
-        ][:25]  # Discord autocomplete limit
+        ]
+
+        return matches[:AUTOCOMPLETE_LIMIT]
 
     # Discord Command: /foothold-checkpoint save
     @checkpoint_group.command(name="save", description="Save a checkpoint for a campaign")
@@ -351,15 +414,32 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             checkpoints_dir=self.core_config.checkpoints_dir, campaigns=self.campaigns, servers=None
         )
 
+        # Files the configuration does not know are never captured by a save, and
+        # the omission is invisible. Say so loudly - but do not block: an
+        # unconfigured campaign on the server is no reason to stop backing up the
+        # ones that are configured. A campaign whose own files are unrecognised
+        # fails on its own below, with "No campaign files found".
+        unknown_files: list[str] = []
+        try:
+            saves_dir = Path(self.bot.servers[server_name].instance.home) / "Missions" / "Saves"
+        except (AttributeError, KeyError) as e:
+            self.log.warning(f"Cannot locate Missions/Saves for {server_name}: {e}")
+        else:
+            unknown_files = check_unknown_campaign_files(saves_dir, temp_config)
+            if unknown_files:
+                self.log.warning(
+                    f"Unconfigured Foothold files in {saves_dir}: {', '.join(unknown_files)}"
+                )
+
         for camp in campaigns_to_save:
             try:
                 # Get campaign config
-                if camp not in self.campaigns:
+                actual_camp = self._find_campaign(camp)
+                if actual_camp is None:
                     errors.append(f"Unknown campaign: {camp}")
                     continue
+                camp = actual_camp
 
-                # Verify campaign exists in config
-                _ = self.campaigns[camp]  # Validates campaign exists
                 config_dict = self._get_config()
                 checkpoints_dir = Path(config_dict["checkpoints_dir"])
 
@@ -432,6 +512,12 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         # Send results
         # Always delete "Please wait..." message from interactive selector
         await interaction.delete_original_response()
+
+        if unknown_files:
+            await interaction.followup.send(
+                self._format_unknown_files_warning(server_name, saves_dir, unknown_files),
+                ephemeral=True,
+            )
 
         if len(campaigns_to_save) == 1:
             # Single campaign - use detailed embed
@@ -571,13 +657,18 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             return
 
         try:
-            # Get campaign config
-            if campaign not in self.campaigns:
-                await interaction.followup.send(f"❌ Unknown campaign: {campaign}", ephemeral=True)
+            # Get campaign config. Checkpoint metadata predates the current
+            # config, so match case-insensitively rather than refusing outright.
+            actual_campaign = self._find_campaign(campaign)
+            if actual_campaign is None:
+                await interaction.followup.send(
+                    f"❌ Unknown campaign: {campaign}\n"
+                    f"Known campaigns: {', '.join(sorted(self.campaigns))}",
+                    ephemeral=True,
+                )
                 return
+            campaign = actual_campaign
 
-            # Verify campaign exists in config
-            _ = self.campaigns[campaign]  # Validates campaign exists
             config_dict = self._get_config()
             checkpoints_dir = Path(config_dict["checkpoints_dir"])
             checkpoint_path = checkpoints_dir / checkpoint
@@ -604,13 +695,6 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
 
             server_name = server
 
-            # Create event hooks
-            async def on_progress(current: int, total: int) -> None:
-                """Update Discord UI with progress."""
-                self.log.debug(f"Restore progress: {current}/{total}")
-
-            hooks = EventHooks(on_restore_progress=on_progress)
-
             # Build temp config with campaigns loaded (for create_auto_backup's detect_campaigns call)
             from .core.config import Config
 
@@ -618,6 +702,35 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                 checkpoints_dir=self.core_config.checkpoints_dir,
                 campaigns=self.campaigns,
                 servers=None,
+            )
+
+            # Files the configuration does not know are flagged here, but the
+            # decision to stop belongs to restore_checkpoint: it refuses only when
+            # its automatic backup captured nothing, which is the case where state
+            # would actually be lost. Refusing on their mere presence would block
+            # restoring one campaign because another is unconfigured.
+            unknown_files = check_unknown_campaign_files(target_dir, temp_config)
+            if unknown_files:
+                self.log.warning(
+                    f"Unconfigured Foothold files in {target_dir}: {', '.join(unknown_files)}"
+                )
+
+            # Create event hooks. The backup path is captured here rather than
+            # guessed afterwards: auto-backups are named after their campaign,
+            # not "auto-backup-*", so globbing for them never matched anything.
+            captured_backup: dict[str, str] = {}
+
+            async def on_progress(current: int, total: int) -> None:
+                """Update Discord UI with progress."""
+                self.log.debug(f"Restore progress: {current}/{total}")
+
+            async def on_backup_complete(backup_path: Path) -> None:
+                """Remember the backup that was actually created."""
+                captured_backup["filename"] = Path(backup_path).name
+
+            hooks = EventHooks(
+                on_restore_progress=on_progress,
+                on_backup_complete=on_backup_complete,
             )
 
             # Execute restore with skip_overwrite_check=True since we already confirmed via UI
@@ -632,15 +745,7 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
             )
 
             # Send success response
-            backup_filename = None
-            if auto_backup:
-                # Try to find the backup file that was just created
-                # Auto-backups are named: auto-backup-YYYYMMDD-HHMMSS.zip
-                backup_pattern = "auto-backup-*.zip"
-                backups = list(checkpoints_dir.glob(backup_pattern))
-                if backups:
-                    # Get the most recent one
-                    backup_filename = sorted(backups, key=lambda p: p.stat().st_mtime)[-1].name
+            backup_filename = captured_backup.get("filename") if auto_backup else None
 
             embed = format_restore_success_embed(
                 checkpoint_filename=checkpoint,
@@ -662,6 +767,24 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
                     user=interaction.user,
                     checkpoint=checkpoint_path,
                     auto_backup=str(auto_backup),
+                )
+
+        except EmptyBackupError as e:
+            # The safety net caught nothing, so nothing was written. Say so in
+            # plain terms rather than through the generic error embed.
+            self.log.error(f"Restore aborted, backup captured nothing: {e}", exc_info=True)
+            await interaction.followup.send(
+                f"⛔ **Restore aborted — nothing was changed.**\n\n{e}",
+                ephemeral=True,
+            )
+            if interaction.guild:
+                await send_notification(
+                    guild=interaction.guild,
+                    config=self._get_config(),
+                    event_type="error",
+                    campaign=campaign,
+                    user=interaction.user,
+                    error=e,
                 )
 
         except Exception as e:

@@ -52,7 +52,7 @@ Recommended extensions:
 - Python (Microsoft)
 - Pylance
 - Ruff
-- Black Formatter
+- Ruff (formatter + linter)
 - Python Test Explorer
 
 Configure VS Code to use the Poetry virtualenv:
@@ -135,7 +135,7 @@ VEAF-foothold-checkpoint-tool/
 - **Code**: English only (functions, variables, classes, comments, docstrings)
 - **Communication**: French with team members
 - **Documentation**: English
-- **Line length**: 100 characters (Black/Ruff enforced)
+- **Line length**: 100 characters (Ruff enforced)
 - **Type hints**: Mandatory for all public functions
 - **Docstrings**: Required for public modules, classes, and functions
 
@@ -144,8 +144,8 @@ VEAF-foothold-checkpoint-tool/
 All code must pass these checks before commit:
 
 ```powershell
-# Format code with Black
-poetry run black src/ tests/
+# Format code with ruff format (replaced Black; this is what CI checks)
+poetry run ruff format .
 
 # Lint with Ruff
 poetry run ruff check src/ tests/
@@ -154,14 +154,14 @@ poetry run ruff check src/ tests/
 poetry run mypy src/
 
 # Run all checks together
-poetry run black src/ tests/ && poetry run ruff check src/ tests/ && poetry run mypy src/
+poetry run ruff format . && poetry run ruff check . && poetry run mypy src/
 ```
 
 ### Pre-commit Checklist
 
 Before committing code:
 
-1. ✅ Format with Black
+1. ✅ Format with `ruff format`
 2. ✅ Lint with Ruff (no errors)
 3. ✅ Type check with mypy (no errors)
 4. ✅ All tests pass
@@ -364,7 +364,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 ### Before Creating PR
 
 1. ✅ All tests pass: `poetry run pytest`
-2. ✅ Code formatted: `poetry run black src/ tests/`
+2. ✅ Code formatted: `poetry run ruff format .`
 3. ✅ Linting clean: `poetry run ruff check src/ tests/`
 4. ✅ Type checks pass: `poetry run mypy src/`
 5. ✅ CHANGELOG.md updated

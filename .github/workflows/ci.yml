@@ -53,10 +53,10 @@ jobs:
       
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
+        run: poetry install --no-interaction --no-root --with plugin
       
       - name: Install project
-        run: poetry install --no-interaction
+        run: poetry install --no-interaction --with plugin
       
       - name: Run ruff (linting)
         run: poetry run ruff check .
