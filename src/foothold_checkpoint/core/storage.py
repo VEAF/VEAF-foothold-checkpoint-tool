@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, cast
 # Use relative imports for DCSSB compatibility (package structure is flattened)
 from .campaign import (
     STATUS_FILENAME,
+    build_file_to_campaign_map,
     detect_campaigns,
     detect_unknown_files,
     find_campaign_for_file,
@@ -123,30 +124,43 @@ def format_undeclared_live_campaign_warning(
     live_file: str,
     server_name: str,
     source_dir: str | Path,
+    config: "Config",
 ) -> str:
     """Build the operator-facing warning naming the unprotected live campaign.
 
-    The suggested file names are read from the directory rather than derived from
-    the persistence file's stem: Foothold's CSV naming is not uniform across
-    campaigns - the Cold War variants use `FootHold_CA_CTLD_Save_Coldwar.csv`,
-    which no amount of stem arithmetic produces.
+    The suggested file names are files that exist in the directory, never names
+    derived from the persistence file's stem: Foothold's CSV naming is not uniform
+    across campaigns, and inventing names would send the operator to configure
+    files that do not exist.
+
+    They are the files sharing the live file's prefix that no campaign declares
+    yet. A file another campaign already declares is left out: the modern and
+    Cold War campaigns share a prefix (`FootHold_CA_v0.2.lua`,
+    `FootHold_CA_v0.2_Coldwar.lua`) and must never be folded into one campaign.
+    Files whose names carry no version, like `FootHold_CA_CTLD_Save_Coldwar.csv`,
+    are already declared and need no change.
 
     Args:
         live_file: Persistence filename read from foothold.status.
         server_name: Server that was saved.
         source_dir: The Missions/Saves directory inspected.
+        config: Configuration object containing campaign definitions.
 
     Returns:
         A multi-line, actionable message.
     """
     source_dir = Path(source_dir)
     stem = live_file.rsplit(".", 1)[0]
+    declared = build_file_to_campaign_map(config)
 
     try:
         siblings = sorted(
             f.name
             for f in source_dir.iterdir()
-            if f.is_file() and f.name != live_file and f.name.startswith(stem)
+            if f.is_file()
+            and f.name != live_file
+            and f.name.startswith(stem)
+            and f.name not in declared
         )
     except OSError:
         siblings = []

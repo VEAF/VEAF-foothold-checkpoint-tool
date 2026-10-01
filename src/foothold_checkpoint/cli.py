@@ -711,7 +711,9 @@ def save_command(
         if undeclared_live:
             console.print(
                 "\n[red]The campaign being played was NOT saved.[/red]\n"
-                + format_undeclared_live_campaign_warning(undeclared_live, server, mission_dir)
+                + format_undeclared_live_campaign_warning(
+                    undeclared_live, server, mission_dir, config
+                )
             )
             raise typer.Exit(1)
 

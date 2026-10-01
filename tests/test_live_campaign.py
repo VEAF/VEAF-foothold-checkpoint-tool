@@ -256,7 +256,20 @@ class TestTheWarningNamesRealFiles:
     that do not exist.
     """
 
-    def test_lists_the_sibling_files_that_actually_exist(self, saves_dir):
+    @pytest.fixture
+    def unrelated_config(self, tmp_path):
+        from tests.conftest import make_simple_campaign, make_test_config
+
+        return make_test_config(
+            checkpoints_dir=tmp_path / "cp",
+            campaigns={
+                "syria": make_simple_campaign(
+                    "Syria", persistence_files=["footholdSyria_Extended_0.1.lua"]
+                )
+            },
+        )
+
+    def test_lists_the_sibling_files_that_actually_exist(self, saves_dir, unrelated_config):
         from foothold_checkpoint.core.storage import format_undeclared_live_campaign_warning
 
         (saves_dir / "FootHold_CA_v0.4.lua").write_text("x", encoding="utf-8")
@@ -264,34 +277,111 @@ class TestTheWarningNamesRealFiles:
         (saves_dir / "FootHold_CA_v0.4_CTLD_Save.csv").write_text("x", encoding="utf-8")
 
         message = format_undeclared_live_campaign_warning(
-            "FootHold_CA_v0.4.lua", "foothold1", saves_dir
+            "FootHold_CA_v0.4.lua", "foothold1", saves_dir, unrelated_config
         )
 
         assert "FootHold_CA_v0.4.lua" in message
         assert "FootHold_CA_v0.4_storage.csv" in message
         assert "FootHold_CA_v0.4_CTLD_Save.csv" in message
 
-    def test_does_not_invent_files_that_are_absent(self, saves_dir):
+    def test_does_not_invent_files_that_are_absent(self, saves_dir, unrelated_config):
         from foothold_checkpoint.core.storage import format_undeclared_live_campaign_warning
 
         (saves_dir / "FootHold_CA_v0.4.lua").write_text("x", encoding="utf-8")
 
         message = format_undeclared_live_campaign_warning(
-            "FootHold_CA_v0.4.lua", "foothold1", saves_dir
+            "FootHold_CA_v0.4.lua", "foothold1", saves_dir, unrelated_config
         )
 
         assert "_CTLD_FARPS.csv" not in message
         assert "_storage.csv" not in message
 
-    def test_names_the_server_and_the_status_file(self, saves_dir):
+    def test_names_the_server_and_the_status_file(self, saves_dir, unrelated_config):
         from foothold_checkpoint.core.campaign import STATUS_FILENAME
         from foothold_checkpoint.core.storage import format_undeclared_live_campaign_warning
 
         (saves_dir / "FootHold_CA_v0.4.lua").write_text("x", encoding="utf-8")
 
         message = format_undeclared_live_campaign_warning(
-            "FootHold_CA_v0.4.lua", "foothold1", saves_dir
+            "FootHold_CA_v0.4.lua", "foothold1", saves_dir, unrelated_config
         )
 
         assert "foothold1" in message
         assert STATUS_FILENAME in message
+
+
+class TestTheWarningNeverMixesCampaigns:
+    """A file another campaign already declares is never suggested.
+
+    The modern and Cold War campaigns share a name prefix and coexist in the same
+    Missions/Saves, yet campaigns.yaml insists they must never be folded into one
+    campaign. Selecting siblings by prefix alone told the operator to add the Cold
+    War persistence file to the modern campaign.
+    """
+
+    @pytest.fixture
+    def config(self, tmp_path):
+        from tests.conftest import make_simple_campaign, make_test_config
+
+        return make_test_config(
+            checkpoints_dir=tmp_path / "cp",
+            campaigns={
+                "caucasus": make_simple_campaign(
+                    "Caucasus",
+                    persistence_files=["FootHold_CA_v0.2.lua"],
+                    storage=["FootHold_CA_v0.2_storage.csv"],
+                ),
+                "caucasus_coldwar": make_simple_campaign(
+                    "Caucasus Cold War",
+                    persistence_files=["FootHold_CA_v0.2_Coldwar.lua"],
+                    ctld_save=["FootHold_CA_CTLD_Save_Coldwar.csv"],
+                    ctld_farps=["Foothold_CA_CTLD_FARPS_Coldwar.csv"],
+                ),
+            },
+        )
+
+    @pytest.fixture
+    def caucasus_saves(self, saves_dir):
+        for name in [
+            "FootHold_CA_v0.2.lua",
+            "FootHold_CA_v0.2_storage.csv",
+            "FootHold_CA_v0.2_Coldwar.lua",
+            "FootHold_CA_CTLD_Save_Coldwar.csv",
+            "Foothold_CA_CTLD_FARPS_Coldwar.csv",
+        ]:
+            (saves_dir / name).write_text("x", encoding="utf-8")
+        return saves_dir
+
+    def test_modern_bump_does_not_suggest_the_cold_war_file(self, caucasus_saves, config):
+        from foothold_checkpoint.core.storage import format_undeclared_live_campaign_warning
+
+        (caucasus_saves / "FootHold_CA_v0.3.lua").write_text("x", encoding="utf-8")
+        (caucasus_saves / "FootHold_CA_v0.3_storage.csv").write_text("x", encoding="utf-8")
+        (caucasus_saves / "FootHold_CA_v0.3_Coldwar.lua").write_text("x", encoding="utf-8")
+
+        # The Cold War mission moved to v0.3 too and is declared accordingly
+        config.campaigns["caucasus_coldwar"].files.persistence.files.insert(
+            0, "FootHold_CA_v0.3_Coldwar.lua"
+        )
+
+        message = format_undeclared_live_campaign_warning(
+            "FootHold_CA_v0.3.lua", "foothold1", caucasus_saves, config
+        )
+
+        assert "FootHold_CA_v0.3_storage.csv" in message
+        assert "FootHold_CA_v0.3_Coldwar.lua" not in message
+
+    def test_cold_war_bump_lists_only_what_is_undeclared(self, caucasus_saves, config):
+        from foothold_checkpoint.core.storage import format_undeclared_live_campaign_warning
+
+        (caucasus_saves / "FootHold_CA_v0.3_Coldwar.lua").write_text("x", encoding="utf-8")
+
+        message = format_undeclared_live_campaign_warning(
+            "FootHold_CA_v0.3_Coldwar.lua", "foothold1", caucasus_saves, config
+        )
+
+        listing = message.split("must come first:")[1]
+        assert "FootHold_CA_v0.3_Coldwar.lua" in listing
+        # Its CSV names carry no version: already declared, nothing to add
+        assert "CTLD" not in listing
+        assert "FootHold_CA_v0.2" not in listing

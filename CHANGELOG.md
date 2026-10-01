@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     file actually in use. It is read once per server, around the save rather than inside it
   - Everything that *is* configured is still saved. The report then names the live campaign and
     lists the files to add, read from the directory rather than guessed from the file name - the
-    Cold War campaigns use a CSV naming that no amount of stem arithmetic produces
+    Cold War campaigns use a CSV naming that no amount of stem arithmetic produces. Files another
+    campaign already declares are left out: the modern and Cold War campaigns share a name prefix
+    and must never be folded into one
   - It is reported as a failure, not a footnote: the Discord command sends a separate error message
     and the CLI exits non-zero, after the checkpoints are safely written
   - It deliberately does not abort the save. A save runs once per campaign, so aborting would have

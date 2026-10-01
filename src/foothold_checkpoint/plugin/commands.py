@@ -535,7 +535,9 @@ class FootholdCheckpoint(Plugin[FootholdEventListener]):
         if undeclared_live:
             await interaction.followup.send(
                 "❌ **The campaign being played was not saved**\n```\n"
-                + format_undeclared_live_campaign_warning(undeclared_live, server_name, saves_dir)
+                + format_undeclared_live_campaign_warning(
+                    undeclared_live, server_name, saves_dir, temp_config
+                )
                 + "```",
                 ephemeral=True,
             )
