@@ -12,19 +12,16 @@ from datetime import datetime, timezone
 
 import pytest
 
-from foothold_checkpoint.core.storage import (
-    EmptyBackupError,
-    check_unknown_campaign_files,
-    restore_checkpoint,
-    save_all_campaigns,
-    save_checkpoint,
-)
-from tests.conftest import make_simple_campaign, make_test_config
+# Timestamp shared by checkpoints that must not collide, and old enough that a
+# backup taken during a test can never land on the same one-second filename.
+SAME_INSTANT = datetime(2026, 4, 30, 22, 18, 58, tzinfo=timezone.utc)
 
 
 @pytest.fixture
 def caucasus_config(tmp_path):
     """Config declaring the OLD caucasus filenames (as the incident had it)."""
+    from tests.conftest import make_simple_campaign, make_test_config
+
     return make_test_config(
         checkpoints_dir=tmp_path / "checkpoints",
         campaigns={
@@ -49,11 +46,9 @@ def renamed_saves_dir(tmp_path):
 
 @pytest.fixture
 def caucasus_checkpoint(tmp_path, caucasus_config):
-    """A valid caucasus checkpoint, built from the OLD filenames.
+    """A valid caucasus checkpoint, built from the OLD filenames."""
+    from foothold_checkpoint.core.storage import save_checkpoint
 
-    Dated in the past so that the auto-backup taken during a restore cannot land
-    on the same timestamped filename.
-    """
     old_saves = tmp_path / "old_saves"
     old_saves.mkdir()
     (old_saves / "FootHold_CA_v0.2.lua").write_text("archived state", encoding="utf-8")
@@ -65,7 +60,7 @@ def caucasus_checkpoint(tmp_path, caucasus_config):
             source_dir=old_saves,
             output_dir=caucasus_config.checkpoints_dir,
             config=caucasus_config,
-            created_at=datetime(2026, 4, 30, 22, 18, 58, tzinfo=timezone.utc),
+            created_at=SAME_INSTANT,
         )
     )
 
@@ -74,11 +69,15 @@ class TestCheckUnknownCampaignFiles:
     """check_unknown_campaign_files() reports files the configuration ignores."""
 
     def test_reports_files_the_config_does_not_know(self, renamed_saves_dir, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         unknown = check_unknown_campaign_files(renamed_saves_dir, caucasus_config)
 
         assert unknown == ["FootHold_CA_v0.3.lua", "FootHold_CA_v0.3_CTLD_Save.csv"]
 
     def test_returns_empty_list_when_every_file_is_configured(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         saves = tmp_path / "Saves"
         saves.mkdir()
         (saves / "FootHold_CA_v0.2.lua").write_text("state", encoding="utf-8")
@@ -86,6 +85,8 @@ class TestCheckUnknownCampaignFiles:
         assert check_unknown_campaign_files(saves, caucasus_config) == []
 
     def test_ignores_files_that_are_not_foothold_files(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         saves = tmp_path / "Saves"
         saves.mkdir()
         (saves / "FootHold_CA_v0.2.lua").write_text("state", encoding="utf-8")
@@ -95,16 +96,40 @@ class TestCheckUnknownCampaignFiles:
         assert check_unknown_campaign_files(saves, caucasus_config) == []
 
     def test_ignores_the_shared_ranks_file(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         saves = tmp_path / "Saves"
         saves.mkdir()
         (saves / "Foothold_Ranks.lua").write_text("ranks", encoding="utf-8")
 
         assert check_unknown_campaign_files(saves, caucasus_config) == []
 
+    def test_ignores_subdirectories(self, tmp_path, caucasus_config):
+        """A directory named like a campaign file is not a campaign file."""
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
+        saves = tmp_path / "Saves"
+        saves.mkdir()
+        (saves / "FootHold_CA_v0.3_backup").mkdir()
+
+        assert check_unknown_campaign_files(saves, caucasus_config) == []
+
     def test_returns_empty_list_for_a_missing_directory(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         assert check_unknown_campaign_files(tmp_path / "does-not-exist", caucasus_config) == []
 
+    def test_returns_empty_list_when_handed_a_file(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
+        a_file = tmp_path / "not-a-directory.txt"
+        a_file.write_text("x", encoding="utf-8")
+
+        assert check_unknown_campaign_files(a_file, caucasus_config) == []
+
     def test_accepts_a_string_path(self, renamed_saves_dir, caucasus_config):
+        from foothold_checkpoint.core.storage import check_unknown_campaign_files
+
         unknown = check_unknown_campaign_files(str(renamed_saves_dir), caucasus_config)
 
         assert "FootHold_CA_v0.3.lua" in unknown
@@ -120,9 +145,10 @@ class TestCheckpointsNeverOverwriteEachOther:
     """
 
     def test_a_second_checkpoint_does_not_destroy_the_first(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import save_checkpoint
+
         saves = tmp_path / "Saves"
         saves.mkdir()
-        same_instant = datetime(2026, 4, 30, 22, 18, 58, tzinfo=timezone.utc)
 
         (saves / "FootHold_CA_v0.2.lua").write_text("first state", encoding="utf-8")
         first = asyncio.run(
@@ -132,7 +158,7 @@ class TestCheckpointsNeverOverwriteEachOther:
                 source_dir=saves,
                 output_dir=caucasus_config.checkpoints_dir,
                 config=caucasus_config,
-                created_at=same_instant,
+                created_at=SAME_INSTANT,
             )
         )
 
@@ -144,7 +170,7 @@ class TestCheckpointsNeverOverwriteEachOther:
                 source_dir=saves,
                 output_dir=caucasus_config.checkpoints_dir,
                 config=caucasus_config,
-                created_at=same_instant,
+                created_at=SAME_INSTANT,
             )
         )
 
@@ -152,10 +178,35 @@ class TestCheckpointsNeverOverwriteEachOther:
         assert first.exists(), "the first checkpoint must still be there"
         assert second.exists()
 
-    def test_both_checkpoints_keep_their_own_contents(self, tmp_path, caucasus_config):
+    def test_a_third_checkpoint_gets_its_own_name_too(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import save_checkpoint
+
         saves = tmp_path / "Saves"
         saves.mkdir()
-        same_instant = datetime(2026, 4, 30, 22, 18, 58, tzinfo=timezone.utc)
+        (saves / "FootHold_CA_v0.2.lua").write_text("state", encoding="utf-8")
+
+        paths = [
+            asyncio.run(
+                save_checkpoint(
+                    campaign_name="caucasus",
+                    server_name="srv",
+                    source_dir=saves,
+                    output_dir=caucasus_config.checkpoints_dir,
+                    config=caucasus_config,
+                    created_at=SAME_INSTANT,
+                )
+            )
+            for _ in range(3)
+        ]
+
+        assert len({p.name for p in paths}) == 3
+        assert all(p.exists() for p in paths)
+
+    def test_both_checkpoints_keep_their_own_contents(self, tmp_path, caucasus_config):
+        from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
+
+        saves = tmp_path / "Saves"
+        saves.mkdir()
         target = tmp_path / "target"
         target.mkdir()
 
@@ -167,7 +218,7 @@ class TestCheckpointsNeverOverwriteEachOther:
                 source_dir=saves,
                 output_dir=caucasus_config.checkpoints_dir,
                 config=caucasus_config,
-                created_at=same_instant,
+                created_at=SAME_INSTANT,
             )
         )
 
@@ -179,7 +230,7 @@ class TestCheckpointsNeverOverwriteEachOther:
                 source_dir=saves,
                 output_dir=caucasus_config.checkpoints_dir,
                 config=caucasus_config,
-                created_at=same_instant,
+                created_at=SAME_INSTANT,
             )
         )
 
@@ -202,6 +253,9 @@ class TestSaveAllCampaignsReportsFailures:
     """save_all_campaigns() must never discard a failure without a trace."""
 
     def test_logs_an_error_when_a_campaign_cannot_be_saved(self, tmp_path, caplog, monkeypatch):
+        from foothold_checkpoint.core.storage import save_all_campaigns
+        from tests.conftest import make_simple_campaign, make_test_config
+
         source = tmp_path / "Saves"
         source.mkdir()
         (source / "foothold_test.lua").write_text("state", encoding="utf-8")
@@ -228,7 +282,38 @@ class TestSaveAllCampaignsReportsFailures:
         assert "disk full" in caplog.text
         assert "test" in caplog.text
 
+    def test_the_logged_failure_carries_a_traceback(self, tmp_path, caplog, monkeypatch):
+        from foothold_checkpoint.core.storage import save_all_campaigns
+        from tests.conftest import make_simple_campaign, make_test_config
+
+        source = tmp_path / "Saves"
+        source.mkdir()
+        (source / "foothold_test.lua").write_text("state", encoding="utf-8")
+        config = make_test_config(
+            campaigns={"test": make_simple_campaign("Test", ["foothold_test.lua"])}
+        )
+
+        async def exploding_save(**_kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr("foothold_checkpoint.core.storage.save_checkpoint", exploding_save)
+
+        with caplog.at_level(logging.ERROR, logger="foothold_checkpoint.core.storage"):
+            asyncio.run(
+                save_all_campaigns(
+                    server_name="srv",
+                    source_dir=source,
+                    output_dir=tmp_path / "out",
+                    config=config,
+                )
+            )
+
+        assert any(record.exc_info for record in caplog.records), "expected a traceback"
+
     def test_still_raises_when_continue_on_error_is_disabled(self, tmp_path, monkeypatch):
+        from foothold_checkpoint.core.storage import save_all_campaigns
+        from tests.conftest import make_simple_campaign, make_test_config
+
         source = tmp_path / "Saves"
         source.mkdir()
         (source / "foothold_test.lua").write_text("state", encoding="utf-8")
@@ -264,6 +349,8 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
     def test_raises_when_the_auto_backup_captured_nothing(
         self, caucasus_checkpoint, renamed_saves_dir, caucasus_config
     ):
+        from foothold_checkpoint.core.storage import EmptyBackupError, restore_checkpoint
+
         with pytest.raises(EmptyBackupError) as exc_info:
             asyncio.run(
                 restore_checkpoint(
@@ -279,9 +366,33 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
         message = str(exc_info.value)
         assert "FootHold_CA_v0.3.lua" in message, "the message must name the unknown files"
 
+    def test_says_so_when_the_directory_holds_no_campaign_file_at_all(
+        self, caucasus_checkpoint, tmp_path, caucasus_config
+    ):
+        from foothold_checkpoint.core.storage import EmptyBackupError, restore_checkpoint
+
+        empty_target = tmp_path / "empty_target"
+        empty_target.mkdir()
+
+        with pytest.raises(EmptyBackupError) as exc_info:
+            asyncio.run(
+                restore_checkpoint(
+                    checkpoint_path=caucasus_checkpoint,
+                    target_dir=empty_target,
+                    config=caucasus_config,
+                    server_name="srv",
+                    auto_backup=True,
+                    skip_overwrite_check=True,
+                )
+            )
+
+        assert "right one" in str(exc_info.value), "should point at the wrong-server case"
+
     def test_leaves_the_target_directory_untouched_when_it_refuses(
         self, caucasus_checkpoint, renamed_saves_dir, caucasus_config
     ):
+        from foothold_checkpoint.core.storage import EmptyBackupError, restore_checkpoint
+
         before = sorted(p.name for p in renamed_saves_dir.iterdir())
 
         with pytest.raises(EmptyBackupError):
@@ -302,6 +413,8 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
     def test_proceeds_when_the_caller_explicitly_waives_the_backup(
         self, caucasus_checkpoint, renamed_saves_dir, caucasus_config
     ):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         restored = asyncio.run(
             restore_checkpoint(
                 checkpoint_path=caucasus_checkpoint,
@@ -319,6 +432,8 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
     def test_does_not_interfere_when_the_backup_succeeds(
         self, caucasus_checkpoint, tmp_path, caucasus_config
     ):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         target = tmp_path / "good_saves"
         target.mkdir()
         (target / "FootHold_CA_v0.2.lua").write_text("current state", encoding="utf-8")
@@ -340,6 +455,8 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
     def test_does_not_apply_when_auto_backup_is_disabled(
         self, caucasus_checkpoint, renamed_saves_dir, caucasus_config
     ):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         restored = asyncio.run(
             restore_checkpoint(
                 checkpoint_path=caucasus_checkpoint,
@@ -347,6 +464,21 @@ class TestRestoreRefusesWhenBackupCapturedNothing:
                 config=caucasus_config,
                 server_name="srv",
                 auto_backup=False,
+                skip_overwrite_check=True,
+            )
+        )
+
+        assert [p.name for p in restored] == ["FootHold_CA_v0.2.lua"]
+
+    def test_does_not_apply_when_no_config_is_given(self, caucasus_checkpoint, renamed_saves_dir):
+        """Without a config there is no auto-backup to require in the first place."""
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
+        restored = asyncio.run(
+            restore_checkpoint(
+                checkpoint_path=caucasus_checkpoint,
+                target_dir=renamed_saves_dir,
+                auto_backup=True,
                 skip_overwrite_check=True,
             )
         )

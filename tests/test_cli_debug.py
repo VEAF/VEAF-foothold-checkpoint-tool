@@ -8,8 +8,6 @@ prints only ``str(e)``.
 import yaml
 from typer.testing import CliRunner
 
-from foothold_checkpoint.cli import app
-
 runner = CliRunner()
 
 
@@ -62,6 +60,8 @@ class TestDebugFlag:
         config_file = write_config(tmp_path)
         corrupt = write_corrupt_checkpoint(tmp_path)
 
+        from foothold_checkpoint.cli import app
+
         result = runner.invoke(
             app,
             ["--config", str(config_file), "--debug", "restore", str(corrupt), "-s", "foothold1"],
@@ -74,6 +74,8 @@ class TestDebugFlag:
     def test_stays_quiet_about_internals_without_the_flag(self, tmp_path):
         config_file = write_config(tmp_path)
         corrupt = write_corrupt_checkpoint(tmp_path)
+
+        from foothold_checkpoint.cli import app
 
         result = runner.invoke(
             app,
@@ -89,6 +91,8 @@ class TestDebugFlag:
         config_file = write_config(tmp_path)
         corrupt = write_corrupt_checkpoint(tmp_path)
 
+        from foothold_checkpoint.cli import app
+
         result = runner.invoke(
             app,
             ["--config", str(config_file), "--debug", "restore", str(corrupt), "-s", "foothold1"],
@@ -100,6 +104,8 @@ class TestDebugFlag:
     def test_a_deliberate_exit_is_not_reported_as_a_crash(self, tmp_path):
         """typer.Exit subclasses RuntimeError, so it must be let through."""
         config_file = write_config(tmp_path)
+
+        from foothold_checkpoint.cli import app
 
         result = runner.invoke(
             app,
@@ -120,6 +126,8 @@ class TestLogFileOption:
         config_file = write_config(tmp_path)
         log_file = tmp_path / "logs" / "run.log"
 
+        from foothold_checkpoint.cli import app
+
         runner.invoke(
             app,
             ["--config", str(config_file), "--log-file", str(log_file), "list"],
@@ -131,6 +139,8 @@ class TestLogFileOption:
         config_file = write_config(tmp_path)
         corrupt = write_corrupt_checkpoint(tmp_path)
         log_file = tmp_path / "run.log"
+
+        from foothold_checkpoint.cli import app
 
         runner.invoke(
             app,
@@ -155,6 +165,8 @@ class TestLogFileOption:
         config_file = write_config(tmp_path)
         log_file = tmp_path / "run.log"
 
+        from foothold_checkpoint.cli import app
+
         result = runner.invoke(
             app,
             [
@@ -174,6 +186,8 @@ class TestLogFileOption:
         config_file = write_config(tmp_path)
         blocker = tmp_path / "blocker"
         blocker.write_text("not a directory", encoding="utf-8")
+
+        from foothold_checkpoint.cli import app
 
         result = runner.invoke(
             app,

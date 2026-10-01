@@ -11,15 +11,14 @@ from datetime import datetime, timezone
 
 import pytest
 
-from foothold_checkpoint.core.storage import restore_checkpoint, save_checkpoint
-from tests.conftest import make_simple_campaign, make_test_config
-
 STORAGE_LOGGER = "foothold_checkpoint.core.storage"
 
 
 @pytest.fixture
 def config(tmp_path):
     """Config whose canonical caucasus name is v0.2, with v0.1 accepted as legacy."""
+    from tests.conftest import make_simple_campaign, make_test_config
+
     return make_test_config(
         checkpoints_dir=tmp_path / "checkpoints",
         campaigns={
@@ -41,6 +40,8 @@ def saves_dir(tmp_path):
 
 @pytest.fixture
 def checkpoint(config, saves_dir):
+    from foothold_checkpoint.core.storage import save_checkpoint
+
     return asyncio.run(
         save_checkpoint(
             campaign_name="caucasus",
@@ -57,6 +58,8 @@ class TestSaveLeavesATrace:
     """A save records what it took, from where, and for which server."""
 
     def test_logs_the_campaign_server_and_source_directory(self, config, saves_dir, caplog):
+        from foothold_checkpoint.core.storage import save_checkpoint
+
         with caplog.at_level(logging.INFO, logger=STORAGE_LOGGER):
             asyncio.run(
                 save_checkpoint(
@@ -73,6 +76,8 @@ class TestSaveLeavesATrace:
         assert str(saves_dir) in caplog.text
 
     def test_logs_the_checkpoint_it_produced(self, config, saves_dir, caplog):
+        from foothold_checkpoint.core.storage import save_checkpoint
+
         with caplog.at_level(logging.INFO, logger=STORAGE_LOGGER):
             checkpoint = asyncio.run(
                 save_checkpoint(
@@ -87,6 +92,8 @@ class TestSaveLeavesATrace:
         assert checkpoint.name in caplog.text
 
     def test_logs_a_failure_with_its_traceback(self, config, tmp_path, caplog):
+        from foothold_checkpoint.core.storage import save_checkpoint
+
         empty = tmp_path / "empty"
         empty.mkdir()
 
@@ -112,6 +119,8 @@ class TestRestoreLeavesATrace:
     """A restore records where the files actually went."""
 
     def test_logs_the_server_and_target_directory(self, checkpoint, config, tmp_path, caplog):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         target = tmp_path / "target"
         target.mkdir()
 
@@ -131,6 +140,8 @@ class TestRestoreLeavesATrace:
         assert str(target) in caplog.text, "the target directory must be recorded"
 
     def test_logs_the_checkpoint_being_restored(self, checkpoint, config, tmp_path, caplog):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         target = tmp_path / "target"
         target.mkdir()
 
@@ -152,6 +163,11 @@ class TestRestoreLeavesATrace:
         self, config, tmp_path, saves_dir, caplog
     ):
         """Canonical renaming is a silent decision; it has to be visible."""
+        from foothold_checkpoint.core.storage import (
+            restore_checkpoint,
+            save_checkpoint,
+        )
+
         legacy_saves = tmp_path / "legacy"
         legacy_saves.mkdir()
         (legacy_saves / "FootHold_CA_v0.1.lua").write_text("old state", encoding="utf-8")
@@ -183,6 +199,8 @@ class TestRestoreLeavesATrace:
         assert "FootHold_CA_v0.2.lua" in caplog.text
 
     def test_logs_a_failure_with_its_traceback(self, config, tmp_path, caplog):
+        from foothold_checkpoint.core.storage import restore_checkpoint
+
         missing = tmp_path / "nope.zip"
         target = tmp_path / "target"
         target.mkdir()
